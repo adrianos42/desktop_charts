@@ -1,0 +1,33 @@
+name: docs_web
+description: Desktop charts documentation.
+
+publish_to: 'none'
+
+version: 1.0.0+1
+
+environment:
+  sdk: '>=3.0.0-308.0.dev <4.0.0'
+
+dependencies:
+  flutter:
+    sdk: flutter
+  desktop: any
+  dart_style: ^2.2.4
+  markdown_docs_flutter: ^1.0.0
+  intl: ^0.17.0
+  desktop_charts: any
+
+dependency_overrides:
+  desktop:
+    path: ../../desktop/desktop
+  desktop_charts:
+    path: ../desktop_charts
+  markdown_docs_flutter:
+    path: ../../markdown_docs_flutter/markdown_docs_flutter
+
+dev_dependencies:
+  flutter_test:
+    sdk: flutter
+  flutter_lints: ^2.0.0
+
+flutter:
