@@ -17,6 +17,8 @@
 
 import 'package:flutter/widgets.dart';
 
+import '../behavior/chart_behavior.dart' show ChartBehavior;
+import '../behavior/domain_highlighter.dart' show DomainHighlighter;
 import '../cartesian/cartesian_chart.dart'
     show OrdinalCartesianChart, OrdinalCartesianChartState;
 import 'bar_renderer_config.dart';
@@ -29,7 +31,6 @@ class BarChart extends OrdinalCartesianChart {
     super.seriesList, {
     BarRendererConfig<String>? defaultRenderer,
     BarGroupingType? barGroupingType,
-    super.layoutConfig,
     super.primaryMeasureAxis,
     super.secondaryMeasureAxis,
     super.disjointMeasureAxes,
@@ -63,9 +64,9 @@ class BarChart extends OrdinalCartesianChart {
 
 class BarChartState extends OrdinalCartesianChartState {
   @override
-  void addDefaultInteractions(List<dynamic> behaviors) {
-    // super.addDefaultInteractions(behaviors);
+  void addDefaultInteractions(List<ChartBehavior> behaviors) {
+    super.addDefaultInteractions(behaviors);
 
-    //behaviors.add(DomainHighlighter<String>());
+    behaviors.add(DomainHighlighter<String>());
   }
 }

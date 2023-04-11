@@ -50,7 +50,6 @@ class LineRenderer<D, S extends BaseChart<D>>
     required super.seriesList,
   }) : super(
           rendererId: rendererId ?? 'line',
-          layoutPaintOrder: config.layoutPaintOrder,
           symbolRenderer: config.symbolRenderer,
         );
 

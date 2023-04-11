@@ -22,7 +22,7 @@ import '../series_datum.dart' show SeriesDatumConfig;
 import 'chart_behavior.dart' show ChartBehavior;
 
 /// Behavior that sets initial selection.
-class InitialSelection<D> implements ChartBehavior<D> {
+class InitialSelection<D> extends ChartBehavior<D> {
   final SelectionModelType selectionModelType;
 
   /// List of series id of initially selected series.
@@ -41,11 +41,12 @@ class InitialSelection<D> implements ChartBehavior<D> {
 
   // TODO : When the series changes, if the user does not also
   // change the index the wrong item could be highlighted.
-  InitialSelection(
-      {this.selectionModelType = SelectionModelType.info,
-      this.selectedDataConfig,
-      this.selectedSeriesConfig,
-      this.shouldPreserveSelectionOnDraw = false}) {
+  InitialSelection({
+    this.selectionModelType = SelectionModelType.info,
+    this.selectedDataConfig,
+    this.selectedSeriesConfig,
+    this.shouldPreserveSelectionOnDraw = false,
+  }) {
     _lifecycleListener = LifecycleListener<D>(onData: _setInitialSelection);
   }
 
@@ -59,8 +60,10 @@ class InitialSelection<D> implements ChartBehavior<D> {
         selectedDataConfig, selectedSeriesConfig, seriesList);
 
     _chart!.getSelectionModel(selectionModelType).updateSelection(
-        immutableModel.selectedDatum, immutableModel.selectedSeries,
-        notifyListeners: false);
+          immutableModel.selectedDatum,
+          immutableModel.selectedSeries,
+          notifyListeners: false,
+        );
   }
 
   @override

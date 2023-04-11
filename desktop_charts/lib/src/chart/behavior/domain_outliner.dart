@@ -26,7 +26,7 @@ import 'chart_behavior.dart' show ChartBehavior;
 ///
 /// This is typically used for treemap charts to highlight nodes.
 /// For bars and pies, prefers to use [DomainHighlighter] for UX consistency.
-class DomainOutliner<D> implements ChartBehavior<D> {
+class DomainOutliner<D> extends ChartBehavior<D> {
   final SelectionModelType selectionType;
 
   /// Default stroke width of the outline if the series has no stroke width

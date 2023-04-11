@@ -86,12 +86,12 @@ class LineRangeAnnotationMarginChart extends StatelessWidget {
 
         // Allow enough space in the left and right chart margins for the
         // annotations.
-        layoutConfig: charts.LayoutConfig(
-          leftSpec: charts.MarginSpec.fixedPixel(60),
-          topSpec: charts.MarginSpec.fixedPixel(20),
-          rightSpec: charts.MarginSpec.fixedPixel(60),
-          bottomSpec: charts.MarginSpec.fixedPixel(20),
-        ),
+        // TODO wlayoutConfig: charts.LayoutConfig(
+        // TODO w  leftSpec: charts.MarginSpec.fixedPixel(60),
+        // TODO w  topSpec: charts.MarginSpec.fixedPixel(20),
+        // TODO w  rightSpec: charts.MarginSpec.fixedPixel(60),
+        // TODO w  bottomSpec: charts.MarginSpec.fixedPixel(20),
+        // TODO w),
         behaviors: [
           // Define one domain and two measure annotations configured to render
           // labels in the chart margins.

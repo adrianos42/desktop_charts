@@ -33,26 +33,23 @@ import 'series_datum.dart' show SeriesDatum, SeriesDatumConfig;
 /// for each datum for a given domain/time, but highlights the closest entry to
 /// match up with highlighting/bolding of the line and legend.
 class SelectionModel<D> {
-  SelectionModel(
-      {List<SeriesDatum<D>>? selectedData,
-      List<ImmutableSeries<D>>? selectedSeries}) {
-    if (selectedData != null) {
-      _selectedDatum = selectedData;
-    }
-    if (selectedSeries != null) {
-      _selectedSeries = selectedSeries;
-    }
-  }
+  SelectionModel({
+    List<SeriesDatum<D>>? selectedData,
+    List<ImmutableSeries<D>>? selectedSeries,
+  })  : _selectedDatum = selectedData ?? [],
+        _selectedSeries = selectedSeries ?? [];
 
   /// Create a deep copy of the selection model.
-  SelectionModel.fromOther(SelectionModel<D> other) {
-    _selectedDatum = List.of(other._selectedDatum);
-    _selectedSeries = List.of(other._selectedSeries);
-  }
+  SelectionModel.fromOther(SelectionModel<D> other)
+      : _selectedDatum = List.of(other._selectedDatum),
+        _selectedSeries = List.of(other._selectedSeries);
 
   /// Create selection model from configuration.
-  SelectionModel.fromConfig(List<SeriesDatumConfig<D>>? selectedDataConfig,
-      List<String>? selectedSeriesConfig, List<ImmutableSeries<D>> seriesList) {
+  SelectionModel.fromConfig(
+    List<SeriesDatumConfig<D>>? selectedDataConfig,
+    List<String>? selectedSeriesConfig,
+    List<ImmutableSeries<D>> seriesList,
+  ) {
     final selectedDataMap = <String, List<D>>{};
 
     if (selectedDataConfig != null) {
@@ -96,8 +93,8 @@ class SelectionModel<D> {
     }
   }
 
-  var _selectedDatum = <SeriesDatum<D>>[];
-  var _selectedSeries = <ImmutableSeries<D>>[];
+  List<SeriesDatum<D>> _selectedDatum = [];
+  List<ImmutableSeries<D>> _selectedSeries = [];
 
   /// Create selection model with the desired selection.
 

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:math' show pi, Offset, Rect;
+import 'dart:math' show pi;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
@@ -27,14 +27,7 @@ import '../cartesian/axis/axis.dart' show CartesianAxis;
 import '../cartesian/cartesian_chart.dart'
     show CartesianChartState, CartesianChart;
 import '../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
-import '../layout/layout_view.dart'
-    show
-        LayoutPosition,
-        LayoutViewMixin,
-        LayoutViewConfig,
-        LayoutViewPaintOrder,
-        LayoutViewPositionOrder,
-        ViewMeasuredSizes;
+import '../layout/layout_view.dart' show LayoutViewPaintOrder;
 import '../processed_series.dart' show MutableSeries;
 import 'chart_behavior.dart' show ChartBehavior;
 
@@ -48,7 +41,7 @@ const _defaultStrokeWidth = 2.0;
 /// range.
 ///
 /// TODO: Support labels.
-class RangeAnnotation<D> implements ChartBehavior<D> {
+class RangeAnnotation<D> extends ChartBehavior<D> {
   RangeAnnotation(
     this.annotations, {
     AnnotationLabelAnchor? defaultLabelAnchor,
@@ -357,20 +350,18 @@ class RangeAnnotation<D> implements ChartBehavior<D> {
   String get role => 'RangeAnnotation';
 }
 
-class _RangeAnnotationLayoutView<D> with LayoutViewMixin {
+class _RangeAnnotationLayoutView<D> {
   _RangeAnnotationLayoutView({
     required this.defaultColor,
     required this.labelPadding,
     required this.chart,
     required this.rangeAnnotation,
     required this.layoutPaintOrder,
-  }) : layoutConfig = LayoutViewConfig(
-            paintOrder: layoutPaintOrder,
-            position: LayoutPosition.drawArea,
-            positionOrder: LayoutViewPositionOrder.drawArea);
-
-  @override
-  final LayoutViewConfig layoutConfig;
+  });
+  //layoutConfig = LayoutViewConfig(
+  //          paintOrder: layoutPaintOrder,
+  //          position: LayoutPosition.drawArea,
+  //          positionOrder: LayoutViewPositionOrder.drawArea);
 
   final Color defaultColor;
 
@@ -399,7 +390,7 @@ class _RangeAnnotationLayoutView<D> with LayoutViewMixin {
   }
 
   @override
-  ViewMeasuredSizes? measure(double maxWidth, double maxHeight) {
+  Size? measure(double maxWidth, double maxHeight) {
     return null;
   }
 
@@ -577,11 +568,11 @@ class _RangeAnnotationLayoutView<D> with LayoutViewMixin {
         case RangeAnnotationAxisType.measure:
           switch (annotationElement.labelAnchor) {
             case AnnotationLabelAnchor.start:
-              maxWidth = chart!.marginLeft - labelPadding;
+              // TODO maxWidth = chart!.marginLeft - labelPadding;
               break;
 
             case AnnotationLabelAnchor.end:
-              maxWidth = chart!.marginRight - labelPadding;
+              // TODO maxWidth = chart!.marginRight - labelPadding;
               break;
 
             case AnnotationLabelAnchor.middle:
@@ -1089,12 +1080,6 @@ class _RangeAnnotationLayoutView<D> with LayoutViewMixin {
 
     return calculatedLabelPosition;
   }
-
-  @override
-  Rect get componentBounds => _drawAreaBounds;
-
-  @override
-  bool get isSeriesRenderer => false;
 
   // Helper function that converts [TextStyle] to [TextStyle].
   TextStyle _getTextStyle(TextStyle labelSpec) {

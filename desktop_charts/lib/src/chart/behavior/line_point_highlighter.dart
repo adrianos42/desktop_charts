@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:math' show max, min, Offset, Rect;
+import 'dart:math' show max, min;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
@@ -24,16 +24,9 @@ import '../../math.dart' show NullablePoint;
 import '../../symbol_renderer.dart' show CircleSymbolRenderer, SymbolRenderer;
 import '../../theme.dart';
 import '../base_chart.dart' show BaseChartState, LifecycleListener, BaseChart;
-import '../cartesian/axis/axis.dart' show ImmutableAxis;
 import '../cartesian/cartesian_chart.dart' show CartesianChart;
 import '../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
-import '../layout/layout_view.dart'
-    show
-        LayoutPosition,
-        LayoutViewMixin,
-        LayoutViewConfig,
-        LayoutViewPaintOrder,
-        ViewMeasuredSizes;
+import '../layout/layout_view.dart' show LayoutViewPaintOrder;
 import '../processed_series.dart' show ImmutableSeries;
 import '../selection_model.dart' show SelectionModel, SelectionModelType;
 import 'chart_behavior.dart' show ChartBehavior;
@@ -50,7 +43,7 @@ import 'chart_behavior.dart' show ChartBehavior;
 ///
 /// It is used in combination with SelectNearest to update the selection model
 /// and expand selection out to the domain value.
-class LinePointHighlighter<D> implements ChartBehavior<D> {
+class LinePointHighlighter<D> extends ChartBehavior<D> {
   LinePointHighlighter({
     SelectionModelType? selectionModelType,
     double? defaultRadius,
@@ -275,7 +268,7 @@ class LinePointHighlighter<D> implements ChartBehavior<D> {
   String get role => 'LinePointHighlighter-$selectionModelType';
 }
 
-class _LinePointLayoutView<D> with LayoutViewMixin {
+class _LinePointLayoutView<D>  {
   _LinePointLayoutView({
     required this.chart,
     required int layoutPaintOrder,
@@ -284,14 +277,13 @@ class _LinePointLayoutView<D> with LayoutViewMixin {
     required this.symbolRenderer,
     required this.dashPattern,
     required this.drawFollowLinesAcrossChart,
-  }) : layoutConfig = LayoutViewConfig(
-          paintOrder: LayoutViewPaintOrder.linePointHighlighter,
-          position: LayoutPosition.drawArea,
-          positionOrder: layoutPaintOrder,
-        );
-
-  @override
-  final LayoutViewConfig layoutConfig;
+  });
+  
+  // : layoutConfig = LayoutViewConfig(
+  //        paintOrder: LayoutViewPaintOrder.linePointHighlighter,
+  //        position: LayoutPosition.drawArea,
+  //        positionOrder: layoutPaintOrder,
+  //      );
 
   final LinePointHighlighterFollowLineType showHorizontalFollowLine;
 
@@ -320,13 +312,12 @@ class _LinePointLayoutView<D> with LayoutViewMixin {
   }
 
   @override
-  ViewMeasuredSizes? measure(double maxWidth, double maxHeight) {
+  Size? measure(double maxWidth, double maxHeight) {
     return null;
   }
 
   @override
-  void layout(
-      Rect componentBounds, Rect drawAreaBounds) {
+  void layout(Rect componentBounds, Rect drawAreaBounds) {
     _drawAreaBounds = drawAreaBounds;
   }
 
@@ -510,12 +501,6 @@ class _LinePointLayoutView<D> with LayoutViewMixin {
           strokeWidth: pointElement.strokeWidth);
     }
   }
-
-  @override
-  Rect get componentBounds => _drawAreaBounds;
-
-  @override
-  bool get isSeriesRenderer => false;
 }
 
 class _DatumPoint<D> extends NullablePoint {

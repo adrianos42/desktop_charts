@@ -97,7 +97,7 @@ class DomainA11yExploreBehavior<D> extends A11yExploreBehavior<D> {
       nodes.add(_DomainA11yNode(a11yDescription,
           location: location,
           stepSize: stepSize,
-          chartDrawBounds: _chart.drawAreaBounds,
+          chartDrawBounds: Rect.zero,
           isRtl: _chart.isRTL,
           renderVertically: _chart.widget.isVertical,
           onFocus: () => selectionModel.updateSelection(seriesDatums, [])));

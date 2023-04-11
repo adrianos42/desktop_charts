@@ -19,7 +19,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../symbol_renderer.dart';
 import '../base_chart.dart' show BaseChart, BaseChartState;
-import '../layout/layout_view.dart' show LayoutViewConfig, LayoutViewPaintOrder;
+import '../layout/layout_view.dart' show LayoutViewPaintOrder;
 import '../processed_series.dart' show MutableSeries;
 import '../series_renderer_config.dart'
     show RendererAttributes, SeriesRendererConfig, BaseSeriesRenderObjectWidget;
@@ -27,8 +27,7 @@ import 'point_renderer.dart' show PointRenderer, pointSymbolRendererIdKey;
 import 'point_renderer_decorator.dart' show PointRendererDecorator;
 
 /// Configuration for a line renderer.
-class PointRendererConfig<D> extends LayoutViewConfig
-    implements SeriesRendererConfig<D> {
+class PointRendererConfig<D> implements SeriesRendererConfig<D> {
   PointRendererConfig({
     this.customRendererId,
     this.layoutPaintOrder = LayoutViewPaintOrder.point,

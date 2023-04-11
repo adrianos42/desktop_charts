@@ -117,9 +117,10 @@ class _OverviewPageState extends State<OverviewPage> {
   @override
   Widget build(BuildContext context) {
     if (kDebugMode) {
-      //return bar_chart.BarPage();
+      return bar_chart.BarPage();
       //return pie_chart.PiePage();
       // return time_series_chart.TimeSeriesPage();
+      //return line_chart.LinePage();
     }
 
     return Column(
@@ -140,8 +141,8 @@ class _OverviewPageState extends State<OverviewPage> {
                 _createItems(line_chart.createItems),
                 _creadeHeader('Scatter Plot Charts'),
                 _createItems(scatter_plot_chart.createItems),
-                 _creadeHeader('Time Series'),
-                 _createItems(time_series_chart.createItems),
+                _creadeHeader('Time Series'),
+                _createItems(time_series_chart.createItems),
                 _creadeHeader('Axes'),
                 _createItems(axes.createItems),
                 _creadeHeader('Combo'),

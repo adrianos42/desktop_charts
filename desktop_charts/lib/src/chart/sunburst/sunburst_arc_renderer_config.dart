@@ -21,7 +21,6 @@ import 'package:flutter/widgets.dart';
 
 import '../../data/tree.dart' show TreeNode;
 import '../base_chart.dart' show BaseChart, BaseChartState;
-import '../layout/layout_view.dart' show LayoutViewPaintOrder;
 import '../pie/arc_renderer.dart' show ArcRenderer;
 import '../pie/base_arc_renderer_config.dart' show BaseArcRendererConfig;
 import '../processed_series.dart' show MutableSeries;
@@ -46,7 +45,6 @@ class SunburstArcRendererConfig<D> extends BaseArcRendererConfig<D> {
     super.arcLength = 2 * pi,
     super.arcRatio,
     super.arcWidth,
-    super.layoutPaintOrder = LayoutViewPaintOrder.arc,
     super.minHoleWidthForCenterContent = 30,
     super.startAngle = -pi / 2,
     super.strokeWidth = 2.0,

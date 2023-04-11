@@ -55,7 +55,6 @@ class BarLaneRenderer<D, S extends BaseChart<D>> extends BarRenderer<D, S> {
   BarLaneRenderer({
     super.config = const BarLaneRendererConfig(),
     super.rendererId = 'bar',
-    super.layoutPaintOrder,
     required super.chartState,
     required super.seriesList,
   });
@@ -354,11 +353,13 @@ class BarLaneRenderer<D, S extends BaseChart<D>> extends BarRenderer<D, S> {
 
   /// Gets the maximum measure value that will fit in the draw area.
   num _getMaxMeasureValue(ImmutableAxis<num> measureAxis, bool laneIsNegative) {
+    final drawAreaBounds = Offset.zero & size; // TODO
+
     final pos = chart.widget.isVertical
-        ? chart.drawAreaBounds.top
+        ? drawAreaBounds.top
         : ((isRtl && !laneIsNegative) || (!isRtl && laneIsNegative))
-            ? chart.drawAreaBounds.left
-            : chart.drawAreaBounds.right;
+            ? drawAreaBounds.left
+            : drawAreaBounds.right;
 
     return measureAxis.getDomain(pos);
   }

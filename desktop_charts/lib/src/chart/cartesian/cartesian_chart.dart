@@ -27,10 +27,10 @@ import '../selection_model.dart' show SelectionModelType;
 import '../series_renderer.dart' show rendererIdKey;
 import 'axis/axis.dart'
     show CartesianAxis, NumericAxis, OrdinalAxis, measureAxisIdKey;
-import 'axis/draw_strategy/small_tick_draw_strategy.dart'
-    show SmallTickRendererSpec;
 import 'axis/draw_strategy/gridline_draw_strategy.dart'
     show GridlineRendererSpec;
+import 'axis/draw_strategy/small_tick_draw_strategy.dart'
+    show SmallTickRendererSpec;
 import 'axis/spec/axis_spec.dart' show AxisSpec;
 import 'axis/spec/numeric_axis_spec.dart' show NumericAxisSpec;
 import 'axis/spec/ordinal_axis_spec.dart' show OrdinalAxisSpec;
@@ -40,7 +40,6 @@ class NumericCartesianChart extends CartesianChart<num> {
   const NumericCartesianChart(
     super.seriesList, {
     super.isVertical,
-    super.layoutConfig,
     super.primaryMeasureAxis,
     super.secondaryMeasureAxis,
     super.disjointMeasureAxes,
@@ -96,7 +95,6 @@ class NumericCartesianChartState
 class OrdinalCartesianChart extends CartesianChart<String> {
   const OrdinalCartesianChart(
     super.seriesList, {
-    super.layoutConfig,
     super.isVertical,
     super.primaryMeasureAxis,
     super.secondaryMeasureAxis,
@@ -153,7 +151,6 @@ abstract class CartesianChart<D> extends BaseChart<D> {
   const CartesianChart(
     super.seriesList, {
     this.isVertical = true,
-    super.layoutConfig,
     this.primaryMeasureAxis = const NumericAxisSpec(),
     this.secondaryMeasureAxis = const NumericAxisSpec(),
     this.domainAxis,

@@ -25,8 +25,7 @@ import '../series_renderer_config.dart';
 import 'link_renderer.dart' show LinkRenderer;
 
 /// Configuration for a [SankeyRenderer].
-class LinkRendererConfig<D> extends LayoutViewConfig
-    implements SeriesRendererConfig<D> {
+class LinkRendererConfig<D> implements SeriesRendererConfig<D> {
   LinkRendererConfig({
     this.customRendererId,
     this.layoutPaintOrder = LayoutViewPaintOrder.bar,

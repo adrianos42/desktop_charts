@@ -34,7 +34,6 @@ class PieChart<D> extends BaseChart<D> {
     ArcRendererConfig<D>? defaultRenderer,
     // List<dynamic>? behaviors,
     super.rtlSpec,
-    super.layoutConfig,
     super.defaultInteractions = true,
     List<SelectionModelConfig<D>>? selectionModels,
     super.key,

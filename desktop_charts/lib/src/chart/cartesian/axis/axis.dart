@@ -23,11 +23,9 @@ import 'package:flutter/rendering.dart';
 
 import '../../../data/series.dart' show AttributeKey;
 import '../../../text_element.dart' show TextElement;
-import '../../../theme.dart';
 import '../../base_chart.dart';
 import '../../chart_context.dart' show ChartContext;
 import 'axis_tick.dart' show AxisTicks;
-import 'draw_strategy/range_tick_draw_strategy.dart' show RangeTickDrawStrategy;
 import 'draw_strategy/small_tick_draw_strategy.dart' show SmallTickDrawStrategy;
 import 'draw_strategy/tick_draw_strategy.dart' show TickDrawStrategy;
 import 'linear/linear_scale.dart' show LinearScale;
@@ -82,7 +80,7 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
     required TickDrawStrategy<D> tickDrawStrategy,
     this.tickProvider,
     required this.scale,
-    required ChartContext chartContext,
+    required this.chartContext,
     required AxisSpec<D> axisSpec,
     required AxisDirection axisDirection,
     required bool reverseOutputRange,
@@ -91,31 +89,9 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
         _defaultTickFormatter = tickFormatter,
         _tickFormatter = tickFormatter,
         _tickDrawStrategy = tickDrawStrategy,
-        _chartContext = chartContext,
         _axisDirection = axisDirection,
         _reverseOutputRange = reverseOutputRange {
     updateAxisSpec(axisSpec);
-
-    if (tickDrawStrategy is RangeTickDrawStrategy) {
-      final rangeTickDrawStrategy = tickDrawStrategy as RangeTickDrawStrategy;
-
-      // rangeTickDrawStrategy.lineStyle = chartContext.themeData
-      //     .createTickLineStyle(rangeTickDrawStrategy.lineStyle);
-      rangeTickDrawStrategy.rangeShadeStyleSpec =
-          rangeTickDrawStrategy.rangeShadeStyleSpec ??
-              const LineStyle(
-                // TODO MaterialPalette.gray.shade300,
-                color: Color(0xff101010),
-              );
-      rangeTickDrawStrategy.rangeShadeStyle = chartContext.themeData
-          .createTickLineStyle(rangeTickDrawStrategy.rangeShadeStyleSpec);
-      rangeTickDrawStrategy.rangeLabelStyle =
-          rangeTickDrawStrategy.rangeLabelTextStyle == null
-              ? rangeTickDrawStrategy.labelStyle.copyWith(
-                  fontSize: rangeTickDrawStrategy.rangeShadeHeight - 1.0,
-                  color: chartContext.themeData.tickColor)
-              : rangeTickDrawStrategy.rangeLabelTextStyle!;
-    }
   }
 
   static const primaryMeasureAxisId = 'primaryMeasureAxisId';
@@ -124,13 +100,7 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
 
   // final RenderBox parent;
 
-  ChartContext _chartContext;
-
-  ChartContext get chartContext => _chartContext;
-  set chartContext(ChartContext value) {
-    _chartContext = value;
-    // markNeedsPaint();
-  }
+  final ChartContext chartContext;
 
   @protected
   @mustCallSuper
@@ -424,6 +394,7 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
           // Animate out ticks that are outside the viewport.
           animatedTick.animateOut(animatedTick.location);
         }
+
         providedTicks.remove(tick);
       } else {
         // Animate out ticks that do not exist any more.
@@ -628,26 +599,19 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
   void paint(PaintingContext context, Offset offset) {
     final animationPercent = chartContext.animationPosition.value;
 
-    if (!isVertical) {
-      //  print(offset & size);
-      //  print(_componentBounds);
-      // context.canvas.drawRect(
-      //     Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height),
-      //     Paint()..color = Color(0x4fff0000));
-    }
+
 
     if (animationPercent == 1.0) {
       _axisTicks.removeWhere((t) => t.markedForRemoval);
     }
 
-    // context.canvas.drawRect(offset & Size(size.width, size.height + _axisSize!.height),
-    //     Paint()..color = (isVertical ? Color(0xdf0000ff) : Color(0xdfff0000)));
-
     for (int i = 0; i < _axisTicks.length; i += 1) {
       final animatedTick = _axisTicks[i];
+
       tickDrawStrategy.draw(
         context.canvas,
         animatedTick..setCurrentTick(animationPercent),
+        
         orientation: _axisDirection,
         axisBounds: _componentBounds,
         collision: hasTickCollision,

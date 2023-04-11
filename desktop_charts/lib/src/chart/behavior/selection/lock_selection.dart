@@ -34,7 +34,7 @@ import 'selection_trigger.dart' show SelectionTrigger;
 /// You can add one LockSelection for each model type that you are updating.
 /// Any previous LockSelection behavior for that selection model will be
 /// removed.
-class LockSelection<D> implements ChartBehavior<D> {
+class LockSelection<D> extends ChartBehavior<D> {
   LockSelection({this.selectionModelType = SelectionModelType.info}) {
     // Setup the appropriate gesture listening.
     switch (eventTrigger) {

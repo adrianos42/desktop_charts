@@ -85,12 +85,12 @@ class TimeSeriesRangeAnnotationMarginChart extends StatelessWidget {
 
         // Allow enough space in the left and right chart margins for the
         // annotations.
-        layoutConfig: charts.LayoutConfig(
-          leftSpec: charts.MarginSpec.fixedPixel(60),
-          topSpec: charts.MarginSpec.fixedPixel(20),
-          rightSpec: charts.MarginSpec.fixedPixel(60),
-          bottomSpec: charts.MarginSpec.fixedPixel(20),
-        ),
+        // TODO layoutConfig: charts.LayoutConfig(
+        // TODO   leftSpec: charts.MarginSpec.fixedPixel(60),
+        // TODO   topSpec: charts.MarginSpec.fixedPixel(20),
+        // TODO   rightSpec: charts.MarginSpec.fixedPixel(60),
+        // TODO   bottomSpec: charts.MarginSpec.fixedPixel(20),
+        // TODO ),
         behaviors: [
           // Define one domain and two measure annotations configured to render
           // labels in the chart margins.

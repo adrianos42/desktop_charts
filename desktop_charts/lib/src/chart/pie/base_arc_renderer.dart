@@ -44,10 +44,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
     required super.chartState,
     required super.seriesList,
   })  : _arcRendererDecorators = config.arcRendererDecorators,
-        super(
-          layoutPaintOrder: config.layoutPaintOrder,
-          symbolRenderer: config.symbolRenderer,
-        );
+        super(symbolRenderer: config.symbolRenderer);
 
   final BaseArcRendererConfig<D> config;
 

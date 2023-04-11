@@ -15,17 +15,19 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../gesture_listener.dart' show GestureListener;
 import '../../../rate_limit_utils.dart' show throttle;
-import '../../datum_details.dart' show DatumDetails;
 import '../../base_chart.dart' show BaseChartState, BaseChart;
+import '../../datum_details.dart' show DatumDetails;
 import '../../processed_series.dart' show ImmutableSeries;
 import '../../selection_model.dart' show SelectionModelType;
 import '../../series_datum.dart' show SeriesDatum;
 import '../chart_behavior.dart' show ChartBehavior;
 import 'selection_trigger.dart' show SelectionTrigger;
+
 
 /// Chart behavior that listens to the given eventTrigger and updates the
 /// specified [SelectionModel]. This is used to pair input events to behaviors
@@ -59,7 +61,65 @@ import 'selection_trigger.dart' show SelectionTrigger;
 /// You can add one SelectNearest for each model type that you are updating.
 /// Any previous SelectNearest behavior for that selection model will be
 /// removed.
-class SelectNearest<D> implements ChartBehavior<D> {
+class SelectNearest<D> extends ChartBehavior<D> {
+  SelectNearest({
+    this.selectionModelType = SelectionModelType.info,
+    this.selectionMode = SelectionMode.expandToDomain,
+    this.selectAcrossAllSeriesRendererComponents = true,
+    this.selectClosestSeries = true,
+    this.eventTrigger = SelectionTrigger.hover,
+    this.maximumDomainDistance,
+    this.hoverEventDelay,
+  }) {
+    // Setup the appropriate gesture listening.
+    switch (eventTrigger) {
+      case SelectionTrigger.tap:
+        _listener = GestureListener(
+          onTapTest: _onTapTest,
+          onTap: _onSelect,
+        );
+        break;
+      case SelectionTrigger.tapAndDrag:
+        _listener = GestureListener(
+          onTapTest: _onTapTest,
+          onTap: _onSelect,
+          onDragStart: _onSelect,
+          onDragUpdate: _onSelect,
+        );
+        break;
+      case SelectionTrigger.pressHold:
+        _listener = GestureListener(
+          onTapTest: _onTapTest,
+          onLongPress: _onSelect,
+          onDragStart: _onSelect,
+          onDragUpdate: _onSelect,
+          onDragEnd: _onDeselectAll,
+        );
+        break;
+      case SelectionTrigger.longPressHold:
+        _listener = GestureListener(
+          onTapTest: _onTapTest,
+          onLongPress: _onLongPressSelect,
+          onDragStart: _onSelect,
+          onDragUpdate: _onSelect,
+          onDragEnd: _onDeselectAll,
+        );
+        break;
+      case SelectionTrigger.hover:
+      default:
+        _listener = GestureListener(
+          onHover: hoverEventDelay == null
+              ? _onSelect
+              : throttle<Offset, bool>(
+                  _onSelect,
+                  delay: Duration(milliseconds: hoverEventDelay!),
+                  defaultReturn: false,
+                ),
+        );
+        break;
+    }
+  }
+
   late GestureListener _listener;
 
   /// Type of selection model that should be updated by input events.
@@ -98,55 +158,6 @@ class SelectNearest<D> implements ChartBehavior<D> {
 
   bool _delaySelect = false;
 
-  SelectNearest(
-      {this.selectionModelType = SelectionModelType.info,
-      this.selectionMode = SelectionMode.expandToDomain,
-      this.selectAcrossAllSeriesRendererComponents = true,
-      this.selectClosestSeries = true,
-      this.eventTrigger = SelectionTrigger.hover,
-      this.maximumDomainDistance,
-      this.hoverEventDelay}) {
-    // Setup the appropriate gesture listening.
-    switch (eventTrigger) {
-      case SelectionTrigger.tap:
-        _listener = GestureListener(onTapTest: _onTapTest, onTap: _onSelect);
-        break;
-      case SelectionTrigger.tapAndDrag:
-        _listener = GestureListener(
-          onTapTest: _onTapTest,
-          onTap: _onSelect,
-          onDragStart: _onSelect,
-          onDragUpdate: _onSelect,
-        );
-        break;
-      case SelectionTrigger.pressHold:
-        _listener = GestureListener(
-            onTapTest: _onTapTest,
-            onLongPress: _onSelect,
-            onDragStart: _onSelect,
-            onDragUpdate: _onSelect,
-            onDragEnd: _onDeselectAll);
-        break;
-      case SelectionTrigger.longPressHold:
-        _listener = GestureListener(
-            onTapTest: _onTapTest,
-            onLongPress: _onLongPressSelect,
-            onDragStart: _onSelect,
-            onDragUpdate: _onSelect,
-            onDragEnd: _onDeselectAll);
-        break;
-      case SelectionTrigger.hover:
-      default:
-        _listener = GestureListener(
-            onHover: hoverEventDelay == null
-                ? _onSelect
-                : throttle<Offset, bool>(_onSelect,
-                    delay: Duration(milliseconds: hoverEventDelay!),
-                    defaultReturn: false));
-        break;
-    }
-  }
-
   bool _onTapTest(Offset chartPoint) {
     // If the tap is within the drawArea, then claim the event from others.
     _delaySelect = eventTrigger == SelectionTrigger.longPressHold;
@@ -170,7 +181,9 @@ class SelectNearest<D> implements ChartBehavior<D> {
     }
 
     final details = _chart!.getNearestDatumDetailPerSeries(
-        chartPoint, selectAcrossAllSeriesRendererComponents);
+      chartPoint,
+      selectAcrossAllSeriesRendererComponents,
+    );
 
     final seriesList = <ImmutableSeries<D>>[];
     var seriesDatumList = <SeriesDatum<D>>[];
@@ -251,9 +264,7 @@ class SelectNearest<D> implements ChartBehavior<D> {
       final domainFn = series.domainFn;
       final domainLowerBoundFn = series.domainLowerBoundFn;
       final domainUpperBoundFn = series.domainUpperBoundFn;
-      // TODO: remove this explicit `bool` type when no longer
-      // needed to work around https://github.com/dart-lang/language/issues/1785
-      final bool testBounds =
+      final testBounds =
           domainLowerBoundFn != null && domainUpperBoundFn != null;
 
       for (int i = 0; i < series.data.length; i += 1) {
@@ -330,6 +341,23 @@ class SelectNearest<D> implements ChartBehavior<D> {
 
   @override
   String get role => 'SelectNearest-$selectionModelType';
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    return MouseRegion(
+      cursor: SystemMouseCursors.click,
+      child: GestureDetector(
+        behavior: HitTestBehavior.translucent,
+        onTapUp: (TapUpDetails event) {
+          _onSelect(event.globalPosition);
+        },
+        child: Container(
+          alignment: Alignment.center,
+          child: const SizedBox(),
+        ),
+      ),
+    );
+  }
 }
 
 /// Mode for expanding the selection beyond just the nearest datum.

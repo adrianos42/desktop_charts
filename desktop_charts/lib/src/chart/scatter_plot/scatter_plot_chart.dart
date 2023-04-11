@@ -17,14 +17,14 @@
 
 import 'package:flutter/widgets.dart';
 
+import '../cartesian/axis/axis.dart' show NumericAxis;
+import '../cartesian/axis/draw_strategy/gridline_draw_strategy.dart'
+    show GridlineRendererSpec;
+import '../cartesian/axis/spec/axis_spec.dart' show AxisSpec;
+import '../cartesian/axis/spec/numeric_axis_spec.dart' show NumericAxisSpec;
 import '../cartesian/cartesian_chart.dart'
     show NumericCartesianChart, NumericCartesianChartState;
 import 'point_renderer_config.dart' show PointRendererConfig;
-import '../cartesian/axis/axis.dart' show NumericAxis;
-import '../cartesian/axis/spec/axis_spec.dart' show AxisSpec;
-import '../cartesian/axis/spec/numeric_axis_spec.dart' show NumericAxisSpec;
-import '../cartesian/axis/draw_strategy/gridline_draw_strategy.dart'
-    show GridlineRendererSpec;
 
 /// A scatter plot draws series data as a collection of points in a two
 /// dimensional Cartesian space, plotting two variables from each datum at a
@@ -48,7 +48,6 @@ class ScatterPlotChart extends NumericCartesianChart {
     super.behaviors,
     super.selectionModels,
     super.rtlSpec,
-    super.layoutConfig,
     super.defaultInteractions,
     super.flipVerticalAxis,
     super.userManagedState,

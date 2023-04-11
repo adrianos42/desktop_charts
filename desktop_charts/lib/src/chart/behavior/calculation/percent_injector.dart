@@ -40,7 +40,7 @@ const percentInjectedKey =
 /// Note that if the chart has a [Legend] that is capable of hiding series data,
 /// then this behavior must be added after the [Legend] to ensure that it
 /// calculates values after series have been potentially removed from the list.
-class PercentInjector<D> implements ChartBehavior<D> {
+class PercentInjector<D> extends ChartBehavior<D> {
   /// Constructs a [PercentInjector].
   ///
   /// [totalType] configures the type of data total to be calculated.

@@ -26,7 +26,6 @@ import '../cartesian/cartesian_chart.dart'
     show CartesianChart, CartesianChartState;
 import '../chart_canvas.dart' show ChartCanvas, FillPatternType;
 import '../datum_details.dart' show DatumDetails;
-import '../layout/layout_view.dart' show LayoutViewPaintOrder;
 import '../processed_series.dart' show ImmutableSeries;
 import '../series_datum.dart' show SeriesDatum;
 import 'bar_target_line_renderer_config.dart' show BarTargetLineRendererConfig;
@@ -55,9 +54,6 @@ class BarTargetLineRenderer<D, S extends BaseChart<D>> extends BaseBarRenderer<
   })  : _barGroupInnerPadding = config?.barGroupInnerPadding ?? 0.0,
         super(
           config: config ?? BarTargetLineRendererConfig<D>(),
-          layoutPaintOrder:
-              (config ?? BarTargetLineRendererConfig<D>()).layoutPaintOrder ??
-                  LayoutViewPaintOrder.barTargetLine,
           rendererId: rendererId ?? 'barTargetLine',
         );
 

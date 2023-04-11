@@ -19,7 +19,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../symbol_renderer.dart';
 import '../base_chart.dart' show BaseChart, BaseChartState;
-import '../layout/layout_view.dart' show LayoutViewConfig, LayoutViewPaintOrder;
+import '../layout/layout_view.dart' show LayoutViewPaintOrder;
 import '../processed_series.dart' show MutableSeries;
 import '../series_renderer_config.dart'
     show RendererAttributes, SeriesRendererConfig, BaseSeriesRenderObjectWidget;
@@ -27,8 +27,7 @@ import 'line_renderer.dart' show LineRenderer;
 
 /// Configuration for a line renderer.
 @immutable
-class LineRendererConfig<D> extends LayoutViewConfig
-    implements SeriesRendererConfig<D> {
+class LineRendererConfig<D> implements SeriesRendererConfig<D> {
   LineRendererConfig({
     this.customRendererId,
     this.radius = 3.5,

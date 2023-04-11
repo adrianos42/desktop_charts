@@ -47,7 +47,6 @@ class BarRenderer<D, S extends BaseChart<D>>
     extends BaseBarRenderer<D, BarRendererElement<D>, AnimatedBar<D>, S> {
   BarRenderer({
     BarRendererConfig config = const BarRendererConfig(),
-    super.layoutPaintOrder = 0,
     String? rendererId,
     required super.chartState,
     required super.seriesList,

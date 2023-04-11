@@ -25,8 +25,7 @@ import '../series_renderer_config.dart';
 import 'sankey_renderer.dart';
 
 /// Configuration for a [SankeyRenderer].
-class SankeyRendererConfig<D> extends LayoutViewConfig
-    implements SeriesRendererConfig<D> {
+class SankeyRendererConfig<D> implements SeriesRendererConfig<D> {
   SankeyRendererConfig({
     this.customRendererId,
     this.layoutPaintOrder = LayoutViewPaintOrder.sankey,

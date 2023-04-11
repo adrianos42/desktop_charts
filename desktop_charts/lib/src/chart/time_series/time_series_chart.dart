@@ -17,16 +17,16 @@
 
 import 'package:flutter/widgets.dart';
 
-import '../cartesian/axis/time/date_time_axis.dart' show DateTimeAxis;
 import '../../date_time_factory.dart'
     show DateTimeFactory, LocalDateTimeFactory;
-import '../line/line_renderer_config.dart' show LineRendererConfig;
 import '../cartesian/axis/draw_strategy/small_tick_draw_strategy.dart'
     show SmallTickRendererSpec;
 import '../cartesian/axis/spec/axis_spec.dart' show AxisSpec;
 import '../cartesian/axis/spec/date_time_axis_spec.dart' show DateTimeAxisSpec;
+import '../cartesian/axis/time/date_time_axis.dart' show DateTimeAxis;
 import '../cartesian/cartesian_chart.dart'
     show CartesianChart, CartesianChartState;
+import '../line/line_renderer_config.dart' show LineRendererConfig;
 import '../series_renderer_config.dart' show SeriesRendererConfig;
 
 class TimeSeriesChart extends CartesianChart<DateTime> {
@@ -36,7 +36,6 @@ class TimeSeriesChart extends CartesianChart<DateTime> {
     SeriesRendererConfig<DateTime>? defaultRenderer,
     this.dateTimeFactory = const LocalDateTimeFactory(),
     super.isVertical,
-    super.layoutConfig,
     super.primaryMeasureAxis,
     super.secondaryMeasureAxis,
     super.disjointMeasureAxes,

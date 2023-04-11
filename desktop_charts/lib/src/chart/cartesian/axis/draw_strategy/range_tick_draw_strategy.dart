@@ -139,8 +139,8 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
     double? rangeShadeHeight,
     double? rangeShadeOffsetFromAxis,
     double? rangeTickOffset,
-    this.rangeLabelTextStyle,
-    this.rangeShadeStyleSpec,
+    TextStyle? rangeLabelTextStyle,
+    LineStyle? rangeShadeStyleSpec,
     LineStyle? lineStyleSpec,
     super.labelStyle,
     super.axisLineStyle,
@@ -154,7 +154,9 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
     super.labelRotation,
     super.labelCollisionRotation,
     super.tickLength,
-  }) : super(
+  })  : _rangeLabelTextStyle = rangeLabelTextStyle,
+        _rangeShadeStyleSpec = rangeShadeStyleSpec,
+        super(
           chartContext,
           lineStyle: lineStyleSpec,
           labelAnchor: labelAnchor ?? TickLabelAnchor.after,
@@ -170,10 +172,32 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
   double rangeShadeHeight = 12.0;
   double rangeShadeOffsetFromAxis = 12.0;
   double rangeTickOffset = 12.0;
-  LineStyle? rangeShadeStyle;
-  TextStyle? rangeLabelStyle;
-  TextStyle? rangeLabelTextStyle;
-  LineStyle? rangeShadeStyleSpec;
+
+  LineStyle get rangeShadeStyle =>
+      chartContext!.themeData.createTickLineStyle(_rangeShadeStyleSpec);
+
+  TextStyle get rangeLabelStyle =>
+      _rangeLabelTextStyle ??
+      labelStyle.copyWith(
+        color: labelStyle.color ?? chartContext!.themeData.tickColor,
+        fontSize: rangeShadeHeight - 1.0,
+      );
+
+  final TextStyle? _rangeLabelTextStyle;
+  TextStyle get rangeLabelTextStyle =>
+      _rangeLabelTextStyle ??
+      labelStyle.copyWith(
+        fontSize: rangeShadeHeight - 1.0,
+        color: chartContext!.themeData.tickColor,
+      );
+
+  final LineStyle? _rangeShadeStyleSpec;
+  // TODO Palette.gray.shade300
+  LineStyle get rangeShadeStyleSpec =>
+      _rangeShadeStyleSpec ??
+      LineStyle(
+        color: chartContext!.themeData.noDataColor,
+      );
 
   @override
   void draw(
@@ -346,10 +370,9 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
     }
     canvas.drawChartRect(
       rangeShade,
-      fill: rangeShadeStyle!.color!,
-      stroke: rangeShadeStyle!.color,
-      strokeWidth: rangeShadeStyle!.strokeWidth,
-      background: const Color(0xff000000), // TODO
+      fill: rangeShadeStyle.color!,
+      stroke: rangeShadeStyle.color,
+      strokeWidth: rangeShadeStyle.strokeWidth,
     );
 
     // Draw the start and end boundaries of the range.

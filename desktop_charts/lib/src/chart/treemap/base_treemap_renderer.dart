@@ -50,7 +50,6 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   })  : labelDecorator = config.labelDecorator,
         super(
           rendererId: rendererId ?? defaultRendererId,
-          layoutPaintOrder: config.layoutPaintOrder,
           symbolRenderer: config.symbolRenderer,
         );
 

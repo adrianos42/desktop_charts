@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:flutter/widgets.dart';
+
 import '../base_chart.dart';
 
 /// Interface for adding behavior to a chart.
@@ -28,6 +30,14 @@ abstract class ChartBehavior<D> {
 
   /// Removes the behavior from a chart.
   void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart);
+
+  BehaviorPosition get position => BehaviorPosition.inside;
+
+  OutsideJustification get outsideJustification => OutsideJustification.start;
+
+  InsideJustification get insideJustification => InsideJustification.topEnd;
+
+  Widget buildBehavior(BuildContext context) => const SizedBox();
 }
 
 /// Position of a component within the chart layout.

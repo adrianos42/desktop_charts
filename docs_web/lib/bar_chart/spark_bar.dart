@@ -104,12 +104,12 @@ class SparkBar extends StatelessWidget {
 
       // With a spark chart we likely don't want large chart margins.
       // 1px is the smallest we can make each margin.
-      layoutConfig: charts.LayoutConfig(
-        leftSpec: charts.MarginSpec.fixedPixel(0),
-        topSpec: charts.MarginSpec.fixedPixel(0),
-        rightSpec: charts.MarginSpec.fixedPixel(0),
-        bottomSpec: charts.MarginSpec.fixedPixel(0),
-      ),
+      // TODO layoutConfig: charts.LayoutConfig(
+      // TODO   leftSpec: charts.MarginSpec.fixedPixel(0),
+      // TODO   topSpec: charts.MarginSpec.fixedPixel(0),
+      // TODO   rightSpec: charts.MarginSpec.fixedPixel(0),
+      // TODO   bottomSpec: charts.MarginSpec.fixedPixel(0),
+      // TODO ),
     );
   }
 

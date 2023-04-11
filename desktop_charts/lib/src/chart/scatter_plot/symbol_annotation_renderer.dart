@@ -25,7 +25,6 @@ import '../cartesian/cartesian_chart.dart' show CartesianChartState;
 import '../layout/layout_view.dart'
     show
         LayoutPosition,
-        LayoutViewConfig,
         LayoutViewPaintOrder,
         LayoutViewPositionOrder;
 import '../processed_series.dart' show ImmutableSeries;
@@ -209,14 +208,14 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
   // Layout methods
   //
 
-  @override
-  LayoutViewConfig get layoutConfig {
-    return const LayoutViewConfig(
-      paintOrder: LayoutViewPaintOrder.point,
-      position: LayoutPosition.bottom,
-      positionOrder: LayoutViewPositionOrder.symbolAnnotation,
-    );
-  }
+  // TODO @override
+  // LayoutViewConfig get layoutConfig {
+  //   return const LayoutViewConfig(
+  //     paintOrder: LayoutViewPaintOrder.point,
+  //     position: LayoutPosition.bottom,
+  //     positionOrder: LayoutViewPositionOrder.symbolAnnotation,
+  //   );
+  // }
 
   @override
   void performLayout() {

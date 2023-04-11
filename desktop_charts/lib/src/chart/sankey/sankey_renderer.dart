@@ -35,7 +35,6 @@ class SankeyRenderer<D, S extends BaseChart<D>>
   })  : config = config ?? SankeyRendererConfig(),
         super(
           rendererId: rendererId ?? defaultRendererID,
-          layoutPaintOrder: (config ?? SankeyRendererConfig()).layoutPaintOrder,
           symbolRenderer: (config ?? SankeyRendererConfig()).symbolRenderer,
         );
 

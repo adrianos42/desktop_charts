@@ -16,13 +16,11 @@
 // limitations under the License.
 
 import 'package:collection/collection.dart' show ListEquality;
-
 import 'package:flutter/foundation.dart';
 
 import '../../symbol_renderer.dart'
     show SymbolRenderer, RoundedRectSymbolRenderer;
 import '../chart_canvas.dart' show FillPatternType;
-import '../layout/layout_view.dart' show LayoutViewConfig;
 import '../series_renderer_config.dart'
     show RendererAttributes, SeriesRendererConfig;
 
@@ -45,8 +43,7 @@ import '../series_renderer_config.dart'
 ///   such that bars from the last series will be "on top" of bars from previous
 ///   series.
 @immutable
-abstract class BaseBarRendererConfig<D> extends LayoutViewConfig
-    implements SeriesRendererConfig<D> {
+abstract class BaseBarRendererConfig<D> implements SeriesRendererConfig<D> {
   const BaseBarRendererConfig({
     this.barGroupInnerPadding = 2.0,
     this.customRendererId,
@@ -145,16 +142,17 @@ abstract class BaseBarRendererConfig<D> extends LayoutViewConfig
 
   @override
   int get hashCode => Object.hash(
-      customRendererId,
-      dashPattern,
-      fillPattern,
-      groupingType,
-      minBarLength,
-      maxBarWidth,
-      stackedBarPadding,
-      strokeWidth,
-      symbolRenderer,
-      weightPattern);
+        customRendererId,
+        dashPattern,
+        fillPattern,
+        groupingType,
+        minBarLength,
+        maxBarWidth,
+        stackedBarPadding,
+        strokeWidth,
+        symbolRenderer,
+        weightPattern,
+      );
 }
 
 /// Defines the way multiple series of bars are renderered per domain.

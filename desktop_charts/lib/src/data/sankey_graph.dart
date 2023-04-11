@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:desktop/desktop.dart';
+import 'package:flutter/widgets.dart';
 
 import '../chart/chart_canvas.dart' show FillPatternType;
 import 'graph.dart';

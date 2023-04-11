@@ -84,24 +84,33 @@ class StackedAreaCustomColorLineChart extends StatelessWidget {
       LinearSales(3, random.nextInt(100)),
     ];
 
-    return [
+     return [
       charts.Series<LinearSales, int>(
         id: 'Desktop',
+        // color specifies that the line will be blue.
         color: (_, __) => charts.DesktopPalette.blue.shadeDefault,
+        // areaColor specifies that the area skirt will be light blue.
+        areaColor: (_, __) => charts.DesktopPalette.blue.shadeDefault.lighter,
         domain: (LinearSales sales, _) => sales.year,
         measure: (LinearSales sales, _) => sales.sales,
         data: myFakeDesktopData,
       ),
       charts.Series<LinearSales, int>(
         id: 'Tablet',
+        // color specifies that the line will be red.
         color: (_, __) => charts.DesktopPalette.red.shadeDefault,
+        // areaColor specifies that the area skirt will be light red.
+        areaColor: (_, __) => charts.DesktopPalette.red.shadeDefault.lighter,
         domain: (LinearSales sales, _) => sales.year,
         measure: (LinearSales sales, _) => sales.sales,
         data: myFakeTabletData,
       ),
       charts.Series<LinearSales, int>(
         id: 'Mobile',
+        // color specifies that the line will be green.
         color: (_, __) => charts.DesktopPalette.green.shadeDefault,
+        // areaColor specifies that the area skirt will be light green.
+        areaColor: (_, __) => charts.DesktopPalette.green.shadeDefault.lighter,
         domain: (LinearSales sales, _) => sales.year,
         measure: (LinearSales sales, _) => sales.sales,
         data: myFakeMobileData,

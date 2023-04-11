@@ -18,21 +18,18 @@
 import 'dart:math' show pi;
 
 import '../../symbol_renderer.dart';
-import '../layout/layout_view.dart' show LayoutViewConfig, LayoutViewPaintOrder;
 import '../series_renderer_config.dart'
     show RendererAttributes, SeriesRendererConfig;
 import 'arc_renderer_decorator.dart' show ArcRendererDecorator;
 
 /// The base renderer config for arc renderer and sunburst arc renderer.
-abstract class BaseArcRendererConfig<D> extends LayoutViewConfig
-    implements SeriesRendererConfig<D> {
+abstract class BaseArcRendererConfig<D> implements SeriesRendererConfig<D> {
   BaseArcRendererConfig({
     this.customRendererId,
     this.arcLength = 2.0 * pi,
     this.arcRendererDecorators = const [],
     this.arcRatio,
     this.arcWidth,
-    this.layoutPaintOrder = LayoutViewPaintOrder.arc,
     this.minHoleWidthForCenterContent = 30.0,
     this.startAngle = -pi / 2.0,
     this.strokeWidth = 1.0,
@@ -63,9 +60,6 @@ abstract class BaseArcRendererConfig<D> extends LayoutViewConfig
   ///
   /// If arcRatio is set, this value will be ignored.
   final double? arcWidth;
-
-  /// The order to paint this renderer on the canvas.
-  final int layoutPaintOrder;
 
   /// Minimum radius in pixels of the hole in a donut chart for center content
   /// to appear.

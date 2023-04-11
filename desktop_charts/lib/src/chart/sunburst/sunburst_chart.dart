@@ -34,7 +34,6 @@ class SunburstChart<D> extends BaseChart<D> {
     super.defaultInteractions,
     super.defaultRenderer,
     super.key,
-    super.layoutConfig,
     super.rtlSpec,
     super.selectionModels,
     super.userManagedState,

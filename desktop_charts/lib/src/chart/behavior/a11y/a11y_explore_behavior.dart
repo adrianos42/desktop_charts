@@ -29,7 +29,7 @@ enum ExploreModeTrigger {
 }
 
 /// Chart behavior for adding A11y information.
-abstract class A11yExploreBehavior<D> implements ChartBehavior<D> {
+abstract class A11yExploreBehavior<D> extends ChartBehavior<D> {
   A11yExploreBehavior({
     ExploreModeTrigger? exploreModeTrigger,
     double? minimumWidth,

@@ -21,15 +21,7 @@ import 'package:intl/intl.dart';
 
 import '../../base_chart.dart'
     show BaseChartState, LifecycleListener, BaseChart;
-import '../../layout/layout_view.dart'
-    show
-        LayoutPosition,
-        LayoutViewMixin,
-        LayoutViewConfig,
-        LayoutViewPositionOrder,
-        LayoutViewPaintOrder,
-        ViewMeasuredSizes,
-        layoutPosition;
+import '../../layout/layout_view.dart' show LayoutPosition, layoutPosition;
 import '../../processed_series.dart' show MutableSeries;
 import '../../selection_model.dart' show SelectionModel, SelectionModelType;
 import '../chart_behavior.dart'
@@ -47,7 +39,7 @@ import 'legend_entry_generator.dart';
 /// visual content of legends is done on the native platforms. This allows users
 /// to specify customized content for legends using the native platform (ex. for
 /// Flutter, using widgets).
-abstract class Legend<D> implements ChartBehavior<D>, LayoutViewMixin {
+abstract class Legend<D> extends ChartBehavior<D> {
   Legend({
     required this.selectionModelType,
     required this.legendEntryGenerator,
@@ -221,7 +213,7 @@ abstract class Legend<D> implements ChartBehavior<D>, LayoutViewMixin {
         .getSelectionModel(selectionModelType)
         .addSelectionChangedListener(_selectionChanged);
 
-   // TODO chart.addView(this);
+    // TODO chart.addView(this);
   }
 
   @override
@@ -231,7 +223,7 @@ abstract class Legend<D> implements ChartBehavior<D>, LayoutViewMixin {
         .removeSelectionChangedListener(_selectionChanged);
     chart.removeLifecycleListener(_lifecycleListener);
 
-   // TODO chart.removeView(this);
+    // TODO chart.removeView(this);
   }
 
   @protected
@@ -244,14 +236,14 @@ abstract class Legend<D> implements ChartBehavior<D>, LayoutViewMixin {
 
   bool get isAxisFlipped => _chart.isRTL;
 
-  @override
-  LayoutViewConfig get layoutConfig {
-    return LayoutViewConfig(
-      position: _layoutPosition,
-      positionOrder: LayoutViewPositionOrder.legend,
-      paintOrder: LayoutViewPaintOrder.legend,
-    );
-  }
+  //@override
+  //LayoutViewConfig get layoutConfig {
+  //  return LayoutViewConfig(
+  //    position: _layoutPosition,
+  //    positionOrder: LayoutViewPositionOrder.legend,
+  //    paintOrder: LayoutViewPaintOrder.legend,
+  //  );
+  //}
 
   /// Get layout position from legend position.
   LayoutPosition get _layoutPosition {
@@ -259,15 +251,15 @@ abstract class Legend<D> implements ChartBehavior<D>, LayoutViewMixin {
   }
 
   @override
-  ViewMeasuredSizes measure(double maxWidth, double maxHeight) {
+  Size measure(double maxWidth, double maxHeight) {
     // Native child classes should override this method to return real
     // measurements.
-    return const ViewMeasuredSizes(preferredWidth: 0, preferredHeight: 0);
+    // return const ViewMeasuredSizes(preferredWidth: 0, preferredHeight: 0);
+    return Size.zero;
   }
 
   @override
-  void layout(
-      Rect componentBounds, Rect drawAreaBounds) {
+  void layout(Rect componentBounds, Rect drawAreaBounds) {
     _componentBounds = componentBounds;
     _drawAreaBounds = drawAreaBounds;
 
@@ -276,12 +268,6 @@ abstract class Legend<D> implements ChartBehavior<D>, LayoutViewMixin {
 
   @override
   void paint(Canvas canvas, double animationPercent) {}
-
-  @override
-  Rect? get componentBounds => _componentBounds;
-
-  @override
-  bool get isSeriesRenderer => false;
 
   // Gets the draw area bounds for native legend content to position itself
   // accordingly.

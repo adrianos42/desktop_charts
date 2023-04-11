@@ -25,14 +25,7 @@ import '../../base_chart.dart'
     show BaseChartState, LifecycleListener, BaseChart;
 import '../../chart_canvas.dart' show ChartCanvas;
 import '../../layout/layout_view.dart'
-    show
-        LayoutPosition,
-        LayoutViewMixin,
-        LayoutViewConfig,
-        LayoutViewPaintOrder,
-        layoutPosition,
-        LayoutViewPositionOrder,
-        ViewMeasuredSizes;
+    show LayoutPosition, LayoutViewPaintOrder;
 import '../chart_behavior.dart'
     show BehaviorPosition, ChartBehavior, OutsideJustification;
 
@@ -41,7 +34,7 @@ import '../chart_behavior.dart'
 ///
 /// Titles will by default be rendered as the outermost component in the chart
 /// margin.
-class ChartTitle<D> implements ChartBehavior<D> {
+class ChartTitle<D> extends ChartBehavior<D> {
   /// Constructs a [ChartTitle].
   ///
   /// [title] contains the text for the chart title.
@@ -257,24 +250,19 @@ class ChartTitle<D> implements ChartBehavior<D> {
 }
 
 /// Layout view component for [ChartTitle].
-class _ChartTitleLayoutView<D> with LayoutViewMixin {
+class _ChartTitleLayoutView<D> {
   _ChartTitleLayoutView({
     required int layoutPaintOrder,
     required _ChartTitleConfig config,
     required this.chart,
   }) : _config = config {
     // Set inside body to resolve [_layoutPosition].
-    _layoutConfig = LayoutViewConfig(
-      paintOrder: layoutPaintOrder,
-      position: _layoutPosition,
-      positionOrder: LayoutViewPositionOrder.chartTitle,
-    );
+    //   _layoutConfig = LayoutViewConfig(
+    //     paintOrder: layoutPaintOrder,
+    //     position: _layoutPosition,
+    //     positionOrder: LayoutViewPositionOrder.chartTitle,
+    //   );
   }
-
-  late final LayoutViewConfig _layoutConfig;
-
-  @override
-  LayoutViewConfig get layoutConfig => _layoutConfig;
 
   /// Stores all of the configured properties of the behavior.
   _ChartTitleConfig _config;
@@ -307,7 +295,7 @@ class _ChartTitleLayoutView<D> with LayoutViewMixin {
   }
 
   @override
-  ViewMeasuredSizes measure(double maxWidth, double maxHeight) {
+  Size measure(double maxWidth, double maxHeight) {
     double? minWidth;
     double? minHeight;
     double preferredWidth = 0.0;
@@ -403,11 +391,12 @@ class _ChartTitleLayoutView<D> with LayoutViewMixin {
     // Reset the cached text elements used during the paint step.
     _resetTextElementCache();
 
-    return ViewMeasuredSizes(
-        minWidth: minWidth,
-        minHeight: minHeight,
-        preferredWidth: preferredWidth,
-        preferredHeight: preferredHeight);
+    // return ViewMeasuredSizes(
+    //     minWidth: minWidth,
+    //     minHeight: minHeight,
+    //     preferredWidth: preferredWidth,
+    //     preferredHeight: preferredHeight);
+    return Size.zero;
   }
 
   @override
@@ -549,10 +538,10 @@ class _ChartTitleLayoutView<D> with LayoutViewMixin {
     return resolvedTitleDirection;
   }
 
-  /// Get layout position from chart title position.
   LayoutPosition get _layoutPosition {
-    return layoutPosition(
-        _config.behaviorPosition, _config.titleOutsideJustification, isRtl);
+    return LayoutPosition.bottom;
+//    return layoutPosition(
+//        _config.behaviorPosition, _config.titleOutsideJustification, isRtl);
   }
 
   /// Gets the resolved location for a label element.
@@ -739,12 +728,6 @@ class _ChartTitleLayoutView<D> with LayoutViewMixin {
       height: labelSpec.height,
     );
   }
-
-  @override
-  Rect get componentBounds => _drawAreaBounds;
-
-  @override
-  bool get isSeriesRenderer => false;
 }
 
 /// Configuration object for [ChartTitle].

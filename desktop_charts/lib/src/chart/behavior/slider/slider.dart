@@ -27,13 +27,7 @@ import '../../cartesian/cartesian_chart.dart'
     show CartesianChartState, CartesianChart;
 import '../../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
 import '../../layout/layout_view.dart'
-    show
-        LayoutPosition,
-        LayoutViewMixin,
-        LayoutViewConfig,
-        LayoutViewPaintOrder,
-        LayoutViewPositionOrder,
-        ViewMeasuredSizes;
+    show LayoutPosition, LayoutViewPaintOrder, LayoutViewPositionOrder;
 import '../../processed_series.dart' show MutableSeries;
 import '../chart_behavior.dart' show ChartBehavior;
 import '../selection/selection_trigger.dart' show SelectionTrigger;
@@ -48,7 +42,7 @@ import '../selection/selection_trigger.dart' show SelectionTrigger;
 ///       panning.
 ///   longPressHold - Mouse/Touch for a while on the handle, then drag across
 ///       the data.
-class Slider<D> implements ChartBehavior<D> {
+class Slider<D> extends ChartBehavior<D> {
   /// Constructs a [Slider].
   ///
   /// [eventTrigger] sets the type of gesture handled by the slider.
@@ -371,7 +365,7 @@ class Slider<D> implements ChartBehavior<D> {
     bool positionChanged = false;
 
     if (_chart != null) {
-      final viewBounds = _view.componentBounds;
+      final viewBounds = null;
 
       // Clamp the position to the edge of the viewport.
       final positionX = point.dx.clamp(viewBounds.left, viewBounds.right);
@@ -615,18 +609,16 @@ class SliderStyle {
 enum SliderHandlePosition { middle, top, manual }
 
 /// Layout view component for [Slider].
-class _SliderLayoutView<D> with LayoutViewMixin {
+class _SliderLayoutView<D> {
   _SliderLayoutView({
     required int layoutPaintOrder,
     required SymbolRenderer handleRenderer,
-  })  : layoutConfig = LayoutViewConfig(
-            paintOrder: layoutPaintOrder,
-            position: LayoutPosition.drawArea,
-            positionOrder: LayoutViewPositionOrder.drawArea),
+  })  : 
+  //layoutConfig = LayoutViewConfig(
+  //          paintOrder: layoutPaintOrder,
+  //          position: LayoutPosition.drawArea,
+  //          positionOrder: LayoutViewPositionOrder.drawArea),
         _handleRenderer = handleRenderer;
-
-  @override
-  final LayoutViewConfig layoutConfig;
 
   late Rect _drawAreaBounds;
 
@@ -643,7 +635,7 @@ class _SliderLayoutView<D> with LayoutViewMixin {
   }
 
   @override
-  ViewMeasuredSizes? measure(double maxWidth, double maxHeight) {
+  Size? measure(double maxWidth, double maxHeight) {
     return null;
   }
 
@@ -666,12 +658,6 @@ class _SliderLayoutView<D> with LayoutViewMixin {
         strokeColor: sliderElement.stroke,
         strokeWidth: sliderElement.strokeWidth);
   }
-
-  @override
-  Rect get componentBounds => _drawAreaBounds;
-
-  @override
-  bool get isSeriesRenderer => false;
 }
 
 /// Rendering information for a slider control element.

@@ -17,7 +17,6 @@
 
 import '../base_chart.dart';
 import '../datum_details.dart';
-import '../layout/layout_config.dart';
 import '../sankey/sankey_renderer.dart';
 import '../selection_model.dart';
 import '../series_renderer.dart';

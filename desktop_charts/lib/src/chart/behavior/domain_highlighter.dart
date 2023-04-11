@@ -15,11 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:flutter/widgets.dart';
+
 import '../../color.dart';
 import '../base_chart.dart' show BaseChartState, LifecycleListener, BaseChart;
 import '../processed_series.dart' show MutableSeries;
 import '../selection_model.dart' show SelectionModel, SelectionModelType;
-import 'chart_behavior.dart' show ChartBehavior;
+import 'chart_behavior.dart' show ChartBehavior, BehaviorPosition;
 
 /// Chart behavior that monitors the specified [SelectionModel] and darkens the
 /// color for selected data.
@@ -28,7 +30,7 @@ import 'chart_behavior.dart' show ChartBehavior;
 ///
 /// It is used in combination with SelectNearest to update the selection model
 /// and expand selection out to the domain value.
-class DomainHighlighter<D> implements ChartBehavior<D> {
+class DomainHighlighter<D> extends ChartBehavior<D> {
   DomainHighlighter([
     this.selectionModelType = SelectionModelType.info,
   ]) {
@@ -50,7 +52,7 @@ class DomainHighlighter<D> implements ChartBehavior<D> {
     final SelectionModel<D> selectionModel =
         _chart.getSelectionModel(selectionModelType);
 
-    seriesList.forEach((MutableSeries<D> series) {
+    for (final MutableSeries<D> series in seriesList) {
       final origColorFn = series.colorFn;
 
       if (origColorFn != null) {
@@ -63,12 +65,13 @@ class DomainHighlighter<D> implements ChartBehavior<D> {
           }
         };
       }
-    });
+    }
   }
 
   @override
   void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
     _chart = chart;
+
     chart.addLifecycleListener(_lifecycleListener);
     chart
         .getSelectionModel(selectionModelType)
@@ -82,6 +85,11 @@ class DomainHighlighter<D> implements ChartBehavior<D> {
         .removeSelectionChangedListener(_selectionChanged);
     chart.removeLifecycleListener(_lifecycleListener);
   }
+
+  BehaviorPosition get position => BehaviorPosition.inside;
+
+  @override
+  Widget buildBehavior(BuildContext context) => const SizedBox();
 
   @override
   String get role => 'domainHighlight-$selectionModelType';

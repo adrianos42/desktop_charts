@@ -31,8 +31,7 @@ import 'squarified_treemap_renderer.dart';
 import 'treemap_label_decorator.dart';
 
 /// Configuration for a [BaseTreeMapRenderer].
-class TreeMapRendererConfig<D> extends LayoutViewConfig
-    implements SeriesRendererConfig<D> {
+class TreeMapRendererConfig<D> implements SeriesRendererConfig<D> {
   TreeMapRendererConfig({
     this.customRendererId,
     this.patternStrokeWidth = 1.0,
@@ -43,7 +42,8 @@ class TreeMapRendererConfig<D> extends LayoutViewConfig
     this.labelDecorator,
     Color? strokeColor,
     SymbolRenderer? symbolRenderer,
-  })  : strokeColor = strokeColor ?? const ChartsThemeData.fallbackw().foreground,
+  })  : strokeColor =
+            strokeColor ?? const ChartsThemeData.fallbackw().foreground,
         symbolRenderer = symbolRenderer ?? const RectSymbolRenderer();
 
   /// Default padding of a treemap rectangle.

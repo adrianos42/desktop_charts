@@ -27,7 +27,7 @@ import 'chart_behavior.dart' show ChartBehavior;
 /// and notify this behavior to update the viewport on selection change.
 ///
 /// This behavior can only be used on [CartesianChart].
-class SlidingViewport<D> implements ChartBehavior<D> {
+class SlidingViewport<D> extends ChartBehavior<D> {
   final SelectionModelType selectionModelType;
 
   late CartesianChartState<D, CartesianChart<D>> _chart;

@@ -22,7 +22,6 @@ class LineChart extends NumericCartesianChart {
     super.animationDuration,
     super.isVertical,
     super.defaultInteractions,
-    super.layoutConfig,
     super.rtlSpec,
     super.flipVerticalAxis,
   }) : super(defaultRenderer: defaultRenderer ?? LineRendererConfig());

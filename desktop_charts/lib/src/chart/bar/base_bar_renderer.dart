@@ -81,7 +81,6 @@ abstract class BaseBarRenderer<
   BaseBarRenderer({
     required this.config,
     required super.rendererId,
-    required super.layoutPaintOrder,
     required super.chartState,
     required super.seriesList,
   }) : super(symbolRenderer: config.symbolRenderer);
@@ -527,7 +526,7 @@ abstract class BaseBarRenderer<
     _barStackMap.forEach((String key, List<B> barStackList) {
       for (int barIndex = 0; barIndex < barStackList.length; barIndex += 1) {
         final bar = barStackList[barIndex];
-        if (_currentKeys.contains(bar.key) != true) {
+        if (!_currentKeys.contains(bar.key)) {
           bar.animateOut();
         }
       }
@@ -646,7 +645,7 @@ abstract class BaseBarRenderer<
 
   @override
   List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset chartPoint,
+    Offset globalPosition,
     bool byDomain,
     Rect? boundsOverride, {
     bool selectOverlappingPoints = false,
@@ -654,31 +653,34 @@ abstract class BaseBarRenderer<
   }) {
     var nearest = <DatumDetails<D>>[];
 
+    final chartPosition = globalToLocal(globalPosition);
+
     // Was it even in the component bounds?
-    if (!isPointWithinBounds(chartPoint, boundsOverride!)) {
+    if (!isPointWithinBounds(chartPosition, boundsOverride!) && false) {
+      print('object');
       return nearest;
     }
 
     if (_prevDomainAxis is OrdinalAxis) {
       final domainValue = _prevDomainAxis!.getDomain(
-        renderingVertically ? chartPoint.dx : chartPoint.dy,
+        renderingVertically ? chartPosition.dx : chartPosition.dy,
       );
 
       // If we have a domainValue for the event point, then find all segments
       // that match it.
       if (domainValue != null) {
         if (renderingVertically) {
-          nearest = _getVerticalDetailsForDomainValue(domainValue, chartPoint);
+          nearest = _getVerticalDetailsForDomainValue(domainValue, chartPosition);
         } else {
           nearest =
-              _getHorizontalDetailsForDomainValue(domainValue, chartPoint);
+              _getHorizontalDetailsForDomainValue(domainValue, chartPosition);
         }
       }
     } else {
       if (renderingVertically) {
-        nearest = _getVerticalDetailsForDomainValue(null, chartPoint);
+        nearest = _getVerticalDetailsForDomainValue(null, chartPosition);
       } else {
-        nearest = _getHorizontalDetailsForDomainValue(null, chartPoint);
+        nearest = _getHorizontalDetailsForDomainValue(null, chartPosition);
       }
 
       // Find the closest domain and only keep values that match the domain.

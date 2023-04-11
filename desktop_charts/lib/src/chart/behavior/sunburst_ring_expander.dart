@@ -22,7 +22,7 @@ import 'chart_behavior.dart' show ChartBehavior;
 
 /// Expands the initially displayed outer ring to show subset of data in one
 /// final ring.
-class SunburstRingExpander<D> implements ChartBehavior<D> {
+class SunburstRingExpander<D> extends ChartBehavior<D> {
   SunburstRingExpander([this.selectionModelType = SelectionModelType.action]);
 
   final SelectionModelType selectionModelType;

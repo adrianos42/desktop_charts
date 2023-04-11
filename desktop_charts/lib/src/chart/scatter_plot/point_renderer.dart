@@ -30,7 +30,6 @@ import '../cartesian/cartesian_chart.dart';
 import '../cartesian/cartesian_renderer.dart' show BaseCartesianRenderer;
 import '../chart_canvas.dart' show getAnimatedColor;
 import '../datum_details.dart' show DatumDetails;
-import '../layout/layout_view.dart' show LayoutViewPaintOrder;
 import '../processed_series.dart' show ImmutableSeries;
 import '../series_datum.dart' show SeriesDatum;
 import 'comparison_points_decorator.dart' show ComparisonPointsDecorator;
@@ -74,8 +73,6 @@ class PointRenderer<D, S extends BaseChart<D>>
         pointRendererDecorators = config?.pointRendererDecorators ?? [],
         super(
           rendererId: rendererId ?? 'point',
-          layoutPaintOrder:
-              config?.layoutPaintOrder ?? LayoutViewPaintOrder.point,
           symbolRenderer:
               config?.symbolRenderer ?? const CircleSymbolRenderer(),
         );
@@ -345,7 +342,7 @@ class PointRenderer<D, S extends BaseChart<D>>
     Offset offset,
   ) {
     update(offset);
-    
+
     super.paint(context, offset);
 
     final animationPercent = chartState.animationPosition.value;
@@ -388,7 +385,8 @@ class PointRenderer<D, S extends BaseChart<D>>
         // Skip points whose center lies outside the draw bounds. Those that lie
         // near the edge will be allowed to render partially outside. This
         // prevents harshly clipping off half of the shape.
-        if (point.point!.dy != null && bounds.contains(point.point!.toPoint())) {
+        if (point.point!.dy != null &&
+            bounds.contains(point.point!.toPoint())) {
           final bounds = Rect.fromLTWH(
             point.point!.dx! - point.radius,
             point.point!.dy! - point.radius,

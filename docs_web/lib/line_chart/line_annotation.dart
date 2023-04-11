@@ -65,7 +65,7 @@ class LineLineAnnotationChart extends StatelessWidget {
       LinearSales(2, random.nextInt(100)),
       // Fix one of the points to 100 so that the annotations are consistently
       // placed.
-      LinearSales(3, 100),
+      const LinearSales(3, 100),
     ];
 
     return [
@@ -80,25 +80,35 @@ class LineLineAnnotationChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return charts.LineChart(seriesList, animate: animate, behaviors: [
-      charts.RangeAnnotation([
-        const charts.LineAnnotationSegment(
-          1.0,
-          charts.RangeAnnotationAxisType.domain,
-          startLabel: 'Domain 1',
+    return charts.LineChart(
+      seriesList,
+      animate: animate,
+      behaviors: [
+        charts.RangeAnnotation(
+          [
+            const charts.LineAnnotationSegment(
+              1.0,
+              charts.RangeAnnotationAxisType.domain,
+              startLabel: 'Domain 1',
+            ),
+            charts.LineAnnotationSegment(
+                4, charts.RangeAnnotationAxisType.domain,
+                endLabel: 'Domain 2',
+                color: charts.DesktopPalette.gray.lighter),
+            charts.LineAnnotationSegment(
+                20, charts.RangeAnnotationAxisType.measure,
+                startLabel: 'Measure 1 Start',
+                endLabel: 'Measure 1 End',
+                color: charts.DesktopPalette.gray.lighter.lighter),
+            charts.LineAnnotationSegment(
+                65, charts.RangeAnnotationAxisType.measure,
+                startLabel: 'Measure 2 Start',
+                endLabel: 'Measure 2 End',
+                color: charts.DesktopPalette.gray.lighter.lighter.lighter),
+          ],
         ),
-        charts.LineAnnotationSegment(4, charts.RangeAnnotationAxisType.domain,
-            endLabel: 'Domain 2', color: charts.DesktopPalette.gray.lighter),
-        charts.LineAnnotationSegment(20, charts.RangeAnnotationAxisType.measure,
-            startLabel: 'Measure 1 Start',
-            endLabel: 'Measure 1 End',
-            color: charts.DesktopPalette.gray.lighter.lighter),
-        charts.LineAnnotationSegment(65, charts.RangeAnnotationAxisType.measure,
-            startLabel: 'Measure 2 Start',
-            endLabel: 'Measure 2 End',
-            color: charts.DesktopPalette.gray.lighter.lighter.lighter),
-      ]),
-    ]);
+      ],
+    );
   }
 
   /// Create one series with sample hard coded data.

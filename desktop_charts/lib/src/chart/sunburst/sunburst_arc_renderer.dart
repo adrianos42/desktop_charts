@@ -210,7 +210,7 @@ class SunburstArcRenderer<D, S extends BaseChart<D>>
 
     _currentKeys.clear();
 
-    final bounds = chartState.drawAreaBounds;
+    final bounds = offset & size;
 
     final center = Offset((bounds.left + bounds.width / 2).toDouble(),
         (bounds.top + bounds.height / 2).toDouble());

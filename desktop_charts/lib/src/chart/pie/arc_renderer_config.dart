@@ -20,11 +20,10 @@ import 'dart:math' show pi;
 import 'package:flutter/widgets.dart';
 
 import '../base_chart.dart' show BaseChart, BaseChartState;
-import '../layout/layout_view.dart' show LayoutViewPaintOrder;
 import '../processed_series.dart' show MutableSeries;
+import '../series_renderer_config.dart';
 import 'arc_renderer.dart' show ArcRenderer;
 import 'base_arc_renderer_config.dart' show BaseArcRendererConfig;
-import '../series_renderer_config.dart';
 
 /// Configuration for an [ArcRenderer].
 class ArcRendererConfig<D> extends BaseArcRendererConfig<D> {
@@ -34,7 +33,6 @@ class ArcRendererConfig<D> extends BaseArcRendererConfig<D> {
     super.arcLength = 2 * pi,
     super.arcRatio,
     super.arcWidth,
-    super.layoutPaintOrder = LayoutViewPaintOrder.arc,
     super.minHoleWidthForCenterContent = 30,
     super.startAngle = -pi / 2,
     super.strokeWidth = 1.0,

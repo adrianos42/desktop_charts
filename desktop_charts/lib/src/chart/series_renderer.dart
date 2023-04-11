@@ -16,8 +16,8 @@
 // limitations under the License.
 
 import 'dart:math' show max;
-import 'package:collection/collection.dart' show ListEquality;
 
+import 'package:collection/collection.dart' show ListEquality;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -25,12 +25,6 @@ import '../data/series.dart' show AttributeKey;
 import '../symbol_renderer.dart' show SymbolRenderer;
 import 'base_chart.dart' show BaseChart, BaseChartState;
 import 'datum_details.dart' show DatumDetails;
-import 'layout/layout_view.dart'
-    show
-        LayoutPosition,
-        LayoutViewMixin,
-        LayoutViewConfig,
-        LayoutViewPositionOrder;
 import 'processed_series.dart' show MutableSeries;
 import 'series_datum.dart' show SeriesDatum;
 
@@ -44,8 +38,7 @@ const rendererIdKey = AttributeKey<String>('SeriesRenderer.rendererId');
 const rendererKey =
     AttributeKey<SeriesRenderer<dynamic, dynamic>>('SeriesRenderer.renderer');
 
-abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox
-    with LayoutViewMixin {
+abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox {
   SeriesRenderer({
     required this.rendererId,
     required BaseChartState<D, S> chartState,
@@ -141,7 +134,7 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox
 
   /// Gets a list of the data from each series that is closest to a given point.
   ///
-  /// [chartPoint] represents a point in the chart, such as a point that was
+  /// [globalPosition] represents a point in the chart, such as a point that was
   /// clicked/tapped on by a user.
   ///
   /// [selectOverlappingPoints] specifies whether to include all points that
@@ -158,7 +151,7 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox
   /// will use its own component bounds for filtering out selection events
   /// (usually the chart draw area).
   List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset chartPoint,
+    Offset globalPosition,
     bool byDomain,
     Rect? boundsOverride, {
     bool selectOverlappingPoints = false,
@@ -187,18 +180,11 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox
 abstract class BaseSeriesRenderer<D, S extends BaseChart<D>>
     extends SeriesRenderer<D, S> {
   BaseSeriesRenderer({
-    required int layoutPaintOrder,
     this.symbolRenderer,
     required super.rendererId,
     required super.chartState,
     required super.seriesList,
-  }) : layoutConfig = LayoutViewConfig(
-          paintOrder: layoutPaintOrder,
-          position: LayoutPosition.drawArea,
-          positionOrder: LayoutViewPositionOrder.drawArea,
-        );
-
-  final LayoutViewConfig layoutConfig;
+  });
 
   final SymbolRenderer? symbolRenderer;
 
@@ -330,9 +316,6 @@ abstract class BaseSeriesRenderer<D, S extends BaseChart<D>>
       }
     }
   }
-
-  @override
-  bool get isSeriesRenderer => true;
 
   @override
   void configureSeries() {}

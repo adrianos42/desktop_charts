@@ -214,7 +214,7 @@ extension ChartCanvas on Canvas {
   /// with anything exceeding the x pixels to be transparent.
   void drawChartRect(
     Rect bounds, {
-    required Color background,
+    Color? background,
     required Color fill,
     Color? stroke,
     FillPatternType? pattern,
@@ -241,7 +241,7 @@ extension ChartCanvas on Canvas {
           this,
           fill: fill,
           drawAreaBounds: drawAreaBounds,
-          background: background,
+          background: background!,
         );
         break;
 

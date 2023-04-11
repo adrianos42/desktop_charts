@@ -29,7 +29,6 @@ abstract class BaseCartesianRenderer<D, S extends BaseChart<D>>
   BaseCartesianRenderer({
     required super.chartState,
     required super.rendererId,
-    required super.layoutPaintOrder,
     required super.seriesList,
     super.symbolRenderer,
   });

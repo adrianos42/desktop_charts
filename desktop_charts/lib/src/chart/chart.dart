@@ -13,15 +13,6 @@ export 'chart_context.dart' show ChartContext;
 export 'datum_details.dart'
     show DatumDetails, DomainFormatter, MeasureFormatter;
 
-export 'layout/layout_config.dart' show LayoutConfig, MarginSpec;
-export 'layout/layout_view.dart'
-    show
-        LayoutPosition,
-        LayoutViewConfig,
-        LayoutViewPaintOrder,
-        LayoutViewPositionOrder,
-        ViewMeasuredSizes;
-
 export 'processed_series.dart' show ImmutableSeries, MutableSeries;
 export 'selection_model.dart'
     show

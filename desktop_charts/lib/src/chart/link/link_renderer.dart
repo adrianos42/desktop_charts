@@ -15,8 +15,6 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:math' show Offset, Rect;
-
 import 'package:flutter/widgets.dart';
 
 import '../../data/series.dart' show AttributeKey;
@@ -42,7 +40,6 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
           rendererId: rendererId ?? defaultRendererID,
           //config: config ?? LinkRendererConfig(),
           symbolRenderer: (config ?? LinkRendererConfig()).symbolRenderer,
-          layoutPaintOrder: (config ?? LinkRendererConfig()).layoutPaintOrder,
         );
 
   /// Default renderer ID for the Sankey Chart
@@ -72,7 +69,7 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
   @override
   void update(Offset offset) {
     super.update(offset);
-    
+
     for (final series in seriesList) {
       final elementsList = series.getAttr(linkElementsKey);
       _seriesLinkMap.putIfAbsent(series.id, () => elementsList!);
