@@ -6,4 +6,4 @@ export 'arc_label_decorator.dart'
     show ArcLabelDecorator, ArcLabelLeaderLineStyleSpec, ArcLabelPosition;
 export 'arc_renderer.dart' show ArcRenderer;
 export 'arc_renderer_config.dart' show ArcRendererConfig;
-export 'pie_chart.dart' show PieChart;
+export 'pie_chart.dart' show PieChart, PieChartState;

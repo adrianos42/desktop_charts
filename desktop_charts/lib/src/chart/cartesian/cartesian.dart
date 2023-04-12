@@ -77,5 +77,9 @@ export 'axis/time/date_time_tick_formatter.dart' show DateTimeTickFormatter;
 export 'axis/time/time_range_tick_provider_impl.dart'
     show TimeRangeTickProviderImpl;
 export 'cartesian_chart.dart'
-    show CartesianChart, NumericCartesianChart, OrdinalCartesianChart;
+    show
+        CartesianChart,
+        CartesianChartState,
+        NumericCartesianChart,
+        OrdinalCartesianChart;
 export 'cartesian_renderer.dart' show BaseCartesianRenderer;

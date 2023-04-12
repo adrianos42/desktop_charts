@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'dart:ui' show TextDirection, TextBaseline, TextAlign;
+import 'dart:ui' show TextDirection, TextBaseline;
 
 import 'package:flutter/painting.dart' show TextPainter, TextSpan, TextStyle;
 
@@ -28,6 +28,20 @@ class TextElement {
     TextStyle? style,
     this.textScaleFactor,
   }) : _textStyle = style;
+
+  TextElement withText(String text) {
+    return TextElement(
+      text,
+      style: _textStyle,
+      textScaleFactor: textScaleFactor,
+    )
+      .._maxWidth = _maxWidth
+      .._maxWidthStrategy = _maxWidthStrategy
+      .._opacity = _opacity
+      .._textDirection = _textDirection
+      .._textStyle = _textStyle
+      .._painterReady = false;
+  }
 
   /// The [TextStyle] of this [TextElement].
   TextStyle? get textStyle => _textStyle;
@@ -65,19 +79,20 @@ class TextElement {
 
   /// The opacity of this element, in addition to the alpha set on the color
   /// of this element.
-  set opacity(double? opacity) {
-    if (opacity != _opacity) {
+  set opacity(double? value) {
+    if (value != _opacity) {
       _painterReady = false;
-      _opacity = opacity;
+      _opacity = value;
     }
   }
+
+  double get opacity => _opacity ?? 1.0;
 
   // The text of this [TextElement].
   final String text;
 
-  /// The [TextMeasurement] of this [TextElement] as an approximate of what
-  /// is actually printed.
-  ///
+  final double? textScaleFactor;
+
   /// Will return the [maxWidth] if set and the actual text width is larger.
   TextMeasurement get measurement {
     if (!_painterReady) {
@@ -113,9 +128,7 @@ class TextElement {
 
   static const ellipsis = '\u{2026}';
 
-  final double? textScaleFactor;
-
-  var _painterReady = false;
+  bool _painterReady = false;
   TextStyle? _textStyle;
   TextDirection? _textDirection;
 
@@ -149,23 +162,20 @@ class TextElement {
 
   /// Create text painter and measure based on current settings
   void _refreshPainter() {
-    _opacity ??= 1.0;
     final color = textStyle?.color;
 
     _textPainter = TextPainter(
-        text: TextSpan(
-            text: text,
-            style: TextStyle(
-              color: color,
-              fontSize: textStyle?.fontSize?.toDouble(),
-              fontFamily: textStyle?.fontFamily,
-              height: textStyle?.height,
-            )))
-      ..textDirection = TextDirection.ltr
-      // TODO Flip once textAlign works
-      ..textAlign = TextAlign.left
-      // ..textAlign = _textDirection == common.TextDirection.rtl ?
-      //     TextAlign.right : TextAlign.left
+      text: TextSpan(
+        text: text,
+        style: TextStyle(
+          color: color?.withOpacity(opacity),
+          fontSize: textStyle?.fontSize?.toDouble(),
+          fontFamily: textStyle?.fontFamily,
+          height: textStyle?.height,
+        ),
+      ),
+    )
+      ..textDirection = textDirection ?? TextDirection.ltr
       ..ellipsis =
           maxWidthStrategy == MaxWidthStrategy.ellipsize ? ellipsis : null;
 
@@ -174,7 +184,6 @@ class TextElement {
     }
 
     final rMaxWidth = maxWidth ?? double.infinity;
-    // TODO
 
     _textPainter.layout(maxWidth: rMaxWidth.clamp(0.0, double.infinity));
 

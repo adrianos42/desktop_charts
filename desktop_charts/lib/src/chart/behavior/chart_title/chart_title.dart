@@ -18,6 +18,7 @@
 import 'dart:math';
 
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../text_element.dart' show MaxWidthStrategy, TextElement;
 import '../../../theme.dart';
@@ -89,7 +90,7 @@ class ChartTitle<D> extends ChartBehavior<D> {
   /// Stores all of the configured properties of the behavior.
   final _ChartTitleConfig _config;
 
-  BaseChartState<D, BaseChart<D>>? _chart;
+  late BaseChartState<D, BaseChart<D>> _chartState;
 
   _ChartTitleLayoutView<D>? _view;
 
@@ -221,24 +222,19 @@ class ChartTitle<D> extends ChartBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    _chart = chart;
-
-    _view = _ChartTitleLayoutView<D>(
-      layoutPaintOrder: LayoutViewPaintOrder.chartTitle,
-      config: _config,
-      chart: _chart,
-    );
-
-    // TODO chart.addView(_view!);
-    chart.addLifecycleListener(_lifecycleListener);
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState = chartState;
+    _chartState.addLifecycleListener(_lifecycleListener);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    // TODO chart.removeView(_view!);
-    chart.removeLifecycleListener(_lifecycleListener);
-    _chart = null;
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
+  }
+
+  @override
+  void dispose() {
+    _chartState.removeLifecycleListener(_lifecycleListener);
   }
 
   void _updateViewData() {
@@ -383,6 +379,7 @@ class _ChartTitleLayoutView<D> {
         break;
 
       case BehaviorPosition.inside:
+      case BehaviorPosition.insideBelowAxis:
         preferredWidth = min(_drawAreaBounds.width, maxWidth);
         preferredHeight = min(_drawAreaBounds.height, maxHeight);
         break;
@@ -409,7 +406,7 @@ class _ChartTitleLayoutView<D> {
   }
 
   @override
-  void paint(Canvas canvas, double animationPercent) {
+  void paint(Canvas canvas, Offset offset, double animationPercent) {
     final resolvedTitleDirection = _resolvedTitleDirection;
 
     double titleHeight = 0.0;
@@ -477,6 +474,7 @@ class _ChartTitleLayoutView<D> {
           : 0.0;
 
       canvas.drawChartText(
+        offset,
         _titleTextElement!,
         labelPoint.dx,
         labelPoint.dy,
@@ -501,6 +499,7 @@ class _ChartTitleLayoutView<D> {
             : 0.0;
 
         canvas.drawChartText(
+          offset,
           _subTitleTextElement!,
           labelPoint.dx,
           labelPoint.dy,
@@ -525,6 +524,7 @@ class _ChartTitleLayoutView<D> {
       switch (_config.behaviorPosition) {
         case BehaviorPosition.bottom:
         case BehaviorPosition.inside:
+        case BehaviorPosition.insideBelowAxis:
         case BehaviorPosition.top:
           resolvedTitleDirection = ChartTitleDirection.horizontal;
           break;
@@ -564,6 +564,7 @@ class _ChartTitleLayoutView<D> {
             textElement, titleHeight, subTitleHeight);
 
       case BehaviorPosition.inside:
+      case BehaviorPosition.insideBelowAxis:
         return null;
     }
   }

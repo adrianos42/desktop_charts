@@ -15,10 +15,12 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import '../base_chart.dart' show BaseChartState, BaseChart;
-import '../selection_model.dart' show SelectionModel, SelectionModelType;
-import '../sunburst/sunburst_chart.dart' show SunburstChartState;
-import 'chart_behavior.dart' show ChartBehavior;
+import 'package:flutter/widgets.dart';
+
+import '../../base_chart.dart' show BaseChartState, BaseChart;
+import '../../selection_model.dart' show SelectionModel, SelectionModelType;
+import '../../sunburst/sunburst_chart.dart' show SunburstChartState;
+import '../chart_behavior.dart' show ChartBehavior;
 
 /// Expands the initially displayed outer ring to show subset of data in one
 /// final ring.
@@ -27,32 +29,34 @@ class SunburstRingExpander<D> extends ChartBehavior<D> {
 
   final SelectionModelType selectionModelType;
 
-  late SunburstChartState<D> _chart;
+  late SunburstChartState<D> _chartState;
 
   void _selectionChanged(SelectionModel<D> selectionModel) {
     if (selectionModel.selectedDatum.isNotEmpty) {
-      _chart.expandNode(selectionModel.selectedDatum.first.datum);
-      _chart.redraw(skipLayout: true, skipAnimation: true);
+      _chartState.expandNode(selectionModel.selectedDatum.first.datum);
+      _chartState.redraw(skipLayout: true, skipAnimation: true);
     }
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    if (chart is! SunburstChartState) {
-      throw ArgumentError(
-          'SunburstRingExpander can only be attached to a Sunburst chart');
-    }
-    _chart = chart as SunburstChartState<D>;
-    chart
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState = chartState as SunburstChartState<D>;
+
+    _chartState
+        .getSelectionModel(selectionModelType)
+        .addSelectionChangedListener(_selectionChanged);
+  }
+
+  @override
+  void dispose() {
+    _chartState
         .getSelectionModel(selectionModelType)
         .addSelectionUpdatedListener(_selectionChanged);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart
-        .getSelectionModel(selectionModelType)
-        .addSelectionUpdatedListener(_selectionChanged);
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
   }
 
   @override

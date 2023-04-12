@@ -22,29 +22,28 @@ import '../base_chart.dart' show BaseChartState, BaseChart;
 import '../datum_details.dart' show DatumDetails;
 import '../selection_model.dart' show SelectionModelType;
 import '../series_renderer.dart' show rendererIdKey;
+import 'sunburst_arc_renderer.dart';
+import 'sunburst_arc_renderer_config.dart';
 
 @immutable
 class SunburstChart<D> extends BaseChart<D> {
-  const SunburstChart(
+  SunburstChart(
     super.seriesList, {
+    SunburstArcRendererConfig<D>? defaultRenderer,
     super.animate,
     super.animationDuration,
     super.behaviors,
     super.customSeriesRenderers,
     super.defaultInteractions,
-    super.defaultRenderer,
     super.key,
     super.rtlSpec,
     super.selectionModels,
     super.userManagedState,
-  });
+  }): super(defaultRenderer: defaultRenderer ?? SunburstArcRendererConfig());
 
   @override
   SunburstChartState<D> createState() => SunburstChartState<D>();
 }
-
-// typedef _SunburstArcRendererState<D>
-//     = SunburstArcRendererState<D, SunburstChart<D>>;
 
 class SunburstChartState<D> extends BaseChartState<D, SunburstChart<D>> {
   /// Returns a list of datum details from selection model of [type].
@@ -54,20 +53,20 @@ class SunburstChartState<D> extends BaseChartState<D, SunburstChart<D>> {
 
     for (final seriesDatum in getSelectionModel(type).selectedDatum) {
       final rendererId = seriesDatum.series.getAttr(rendererIdKey);
-      final renderer = getSeriesRenderer(rendererId);
+      final renderer = getSeriesRenderer(rendererId)
+          as SunburstArcRenderer<D, SunburstChart<D>>?;
 
-      //final rendererState = renderer as _SunburstArcRendererState<D>?;
+      final details = renderer!.getExpandedDatumDetails(seriesDatum);
 
-      //final details = rendererState!.getExpandedDatumDetails(seriesDatum);
-
-      // entries.add(details);
+      entries.add(details);
     }
 
     return entries;
   }
 
   void expandNode(TreeNode<D> node) {
-    // final rendererState = defaultRenderer as _SunburstArcRendererState<D>?;
-    // rendererState!.expandNode(node);
+    final rendererState =
+        defaultRenderer as SunburstArcRenderer<D, SunburstChart<D>>?;
+    rendererState!.expandNode(node);
   }
 }

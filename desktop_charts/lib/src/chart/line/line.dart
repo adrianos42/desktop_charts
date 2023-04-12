@@ -2,6 +2,6 @@
 
 library line;
 
-export 'line_chart.dart' show LineChart;
+export 'line_chart.dart' show LineChart, LineChartState;
 export 'line_renderer.dart' show LineRenderer;
 export 'line_renderer_config.dart' show LineRendererConfig;

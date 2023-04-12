@@ -202,6 +202,7 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
   @override
   void draw(
     Canvas canvas,
+    Offset offset,
     Tick<D> tick, {
     required AxisDirection orientation,
     required Rect axisBounds,
@@ -211,16 +212,28 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
     bool collision = false,
   }) {
     if (tick is RangeAxisTicks<D>) {
-      drawRangeShadeAndRangeLabel(tick, canvas, orientation, axisBounds,
-          drawAreaBounds, isFirst, isLast);
+      drawRangeShadeAndRangeLabel(
+        offset,
+        tick,
+        canvas,
+        orientation,
+        axisBounds,
+        drawAreaBounds,
+        isFirst,
+        isLast,
+      );
     } else {
-      super.draw(canvas, tick,
-          orientation: orientation,
-          axisBounds: axisBounds,
-          drawAreaBounds: drawAreaBounds,
-          isFirst: isFirst,
-          isLast: isLast,
-          collision: collision);
+      super.draw(
+        canvas,
+        offset,
+        tick,
+        orientation: orientation,
+        axisBounds: axisBounds,
+        drawAreaBounds: drawAreaBounds,
+        isFirst: isFirst,
+        isLast: isLast,
+        collision: collision,
+      );
     }
   }
 
@@ -306,6 +319,7 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
   }
 
   void drawRangeShadeAndRangeLabel(
+    Offset offset,
     RangeAxisTicks<D> tick,
     Canvas canvas,
     AxisDirection orientation,
@@ -340,35 +354,29 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
     final rangeEndTickEnd = rangeEndPositions.last;
 
     // Draw range shade.
-    Rect rangeShade;
-    switch (orientation) {
-      case AxisDirection.up:
-      case AxisDirection.down:
-        rangeShade = Rect.fromLTWH(
+    Rect rangeShade = switch (orientation) {
+      AxisDirection.up || AxisDirection.down => Rect.fromLTWH(
           rangeStartTickStart.dx,
           rangeStartTickStart.dy + rangeShadeOffsetFromAxis,
           rangeEndTickStart.dx - rangeStartTickStart.dx,
           rangeShadeHeight,
-        );
-        break;
-      case AxisDirection.right:
-        rangeShade = Rect.fromLTWH(
+        ),
+      AxisDirection.right => Rect.fromLTWH(
           rangeEndTickStart.dx + rangeShadeOffsetFromAxis,
           rangeEndTickStart.dy,
           rangeShadeHeight,
           rangeEndTickStart.dy - rangeEndTickStart.dy,
-        );
-        break;
-      case AxisDirection.left:
-        rangeShade = Rect.fromLTWH(
+        ),
+      AxisDirection.left => Rect.fromLTWH(
           rangeEndTickStart.dx - rangeShadeOffsetFromAxis - rangeShadeHeight,
           rangeEndTickStart.dy,
           rangeShadeHeight,
           rangeEndTickStart.dy - rangeEndTickStart.dy,
-        );
-        break;
-    }
+        ),
+    };
+
     canvas.drawChartRect(
+      offset,
       rangeShade,
       fill: rangeShadeStyle.color!,
       stroke: rangeShadeStyle.color,
@@ -377,12 +385,14 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
 
     // Draw the start and end boundaries of the range.
     canvas.drawChartLine(
+      offset,
       points: [rangeStartTickStart, rangeStartTickEnd],
       dashPattern: lineStyle.dashPattern,
       stroke: lineStyle.color!,
       strokeWidth: lineStyle.strokeWidth,
     );
     canvas.drawChartLine(
+      offset,
       points: [rangeEndTickStart, rangeEndTickEnd],
       dashPattern: lineStyle.dashPattern,
       stroke: lineStyle.color!,
@@ -412,7 +422,7 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
             .roundToDouble();
       }
       // TODO: add support for orientation left and right.
-      canvas.drawChartText(line, x, y + multiLineLabelOffset);
+      canvas.drawChartText(offset, line, x, y + multiLineLabelOffset);
       multiLineLabelOffset += BaseTickDrawStrategy.multiLineLabelPadding +
           line.measurement.verticalSliceWidth.roundToDouble();
     }

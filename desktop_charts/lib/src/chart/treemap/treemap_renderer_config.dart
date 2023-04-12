@@ -93,40 +93,36 @@ class TreeMapRendererConfig<D> implements SeriesRendererConfig<D> {
     required List<MutableSeries<D>> seriesList,
     String? rendererId,
   }) {
-    switch (tileType) {
-      case TreeMapTileType.dice:
-        return _DiceTreeMapRenderObjectWidget<D, S>(
+    return switch (tileType) {
+      TreeMapTileType.dice => _DiceTreeMapRenderObjectWidget<D, S>(
           config: this,
           rendererId: rendererId ?? customRendererId,
           chartState: chartState,
           seriesList: seriesList,
           key: key,
-        );
-      case TreeMapTileType.slice:
-        return _SliceTreeMapRenderObjectWidget<D, S>(
+        ),
+      TreeMapTileType.slice => _SliceTreeMapRenderObjectWidget<D, S>(
           config: this,
           rendererId: rendererId ?? customRendererId,
           chartState: chartState,
           seriesList: seriesList,
           key: key,
-        );
-      case TreeMapTileType.sliceDice:
-        return _SliceDiceMapRenderObjectWidget<D, S>(
+        ),
+      TreeMapTileType.sliceDice => _SliceDiceMapRenderObjectWidget<D, S>(
           config: this,
           rendererId: customRendererId,
           chartState: chartState,
           seriesList: seriesList,
           key: key,
-        );
-      default:
-        return _SquarifiedTreeMapRenderObjectWidget<D, S>(
+        ),
+      _ => _SquarifiedTreeMapRenderObjectWidget<D, S>(
           config: this,
           rendererId: customRendererId,
           chartState: chartState,
           seriesList: seriesList,
           key: key,
-        );
-    }
+        )
+    };
   }
 }
 

@@ -75,7 +75,7 @@ class LineAnimationZoomChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return charts.LineChart(seriesList, animate: animate, behaviors: [
-      // TODO charts.PanAndZoomBehavior(),
+      charts.PanAndZoomBehavior(),
     ]);
   }
 

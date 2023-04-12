@@ -74,7 +74,8 @@ abstract class ImmutableAxis<D> {
   ScaleOutputExtent? get range;
 }
 
-abstract class CartesianAxis<D> implements ImmutableAxis<D> {
+abstract class CartesianAxis<D> extends ChangeNotifier
+    implements ImmutableAxis<D> {
   CartesianAxis({
     TickFormatter<D>? tickFormatter,
     required TickDrawStrategy<D> tickDrawStrategy,
@@ -132,7 +133,7 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
 
   set axisSpec(AxisSpec<D> value) {
     updateAxisSpec(value);
-    // markNeedsLayout();
+    notifyListeners();
   }
 
   final MutableScale<D> _defaultScale;
@@ -167,8 +168,10 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
   TickDrawStrategy<D> _tickDrawStrategy;
   TickDrawStrategy<D> get tickDrawStrategy => _tickDrawStrategy;
   set tickDrawStrategy(TickDrawStrategy<D> value) {
-    _tickDrawStrategy = value;
-    // markNeedsPaint();
+    if (_tickDrawStrategy != value) {
+      _tickDrawStrategy = value;
+      notifyListeners();
+    }
   }
 
   AxisDirection _axisDirection;
@@ -177,8 +180,10 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
   AxisDirection get axisDirection => _axisDirection;
 
   set axisDirection(AxisDirection value) {
-    _axisDirection = value;
-    // markNeedsLayout();
+    if (value != _axisDirection) {
+      _axisDirection = value;
+      notifyListeners();
+    }
   }
 
   /// If the output range should be reversed.
@@ -187,8 +192,10 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
   bool get reverseOutputRange => _reverseOutputRange;
 
   set reverseOutputRange(bool value) {
-    _reverseOutputRange = value;
-    // markNeedsLayout();
+    if (value != _reverseOutputRange) {
+      _reverseOutputRange = value;
+      notifyListeners();
+    }
   }
 
   /// Configures whether the viewport should be reset back to default values
@@ -263,6 +270,8 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
       return;
     }
 
+    notifyListeners();
+
     // If the series list changes, clear the cache.
     //
     // There are cases where tick formatter has not "changed", but if measure
@@ -282,7 +291,6 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
     // regression for b/110371453.
     _formatterValueCache.clear();
 
-    final scale = this.scale;
     scale.resetDomain();
     reverseOutputRange = false;
 
@@ -300,7 +308,6 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
     const epsilon = 2e-10;
 
     if (domain != null) {
-      final scale = this.scale;
       final range = scale.range!;
 
       final domainLocation = scale[domain]!.toDouble();
@@ -372,8 +379,6 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
     }
 
     final providedTicks = List.of(_providedTicks ?? <Tick<D>>[]);
-
-    final scale = this.scale;
 
     for (final animatedTick in _axisTicks) {
       final tick =
@@ -448,8 +453,12 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
     double? drawAreaHeight,
   }) {
     // Don't let the viewport be panned beyond the bounds of the data.
-    viewportTranslate = _clampTranslate(viewportScale, viewportTranslate,
-        drawAreaWidth: drawAreaWidth, drawAreaHeight: drawAreaHeight);
+    viewportTranslate = _clampTranslate(
+      viewportScale,
+      viewportTranslate,
+      drawAreaWidth: drawAreaWidth,
+      drawAreaHeight: drawAreaHeight,
+    );
 
     scale.setViewportSettings(viewportScale, viewportTranslate);
   }
@@ -531,7 +540,9 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
   }
 
   @mustCallSuper
-  void update(Offset offset) {
+  void update() {
+    const Offset offset = Offset.zero;
+
     switch (_axisDirection) {
       case AxisDirection.left:
       case AxisDirection.up:
@@ -563,8 +574,6 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
     final outputRange = reverseOutputRange
         ? ScaleOutputExtent(outputEnd, outputStart)
         : ScaleOutputExtent(outputStart, outputEnd);
-
-    final scale = this.scale;
 
     if (scale.range != outputRange) {
       scale.range = outputRange;
@@ -599,23 +608,20 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
   void paint(PaintingContext context, Offset offset) {
     final animationPercent = chartContext.animationPosition.value;
 
-
-
     if (animationPercent == 1.0) {
       _axisTicks.removeWhere((t) => t.markedForRemoval);
     }
-
     for (int i = 0; i < _axisTicks.length; i += 1) {
       final animatedTick = _axisTicks[i];
 
       tickDrawStrategy.draw(
         context.canvas,
+        offset,
         animatedTick..setCurrentTick(animationPercent),
-        
         orientation: _axisDirection,
         axisBounds: _componentBounds,
         collision: hasTickCollision,
-        drawAreaBounds: offset & size,
+        drawAreaBounds: Offset.zero & size,
         isFirst: i == 0,
         isLast: i == _axisTicks.length - 1,
       );
@@ -624,6 +630,7 @@ abstract class CartesianAxis<D> implements ImmutableAxis<D> {
     if (drawAxisLine) {
       tickDrawStrategy.drawAxisLine(
         context.canvas,
+        offset,
         _axisDirection,
         _componentBounds,
       );
@@ -693,8 +700,8 @@ class OrdinalAxis extends CartesianAxis<String> {
   }
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
 
     // We are purposely clearing the viewport starting domain and data size
     // post layout.

@@ -15,11 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import '../base_chart.dart' show BaseChartState;
-import '../base_chart.dart' show BaseChart;
-import '../cartesian/cartesian_chart.dart' show CartesianChartState, CartesianChart;
-import '../selection_model.dart' show SelectionModel, SelectionModelType;
-import 'chart_behavior.dart' show ChartBehavior;
+import 'package:flutter/widgets.dart';
+
+import '../../base_chart.dart' show BaseChartState;
+import '../../base_chart.dart' show BaseChart;
+import '../../cartesian/cartesian_chart.dart'
+    show CartesianChartState, CartesianChart;
+import '../../selection_model.dart' show SelectionModel, SelectionModelType;
+import '../chart_behavior.dart' show ChartBehavior;
 
 /// Chart behavior that centers the viewport on the selected domain.
 ///
@@ -28,11 +31,11 @@ import 'chart_behavior.dart' show ChartBehavior;
 ///
 /// This behavior can only be used on [CartesianChart].
 class SlidingViewport<D> extends ChartBehavior<D> {
+  SlidingViewport([this.selectionModelType = SelectionModelType.info]);
+
   final SelectionModelType selectionModelType;
 
-  late CartesianChartState<D, CartesianChart<D>> _chart;
-
-  SlidingViewport([this.selectionModelType = SelectionModelType.info]);
+  late CartesianChartState<D, CartesianChart<D>> _chartState;
 
   void _selectionChanged(SelectionModel<D> selectionModel) {
     if (selectionModel.hasAnySelection == false) {
@@ -42,7 +45,7 @@ class SlidingViewport<D> extends ChartBehavior<D> {
     // Calculate current viewport center and determine the translate pixels
     // needed based on the selected domain value's location and existing amount
     // of translate pixels.
-    final domainAxis = _chart.domainAxis!;
+    final domainAxis = _chartState.domainAxis!;
     final selectedDatum = selectionModel.selectedDatum.first;
     final domainLocation = domainAxis
         .getLocation(selectedDatum.series.domainFn(selectedDatum.index))!;
@@ -52,23 +55,28 @@ class SlidingViewport<D> extends ChartBehavior<D> {
         domainAxis.viewportTranslate + (viewportCenter - domainLocation);
     domainAxis.setViewportSettings(domainAxis.viewportScalingFactor, translate);
 
-    _chart.redraw();
+    _chartState.redraw();
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    assert(chart is CartesianChartState<D, CartesianChart<D>>);
-    _chart = chart as CartesianChartState<D, CartesianChart<D>>;
-    chart
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState = chartState as CartesianChartState<D, CartesianChart<D>>;
+
+    _chartState
         .getSelectionModel(selectionModelType)
         .addSelectionChangedListener(_selectionChanged);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart
+  void dispose() {
+    _chartState
         .getSelectionModel(selectionModelType)
         .removeSelectionChangedListener(_selectionChanged);
+  }
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
   }
 
   @override

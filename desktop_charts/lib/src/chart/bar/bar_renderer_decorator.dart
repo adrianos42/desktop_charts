@@ -27,7 +27,8 @@ abstract class BarRendererDecorator<D> {
 
   void decorate(
     Iterable<ImmutableBarRendererElement<D>> barElements,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     required bool renderingVertically,

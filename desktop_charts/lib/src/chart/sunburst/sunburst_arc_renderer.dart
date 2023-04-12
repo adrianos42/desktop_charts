@@ -205,19 +205,17 @@ class SunburstArcRenderer<D, S extends BaseChart<D>>
           : config.startAngle;
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
 
     _currentKeys.clear();
 
-    final bounds = offset & size;
+    final center = Offset(
+        (size.width / 2).roundToDouble(), (size.height / 2).roundToDouble());
 
-    final center = Offset((bounds.left + bounds.width / 2).toDouble(),
-        (bounds.top + bounds.height / 2).toDouble());
-
-    final radius = bounds.height < bounds.width
-        ? (bounds.height / 2).toDouble()
-        : (bounds.width / 2).toDouble();
+    final radius = size.height < size.width
+        ? (size.height / 2).roundToDouble()
+        : (size.width / 2).roundToDouble();
 
     if (config.arcRatio != null) {
       if (config.arcRatio! < 0 || config.arcRatio! > 1) {
@@ -335,13 +333,14 @@ class SunburstArcRenderer<D, S extends BaseChart<D>>
             if (animatingArc == null) {
               animatingArc = AnimatedArc<D>(arcKey, datum, domainValue)
                 ..setNewTarget(SunburstArcRendererElement<D>(
-                    color: colorFn!(arcIndex),
-                    startAngle: previousEndAngle,
-                    endAngle: previousEndAngle,
-                    index: arcIndex,
-                    series: series,
-                    isLeaf: isLeaf,
-                    isOuterMostRing: isOuterMostRing));
+                  color: colorFn!(arcIndex),
+                  startAngle: previousEndAngle,
+                  endAngle: previousEndAngle,
+                  index: arcIndex,
+                  series: series,
+                  isLeaf: isLeaf,
+                  isOuterMostRing: isOuterMostRing,
+                ));
 
               arcList.arcs.add(animatingArc);
             } else {
@@ -408,10 +407,10 @@ class SunburstArcRenderer<D, S extends BaseChart<D>>
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    final animationPercent = 1.0;
+    super.paint(context, offset);
 
     // Clean up the arcs that no longer exist.
-    if (animationPercent == 1.0) {
+    if (chartState.animationPosition.value == 1.0) {
       final keysToRemove = <String>[];
 
       _seriesArcMap.forEach((String key, List<AnimatedArcs<D>> arcLists) {
@@ -432,8 +431,6 @@ class SunburstArcRenderer<D, S extends BaseChart<D>>
 
       keysToRemove.forEach(_seriesArcMap.remove);
     }
-
-    super.paint(context, offset);
   }
 
   bool _isNodeDisplayed(TreeNode<D>? node) {
@@ -519,7 +516,8 @@ class SunburstArcRenderer<D, S extends BaseChart<D>>
           }
         }
         series.colorFn ??= (index) =>
-            nodeToColorMap[series.data[index!]] ?? chartState.themeData.foreground;
+            nodeToColorMap[series.data[index!]] ??
+            chartState.themeData.foreground;
       }
     }
   }

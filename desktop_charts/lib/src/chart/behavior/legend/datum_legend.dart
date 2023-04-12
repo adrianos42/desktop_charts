@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:flutter/painting.dart' show TextStyle;
+import 'package:flutter/widgets.dart';
 
 import '../../datum_details.dart' show MeasureFormatter;
 import '../../selection_model.dart' show SelectionModelType;
@@ -104,5 +104,20 @@ class DatumLegend<D> extends Legend<D> {
   set secondaryMeasureFormatter(MeasureFormatter? formatter) {
     legendEntryGenerator.secondaryMeasureFormatter =
         formatter ?? defaultLegendMeasureFormatter;
+  }
+
+  @override
+  void updateLegend() {
+
+  }
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    return  Container(
+      width: 100.0,
+      height: 100.0,
+      color: Color(0xff00ff00),
+      child: SizedBox(),
+    );
   }
 }

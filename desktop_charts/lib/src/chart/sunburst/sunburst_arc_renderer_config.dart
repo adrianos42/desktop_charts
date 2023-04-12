@@ -91,7 +91,7 @@ class SunburstArcRendererConfig<D> extends BaseArcRendererConfig<D> {
     required List<MutableSeries<D>> seriesList,
     String? rendererId,
   }) {
-    return _BarRenderObjectWidget(
+    return _SunburstRenderObjectWidget(
       chartState: chartState,
       config: this,
       key: key,
@@ -111,10 +111,10 @@ enum SunburstColorStrategy {
   newShadePerLevel,
 }
 
-class _BarRenderObjectWidget<D, S extends BaseChart<D>>
+class _SunburstRenderObjectWidget<D, S extends BaseChart<D>>
     extends BaseSeriesRenderObjectWidget<D, S, SunburstArcRenderer<D, S>,
         SunburstArcRendererConfig<D>> {
-  const _BarRenderObjectWidget({
+  const _SunburstRenderObjectWidget({
     required super.chartState,
     required super.config,
     required super.key,

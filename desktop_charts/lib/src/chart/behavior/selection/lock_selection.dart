@@ -17,7 +17,6 @@
 
 import 'package:flutter/widgets.dart';
 
-import '../../../gesture_listener.dart' show GestureListener;
 import '../../base_chart.dart' show BaseChartState, BaseChart;
 import '../../selection_model.dart' show SelectionModelType;
 import '../chart_behavior.dart' show ChartBehavior;
@@ -39,7 +38,7 @@ class LockSelection<D> extends ChartBehavior<D> {
     // Setup the appropriate gesture listening.
     switch (eventTrigger) {
       case SelectionTrigger.tap:
-        _listener = GestureListener(onTapTest: _onTapTest, onTap: _onSelect);
+        //  _listener = GestureListener(onTapTest: _onTapTest, onTap: _onSelect);
         break;
       default:
         throw ArgumentError('LockSelection does not support the event '
@@ -47,28 +46,16 @@ class LockSelection<D> extends ChartBehavior<D> {
     }
   }
 
-  late GestureListener _listener;
-
   /// Type of selection model that should be updated by input events.
   final SelectionModelType selectionModelType;
 
   /// Type of input event that should trigger selection.
   final SelectionTrigger eventTrigger = SelectionTrigger.tap;
 
-  BaseChartState<D, BaseChart<D>>? _chart;
+  late BaseChartState<D, BaseChart<D>> _chartState;
 
-  bool _onTapTest(Offset chartPoint) {
-    // If the tap is within the drawArea, then claim the event from others.
-    return _chart!.pointWithinRenderer(chartPoint);
-  }
-
-  bool _onSelect(Offset chartPoint, [double? ignored]) {
-    // Skip events that occur outside the drawArea for any series renderer.
-    if (!_chart!.pointWithinRenderer(chartPoint)) {
-      return false;
-    }
-
-    final selectionModel = _chart!.getSelectionModel(selectionModelType);
+  bool _onSelect(Offset chartPoint) {
+    final selectionModel = _chartState.getSelectionModel(selectionModelType);
 
     // Do not lock the selection model if there is no selection. Locking nothing
     // would result in a very confusing user interface as the user tries to
@@ -91,32 +78,18 @@ class LockSelection<D> extends ChartBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    _chart = chart;
-    chart.addGestureListener(_listener);
-
-    // TODO: Update this dynamically based on tappable location.
-    switch (eventTrigger) {
-      case SelectionTrigger.tap:
-      case SelectionTrigger.tapAndDrag:
-      case SelectionTrigger.pressHold:
-      case SelectionTrigger.longPressHold:
-        chart.registerTappable(this);
-        break;
-      case SelectionTrigger.hover:
-      default:
-        chart.unregisterTappable(this);
-        break;
-    }
-  }
-
-  @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart.removeGestureListener(_listener);
-    chart.unregisterTappable(this);
-    _chart = null;
-  }
+  void dispose() {}
 
   @override
   String get role => 'LockSelection-$selectionModelType';
+
+  @override
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState = chartState;
+  }
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
+  }
 }

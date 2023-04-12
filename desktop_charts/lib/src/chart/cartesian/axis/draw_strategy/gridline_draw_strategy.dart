@@ -107,6 +107,7 @@ class GridlineTickDrawStrategy<D> extends BaseTickDrawStrategy<D> {
   @override
   void draw(
     Canvas canvas,
+    Offset offset,
     Tick<D> tick, {
     required AxisDirection orientation,
     required Rect axisBounds,
@@ -153,14 +154,16 @@ class GridlineTickDrawStrategy<D> extends BaseTickDrawStrategy<D> {
     }
 
     canvas.drawChartLine(
+      offset,
       points: [lineStart, lineEnd],
       dashPattern: lineStyle.dashPattern,
-      stroke: lineStyle.color!,
+      stroke: lineStyle.color!.withOpacity(tick.textElement!.opacity),
       strokeWidth: lineStyle.strokeWidth,
     );
 
     drawLabel(
       canvas,
+      offset,
       tick,
       orientation: orientation,
       axisBounds: axisBounds,

@@ -67,8 +67,8 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
   }
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
 
     for (final series in seriesList) {
       final elementsList = series.getAttr(linkElementsKey);
@@ -104,7 +104,7 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
   /// Datum details of nearest link.
   @override
   List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset chartPoint,
+    Offset globalPosition,
     bool byDomain,
     Rect? boundsOverride, {
     bool selectOverlappingPoints = false,

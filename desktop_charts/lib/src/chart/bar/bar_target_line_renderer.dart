@@ -247,12 +247,13 @@ class BarTargetLineRenderer<D, S extends BaseChart<D>> extends BaseBarRenderer<
     Offset offset,
     Iterable<BarTargetLineRendererElement> barElements,
   ) {
-    final bounds = offset & size;
+    final bounds = Offset.zero & size;
 
     for (final bar in barElements) {
       // TODO: Combine common line attributes into
       // lineStyle or similar.
       canvas.drawChartLine(
+        offset,
         clipBounds: bounds,
         points: bar.points,
         stroke: bar.color!,

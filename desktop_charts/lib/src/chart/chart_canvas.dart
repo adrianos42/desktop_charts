@@ -37,6 +37,7 @@ extension ChartCanvas on Canvas {
   ///     positive x axis and expressed in radians.
   /// [fill] Fill color for the sector.
   void drawChartCircleSector(
+    Offset offset,
     Offset center,
     double radius,
     double innerRadius,
@@ -46,7 +47,7 @@ extension ChartCanvas on Canvas {
   }) {
     _circleSectorPainterDraw(
       canvas: this,
-      center: center,
+      center: offset + center,
       endAngle: endAngle,
       fill: fill,
       innerRadius: innerRadius,
@@ -75,7 +76,8 @@ extension ChartCanvas on Canvas {
   /// to stroke-dasharray in SVG path elements. An odd number of values in the
   /// pattern will be repeated to derive an even number of values. "1,2,3" is
   /// equivalent to "1,2,3,1,2,3."
-  void drawChartLine({
+  void drawChartLine(
+    Offset offset, {
     required List<Offset> points,
     required Color stroke,
     Rect? clipBounds,
@@ -85,8 +87,8 @@ extension ChartCanvas on Canvas {
   }) {
     _linePainterDraw(
       canvas: this,
-      points: points,
-      clipBounds: clipBounds,
+      points: points.map((e) => e + offset).toList(),
+      clipBounds: clipBounds?.shift(offset),
       stroke: stroke,
       roundEndCaps: roundEndCaps,
       strokeWidth: strokeWidth,
@@ -95,8 +97,8 @@ extension ChartCanvas on Canvas {
   }
 
   /// Renders a pie, with an optional hole in the center.
-  void drawChartPie(CanvasPie canvasPie) {
-    final center = canvasPie.center;
+  void drawChartPie(Offset offset, CanvasPie canvasPie) {
+    final center = offset + canvasPie.center;
     final radius = canvasPie.radius;
     final innerRadius = canvasPie.innerRadius;
 
@@ -161,7 +163,8 @@ extension ChartCanvas on Canvas {
   /// appear.
   ///
   /// [blendMode] Blend mode to be used when drawing this point on canvas.
-  void drawChartPoint({
+  void drawChartPoint(
+    Offset offset, {
     required Offset point,
     required double radius,
     Color? fill,
@@ -171,7 +174,7 @@ extension ChartCanvas on Canvas {
   }) {
     _pointPainterDraw(
       canvas: this,
-      point: point,
+      point: offset + point,
       radius: radius,
       fill: fill,
       stroke: stroke,
@@ -189,7 +192,8 @@ extension ChartCanvas on Canvas {
   ///
   /// [stroke] and [strokeWidth] configure the color and thickness of the
   /// edges of the polygon. Both must be provided together for a line to appear.
-  void drawChartPolygon({
+  void drawChartPolygon(
+    Offset offset, {
     required List<Offset> points,
     Rect? clipBounds,
     Color? fill,
@@ -198,8 +202,8 @@ extension ChartCanvas on Canvas {
   }) {
     _polygonPainterDraw(
       canvas: this,
-      points: points,
-      clipBounds: clipBounds,
+      points: points.map((e) => offset + e).toList(),
+      clipBounds: clipBounds?.shift(offset),
       fill: fill,
       stroke: stroke,
       strokeWidth: strokeWidth,
@@ -213,6 +217,7 @@ extension ChartCanvas on Canvas {
   /// platform) exceeding the draw area will apply a gradient to transparent
   /// with anything exceeding the x pixels to be transparent.
   void drawChartRect(
+    Offset offset,
     Rect bounds, {
     Color? background,
     required Color fill,
@@ -221,6 +226,9 @@ extension ChartCanvas on Canvas {
     double? strokeWidth,
     Rect? drawAreaBounds,
   }) {
+    final chartBounds = bounds.shift(offset);
+    final drawBounds = drawAreaBounds?.shift(offset);
+
     final bool drawStroke =
         strokeWidth != null && strokeWidth > 0.0 && stroke != null;
 
@@ -228,10 +236,10 @@ extension ChartCanvas on Canvas {
 
     // Factor out stroke width, if a stroke is enabled.
     final fillRectBounds = Rect.fromLTWH(
-      bounds.left + (strokeWidthOffset / 2.0).truncateToDouble(),
-      bounds.top + (strokeWidthOffset / 2.0).truncateToDouble(),
-      bounds.width - strokeWidthOffset,
-      bounds.height - strokeWidthOffset,
+      chartBounds.left + (strokeWidthOffset / 2.0).truncateToDouble(),
+      chartBounds.top + (strokeWidthOffset / 2.0).truncateToDouble(),
+      chartBounds.width - strokeWidthOffset,
+      chartBounds.height - strokeWidthOffset,
     );
 
     switch (pattern) {
@@ -240,7 +248,7 @@ extension ChartCanvas on Canvas {
           fillRectBounds,
           this,
           fill: fill,
-          drawAreaBounds: drawAreaBounds,
+          drawAreaBounds: drawBounds,
           background: background!,
         );
         break;
@@ -254,10 +262,10 @@ extension ChartCanvas on Canvas {
 
         // Apply a gradient to the top [rect_top_gradient_pixels] to transparent
         // if the rectangle is higher than the [drawAreaBounds] top.
-        if (drawAreaBounds != null && bounds.top < drawAreaBounds.top) {
+        if (drawBounds != null && chartBounds.top < drawBounds.top) {
           paint.shader = _createHintGradient(
-            drawAreaBounds.left,
-            drawAreaBounds.top,
+            drawBounds.left,
+            drawBounds.top,
             fill,
           );
         }
@@ -273,20 +281,21 @@ extension ChartCanvas on Canvas {
       paint.color = stroke;
       // Set shader to null if no draw area bounds so it can use the color
       // instead.
-      paint.shader = drawAreaBounds != null
-          ? _createHintGradient(drawAreaBounds.left, drawAreaBounds.top, stroke)
+      paint.shader = drawBounds != null
+          ? _createHintGradient(drawBounds.left, drawBounds.top, stroke)
           : null;
       paint.strokeJoin = StrokeJoin.miter;
       paint.strokeWidth = strokeWidth;
       paint.style = PaintingStyle.stroke;
 
-      drawRect(bounds, paint);
+      drawRect(chartBounds, paint);
     }
   }
 
   /// Renders a rounded rectangle.
   void drawChartRRect(
-    Rect bounds, {
+    Offset offset,
+    RRect bounds, {
     required Color fill,
     Color? stroke,
     Color? patternColor,
@@ -294,10 +303,6 @@ extension ChartCanvas on Canvas {
     double? patternStrokeWidth,
     double? strokeWidth,
     double? radius,
-    bool roundTopLeft = false,
-    bool roundTopRight = false,
-    bool roundBottomLeft = false,
-    bool roundBottomRight = false,
   }) {
     // Use separate rect for drawing stroke
     final Paint paint = Paint()
@@ -305,12 +310,7 @@ extension ChartCanvas on Canvas {
       ..style = PaintingStyle.fill;
 
     drawRRect(
-      _getRRect(bounds,
-          radius: radius ?? 0.0,
-          roundTopLeft: roundTopLeft,
-          roundTopRight: roundTopRight,
-          roundBottomLeft: roundBottomLeft,
-          roundBottomRight: roundBottomRight),
+      bounds.shift(offset),
       paint,
     );
   }
@@ -325,13 +325,14 @@ extension ChartCanvas on Canvas {
   /// platform) exceeding the draw area will apply a gradient to transparent
   /// with anything exceeding the x pixels to be transparent.
   void drawChartBarStack(
+    Offset offset,
     CanvasBarStack barStack, {
     Rect? drawAreaBounds,
     required Color background,
   }) {
     this
       ..save()
-      ..clipRect(barStack.fullStackRect);
+      ..clipRect(barStack.fullStackRect.shift(offset));
 
     // Draw each bar.
     for (int barIndex = 0; barIndex < barStack.segments.length; barIndex += 1) {
@@ -339,6 +340,7 @@ extension ChartCanvas on Canvas {
       // TODO: Don't draw stroke on bottom of bars.
       final segment = barStack.segments[barIndex];
       drawChartRect(
+        offset,
         segment.bounds,
         fill: segment.fill!,
         pattern: segment.pattern,
@@ -353,6 +355,7 @@ extension ChartCanvas on Canvas {
   }
 
   void drawChartText(
+    Offset offset,
     TextElement textElement,
     double offsetX,
     double offsetY, {
@@ -360,6 +363,9 @@ extension ChartCanvas on Canvas {
   }) {
     final textDirection = textElement.textDirection;
     final measurement = textElement.measurement;
+
+    offsetX += offset.dx;
+    offsetY += offset.dy;
 
     if (rotation != 0) {
       // TODO: Remove once textAnchor works.
@@ -373,7 +379,7 @@ extension ChartCanvas on Canvas {
       translate(offsetX, offsetY);
       rotate(rotation);
 
-      textElement.textPainter!.paint(this, const Offset(0.0, 0.0));
+      textElement.textPainter!.paint(this, Offset.zero);
 
       restore();
     } else {
@@ -396,10 +402,10 @@ extension ChartCanvas on Canvas {
   /// Request the canvas to clip to [clipBounds].
   ///
   /// Applies to all operations until [restClipBounds] is called.
-  void setChartClipBounds(Rect clipBounds) {
+  void setChartClipBounds(Offset offset, Rect clipBounds) {
     this
       ..save()
-      ..clipRect(clipBounds);
+      ..clipRect(clipBounds.shift(offset));
   }
 
   /// Restore
@@ -419,29 +425,6 @@ extension ChartCanvas on Canvas {
     );
   }
 
-  /// Convert dart:math [Rect] and to Flutter [RRect].
-  RRect _getRRect(
-    Rect rectangle, {
-    double radius = 0,
-    bool roundTopLeft = false,
-    bool roundTopRight = false,
-    bool roundBottomLeft = false,
-    bool roundBottomRight = false,
-  }) {
-    final cornerRadius = radius == 0 ? Radius.zero : Radius.circular(radius);
-
-    return RRect.fromLTRBAndCorners(
-      rectangle.left.truncateToDouble(),
-      rectangle.top.truncateToDouble(),
-      rectangle.right.truncateToDouble(),
-      rectangle.bottom.truncateToDouble(),
-      topLeft: roundTopLeft ? cornerRadius : Radius.zero,
-      topRight: roundTopRight ? cornerRadius : Radius.zero,
-      bottomLeft: roundBottomLeft ? cornerRadius : Radius.zero,
-      bottomRight: roundBottomRight ? cornerRadius : Radius.zero,
-    );
-  }
-
   /// Draws a forward hatch pattern in the given bounds.
   void _drawForwardHatchPattern(
     Rect bounds,
@@ -451,9 +434,6 @@ extension ChartCanvas on Canvas {
     double fillWidth = 4.0,
     Rect? drawAreaBounds,
   }) {
-    // background ??= const ChartsThemeData.fallback().black; // TODO
-    // fill ??= const ChartsThemeData.fallback().white; // TODO
-
     // Fill in the shape with a solid background color.
     final Paint paint = Paint()
       ..color = background

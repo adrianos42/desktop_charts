@@ -41,11 +41,10 @@ const rendererKey =
 abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox {
   SeriesRenderer({
     required this.rendererId,
-    required BaseChartState<D, S> chartState,
+    required this.chartState,
     required List<MutableSeries<D>> seriesList,
     this.symbolRenderer,
-  })  : _chartState = chartState,
-        _seriesList = seriesList {
+  }) : _seriesList = seriesList {
     configure();
   }
 
@@ -56,26 +55,19 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox {
   /// building widget based symbols.
   final SymbolRenderer? symbolRenderer;
 
-  BaseChartState<D, S> _chartState;
+  final BaseChartState<D, S> chartState;
 
-  BaseChartState<D, S> get chartState => _chartState;
-  set chartState(BaseChartState<D, S> value) {
-    if (_chartState != value) {
-      _chartState = value;
-      markNeedsLayout();
-    }
-  }
-
-  List<MutableSeries<D>> _seriesList = [];
+  List<MutableSeries<D>> _seriesList;
   List<MutableSeries<D>> get seriesList => _seriesList;
   set seriesList(List<MutableSeries<D>> value) {
     if (value != _seriesList ||
         !ListEquality<MutableSeries<D>>().equals(value, _seriesList)) {
       _seriesList = value;
       configure();
-      markNeedsLayout();
+      markNeedsUpdate();
     }
   }
+
 
   @protected
   @mustCallSuper
@@ -84,20 +76,22 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox {
     preprocessSeries();
   }
 
+  void markNeedsUpdate();
+
   @mustCallSuper
-  void update(Offset offset) {}
+  void update();
 
   @mustCallSuper
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
-    chartState.animationController.addListener(markNeedsPaint);
+    chartState.animationPosition.addListener(markNeedsPaint);
   }
 
   @mustCallSuper
   @override
   void detach() {
-    chartState.animationController.removeListener(markNeedsPaint);
+    chartState.animationPosition.removeListener(markNeedsPaint);
     super.detach();
   }
 
@@ -420,9 +414,31 @@ abstract class BaseSeriesRenderer<D, S extends BaseChart<D>>
     return bounds.contains(chartPoint);
   }
 
+  bool _needsUpdate = false;
+
+  @override
+  void markNeedsUpdate() {
+    _needsUpdate = true;
+    markNeedsPaint();
+  }
+
+  @override
+  void update() {}
+
+  @mustCallSuper
   @override
   void performLayout() {
-    chartState.requestAnimation(); // TODO
+    markNeedsUpdate();
     size = constraints.biggest;
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    if (_needsUpdate) {
+      _needsUpdate = false;
+      update();
+    }
+
+    super.paint(context, offset);
   }
 }

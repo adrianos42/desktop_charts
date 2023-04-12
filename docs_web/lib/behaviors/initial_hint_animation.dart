@@ -125,15 +125,16 @@ class InitialHintAnimation extends StatelessWidget {
       domainAxis: const charts.OrdinalAxisSpec(
         viewport: charts.OrdinalViewport('2018', 4),
       ),
+      isVertical: true,
       behaviors: [
         // Add this behavior to show initial hint animation that will pan to the
         // final desired viewport.
         // The duration of the animation can be adjusted by pass in
         // [hintDuration]. By default this is 3000ms.
-        // TODO charts.InitialHintBehavior(maxHintTranslate: 4.0),
+        charts.InitialHintBehavior(maxHintTranslate: 4.0),
         // Optionally add a pan or pan and zoom behavior.
         // If pan/zoom is not added, the viewport specified remains the viewport
-        // TODO charts.PanAndZoomBehavior(),
+        charts.PanAndZoomBehavior(),
       ],
     );
   }

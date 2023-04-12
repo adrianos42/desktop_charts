@@ -11,6 +11,8 @@ import 'pie_chart/pie_chart.dart' as pie_chart;
 import 'scatter_plot_chart/scatter_plot_chart.dart' as scatter_plot_chart;
 import 'time_series_chart/time_series_chart.dart' as time_series_chart;
 import 'combo_chart/combo.dart' as combo_chart;
+import 'behaviors/behaviors.dart' as behaviors;
+import 'legends/legends.dart' as legends;
 import 'i18n/i18n.dart' as i18n;
 
 class OverviewPage extends StatefulWidget {
@@ -47,7 +49,7 @@ class HeaderDelegate extends SliverPersistentHeaderDelegate {
 
   @override
   bool shouldRebuild(SliverPersistentHeaderDelegate oldDelegate) {
-    return true;
+    return false;
   }
 }
 
@@ -80,22 +82,25 @@ class _OverviewPageState extends State<OverviewPage> {
             Expanded(
               child: Button(
                 bodyPadding: const EdgeInsets.all(12.0),
-                body: Column(
-                  children: [
-                    Expanded(
-                      child: Builder(builder: child),
-                    ),
-                    Align(
-                      alignment: Alignment.center,
-                      child: Padding(
-                        padding: const EdgeInsets.only(top: 12.0),
-                        child: Text(
-                          title,
-                          style: textTheme.body2,
+                body: AbsorbPointer(
+                  absorbing: true,
+                  child: Column(
+                    children: [
+                      Expanded(
+                        child: Builder(builder: child),
+                      ),
+                      Align(
+                        alignment: Alignment.center,
+                        child: Padding(
+                          padding: const EdgeInsets.only(top: 12.0),
+                          child: Text(
+                            title,
+                            style: textTheme.body2,
+                          ),
                         ),
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
                 filled: true,
                 onPressed: () {},
@@ -117,10 +122,12 @@ class _OverviewPageState extends State<OverviewPage> {
   @override
   Widget build(BuildContext context) {
     if (kDebugMode) {
-      return bar_chart.BarPage();
-      //return pie_chart.PiePage();
+      //return bar_chart.BarPage();
+     // return pie_chart.PiePage();
       // return time_series_chart.TimeSeriesPage();
       //return line_chart.LinePage();
+      //return behaviors.BehaviorsPage();
+      return legends.LegendsPage();
     }
 
     return Column(

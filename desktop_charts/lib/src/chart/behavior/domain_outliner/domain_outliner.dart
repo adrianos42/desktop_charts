@@ -15,11 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import '../../color.dart';
-import '../base_chart.dart';
-import '../processed_series.dart';
-import '../selection_model.dart';
-import 'chart_behavior.dart' show ChartBehavior;
+import 'package:flutter/widgets.dart';
+
+import '../../../color.dart';
+import '../../base_chart.dart';
+import '../../processed_series.dart';
+import '../../selection_model.dart';
+import '../chart_behavior.dart' show ChartBehavior;
 
 /// Chart behavior that monitors the specified [SelectionModel] and outlines the
 /// selected data.
@@ -27,6 +29,15 @@ import 'chart_behavior.dart' show ChartBehavior;
 /// This is typically used for treemap charts to highlight nodes.
 /// For bars and pies, prefers to use [DomainHighlighter] for UX consistency.
 class DomainOutliner<D> extends ChartBehavior<D> {
+  DomainOutliner({
+    this.selectionType = SelectionModelType.info,
+    double? defaultStroke,
+    double? strokePadding,
+  })  : defaultStroke = defaultStroke ?? 2.0,
+        strokePadding = strokePadding ?? 1.0 {
+    _lifecycleListener = LifecycleListener<D>(onPostprocess: _outline);
+  }
+
   final SelectionModelType selectionType;
 
   /// Default stroke width of the outline if the series has no stroke width
@@ -42,25 +53,16 @@ class DomainOutliner<D> extends ChartBehavior<D> {
   /// defined.
   final double strokePadding;
 
-  late BaseChartState<D, BaseChart<D>> _chart;
+  late BaseChartState<D, BaseChart<D>> _chartState;
 
   late LifecycleListener<D> _lifecycleListener;
 
-  DomainOutliner({
-    this.selectionType = SelectionModelType.info,
-    double? defaultStroke,
-    double? strokePadding,
-  })  : defaultStroke = defaultStroke ?? 2.0,
-        strokePadding = strokePadding ?? 1.0 {
-    _lifecycleListener = LifecycleListener<D>(onPostprocess: _outline);
-  }
-
   void _selectionChange(SelectionModel<D> selectionModel) {
-    _chart.redraw(skipLayout: true, skipAnimation: true);
+    _chartState.redraw(skipLayout: true, skipAnimation: true);
   }
 
   void _outline(List<MutableSeries<D>> seriesList) {
-    final selectionModel = _chart.getSelectionModel(selectionType);
+    final selectionModel = _chartState.getSelectionModel(selectionType);
 
     for (final series in seriesList) {
       final strokeWidthFn = series.strokeWidthFn;
@@ -90,22 +92,26 @@ class DomainOutliner<D> extends ChartBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    _chart = chart;
-    chart.addLifecycleListener(_lifecycleListener);
-    chart
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState.addLifecycleListener(_lifecycleListener);
+    _chartState
         .getSelectionModel(selectionType)
         .addSelectionChangedListener(_selectionChange);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart
+  void dispose() {
+    _chartState
         .getSelectionModel(selectionType)
         .removeSelectionChangedListener(_selectionChange);
-    chart.removeLifecycleListener(_lifecycleListener);
+    _chartState.removeLifecycleListener(_lifecycleListener);
   }
 
   @override
   String get role => 'domainOutliner-$selectionType';
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
+  }
 }

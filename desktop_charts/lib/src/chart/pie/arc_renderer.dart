@@ -65,7 +65,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
   //     Rect(0.0, 0.0, size.width, size.height);
 
   /// Stroke color of the border of the arcs.
-   Color get strokeColor => chartState.themeData.arcStrokeColor;
+  Color get strokeColor => chartState.themeData.arcStrokeColor;
 
   // /// Color of the "no data" state for the chart, used when an empty series is
   // /// drawn.
@@ -146,12 +146,12 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
   }
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
 
     _currentKeys.clear();
 
-    final bounds = Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
+    final bounds = Rect.fromLTWH(0.0, 0.0, size.width, size.height);
 
     final center = Offset((bounds.left + bounds.width / 2).roundToDouble(),
         (bounds.top + bounds.height / 2).roundToDouble());
@@ -256,7 +256,6 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
             arcList.arcs.add(animatingArc);
           } else {
             animatingArc.datum = datum;
-
             previousEndAngle = animatingArc.previousArcEndAngle ?? 0.0;
           }
 
@@ -311,7 +310,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    update(offset);
+    super.paint(context, offset);
 
     // Clean up the arcs that no longer exist.
     if (chartState.animationPosition.isCompleted) {
@@ -327,11 +326,6 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
 
       keysToRemove.forEach(_seriesArcMap.remove);
     }
-
-    super.paint(
-      context,
-      offset,
-    );
   }
 
   /// Assigns colors to series that are missing their colorFn.

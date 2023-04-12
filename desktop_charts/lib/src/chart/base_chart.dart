@@ -16,12 +16,11 @@
 // limitations under the License.
 
 import 'package:collection/collection.dart' show ListEquality;
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
 
 import '../data/data.dart';
 import '../date_time_factory.dart' show DateTimeFactory, LocalDateTimeFactory;
-import '../gesture_listener.dart' show GestureListener;
-import '../proxy_gesture_listener.dart' show ProxyGestureListener;
 import '../rtl_spec.dart' show RTLSpec;
 import '../theme.dart';
 import 'behavior/behavior.dart'
@@ -31,8 +30,7 @@ import 'behavior/behavior.dart'
         InsideJustification,
         OutsideJustification,
         SelectNearest,
-        SelectionTrigger,
-        A11yNode;
+        SelectionTrigger;
 import 'chart_context.dart' show ChartContext;
 import 'datum_details.dart' show DatumDetails;
 import 'processed_series.dart' show MutableSeries;
@@ -101,16 +99,17 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
   late CurvedAnimation _animationPosition;
 
   @override
-  AnimationController get animationController => _animationController;
-
-  @override
   CurvedAnimation get animationPosition => _animationPosition;
 
-  dynamic _chartGestureDetector;
   final _lifecycleListeners = <LifecycleListener<D>>[];
 
+  @protected
+  List<LifecycleListener<D>> get lifecycleListeners => _lifecycleListeners;
+
   LifecycleListener<D> addLifecycleListener(LifecycleListener<D> listener) {
-    _lifecycleListeners.add(listener);
+    if (!_lifecycleListeners.contains(listener)) {
+      _lifecycleListeners.add(listener);
+    }
     return listener;
   }
 
@@ -172,9 +171,15 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
 
   static const chartLayoutID = 'chart';
 
+  bool _deferAnimation = false;
+
   void _playAnimation(Duration duration) {
-    _animationController.duration = duration;
-    _animationController.forward(from: 0.0);
+    _deferAnimation = !TickerMode.of(context);
+
+    if (!_deferAnimation) {
+      _animationController.duration = duration;
+      _animationController.forward(from: 0.0);
+    }
   }
 
   /// Get animation controller to be used by [behavior].
@@ -215,12 +220,10 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     for (int i = addedBehaviorWidgets.length - 1; i >= 0; i--) {
       final addedBehavior = addedBehaviorWidgets[i];
       if (!behaviorList.remove(addedBehavior)) {
-        setState(() {
-          final role = addedBehavior.role;
-          addedBehaviorWidgets.remove(addedBehavior);
-          addedCommonBehaviorsByRole.remove(role);
-          removeBehavior(addedCommonBehaviorsByRole[role]);
-        });
+        final role = addedBehavior.role;
+        addedBehaviorWidgets.remove(addedBehavior);
+        addedCommonBehaviorsByRole.remove(role);
+        removeBehavior(addedCommonBehaviorsByRole[role]);
       }
     }
 
@@ -305,16 +308,10 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
   RTLSpec? get rtlSpec => widget.rtlSpec;
 
   @override
-  bool get isTappable => _behaviorTappableMap.isNotEmpty;
-
-  @override
   bool get isVertical => false;
 
   @override
   DateTimeFactory get dateTimeFactory => const LocalDateTimeFactory();
-
-  @override
-  void requestRedraw() {}
 
   @override
   void requestAnimation([Duration? value]) {
@@ -326,17 +323,17 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     setState(() {});
   }
 
-  @override
-  void enableA11yExploreMode(List<A11yNode> nodes, {String? announcement}) {
-    throw 'Not implemented';
-  }
+  // @override
+  // void enableA11yExploreMode(List<A11yNode> nodes, {String? announcement}) {
+  //   throw 'Not implemented';
+  // }
 
-  @override
-  void disableA11yExploreMode({
-    String? announcement,
-  }) {
-    throw 'Not implemented';
-  }
+  //@override
+  //void disableA11yExploreMode({
+  //  String? announcement,
+  //}) {
+  //  throw 'Not implemented';
+  //}
 
   @override
   ChartsThemeData get themeData => ChartsTheme.of(context);
@@ -351,6 +348,12 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
   /// initial draw cycle (e.g. a [Legend] may hide some series).
   List<MutableSeries<D>>? _currentSeriesList;
 
+  /// List of series that were passed into the previous draw call.
+  ///
+  /// This list will be used when redraw is called, to reset the state of all
+  /// behaviors to the original list.
+  late List<MutableSeries<D>> _originalSeriesList;
+
   late Map<String, List<MutableSeries<D>>> _rendererToSeriesList;
 
   Set<String> _usingRenderers = <String>{};
@@ -360,10 +363,6 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
   /// Map of named chart behaviors attached to this chart.
   final _behaviorRoles = <String, ChartBehavior<D>>{};
   final _behaviorStack = <ChartBehavior<D>>[];
-
-  final _behaviorTappableMap = <String, ChartBehavior<D>>{};
-
-  final _gestureProxy = ProxyGestureListener();
 
   final _selectionModels = <SelectionModelType, MutableSelectionModel<D>>{};
 
@@ -389,22 +388,6 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
   /// Should be true for Scatter plots.
   bool get selectOverlappingPoints => false;
 
-  //
-  // Gesture proxy methods
-  //
-  ProxyGestureListener get gestureProxy => _gestureProxy;
-
-  /// Add a [GestureListener] to this chart.
-  GestureListener addGestureListener(GestureListener listener) {
-    _gestureProxy.add(listener);
-    return listener;
-  }
-
-  /// Remove a [GestureListener] from this chart.
-  void removeGestureListener(GestureListener listener) {
-    _gestureProxy.remove(listener);
-  }
-
   /// Returns MutableSelectionModel for the given type. Lazy creates one upon first
   /// request.
   MutableSelectionModel<D> getSelectionModel(SelectionModelType type) {
@@ -426,15 +409,6 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
         as SeriesRenderer<D, S>?;
   }
 
-  bool pointWithinRenderer(Offset chartPosition) {
-    // TODO return _usingRenderers.any((String rendererId) =>
-    // TODO     getSeriesRenderer(rendererId)!
-    // TODO         .componentBounds!
-    // TODO         .containsPoint(chartPosition));
-
-    return false;
-  }
-
   /// Retrieves the datum details that are nearest to the given [drawAreaPoint].
   ///
   /// [drawAreaPoint] represents a point in the chart, such as a point that was
@@ -450,8 +424,7 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     // Optionally grab the combined draw area bounds of all components. If this
     // is disabled, then we expect each series renderer to filter out the event
     // if [chartPoint] is located outside of its own component bounds.
-    final boundsOverride =
-        selectAcrossAllDrawAreaComponents ? drawableLayoutAreaBounds : null;
+    final boundsOverride = selectAcrossAllDrawAreaComponents ? null : null;
 
     final details = <DatumDetails<D>>[];
 
@@ -564,8 +537,9 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     // Add the behavior if it wasn't already added.
     if (!_behaviorStack.contains(behavior)) {
       _behaviorStack.add(behavior);
-      behavior.attachTo(this);
     }
+
+    behavior.attachTo(this);
   }
 
   /// Removes a behavior from the chart.
@@ -581,120 +555,126 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
       _behaviorRoles.remove(role);
     }
 
-    // Make sure the removed behavior is no longer registered for tap events.
-    unregisterTappable(behavior);
-
     final wasAttached = _behaviorStack.remove(behavior);
-    behavior.removeFrom(this);
 
     return wasAttached;
-  }
-
-  /// Tells the chart that this behavior responds to tap events.
-  ///
-  /// This should only be called after [behavior] has been attached to the chart
-  /// via [addBehavior].
-  void registerTappable(ChartBehavior<D> behavior) {
-    final role = behavior.role;
-
-    if (_behaviorRoles[role] == behavior &&
-        _behaviorTappableMap[role] != behavior) {
-      _behaviorTappableMap[role] = behavior;
-    }
-  }
-
-  /// Tells the chart that this behavior no longer responds to tap events.
-  void unregisterTappable(ChartBehavior<D> behavior) {
-    final role = behavior.role;
-    if (_behaviorTappableMap[role] == behavior) {
-      _behaviorTappableMap.remove(role);
-    }
   }
 
   /// Returns a list of behaviors that have been added.
   List<ChartBehavior<D>> get behaviors => List.unmodifiable(_behaviorStack);
 
-  /// Returns whether or not [point] is within the draw area bounds.
-  bool withinDrawArea(Offset point) {
-    return false; // TODO
-  }
-
-  /// Returns the combined bounds of the chart draw area and all layout
-  /// components that draw series data.
-  Rect get drawableLayoutAreaBounds => Rect.zero; // TODO
-
-  //
-  // Draw methods
-  //
-  void _draw() {
+  void _updateList() {
     // Clear the selection model when [seriesList] changes.
     for (final selectionModel in _selectionModels.values) {
       selectionModel.clearSelection(notifyListeners: false);
     }
 
-    final processedSeriesList = List.of(
+    _originalSeriesList = List.of(
       widget.seriesList.map<MutableSeries<D>>(makeSeries),
       growable: false,
     );
 
-    // Allow listeners to manipulate the seriesList.
-    dataNotifier.value = processedSeriesList;
+    _fireOnDraw(_originalSeriesList);
 
     // Set an index on the series list.
     // This can be used by listeners of selection to determine the order of
     // series, because the selection details are not returned in this order.
     int seriesIndex = 0;
 
-    for (final series in processedSeriesList) {
+    for (final series in _originalSeriesList) {
       series.seriesIndex = seriesIndex += 1;
     }
+  }
 
-    // Initially save a reference to processedSeriesList. After drawInternal
-    // finishes, we expect _currentSeriesList to contain a new, possibly
-    // modified list.
-    _currentSeriesList = processedSeriesList;
+  //
+  // Draw methods
+  //
+  void _draw({
+    bool skipAnimation = false,
+  }) {
+    if (_deferAnimation) {
+      throw 'Invalid state for draw.';
+    }
 
-    final seriesList = processedSeriesList
+    final seriesList = _originalSeriesList
         .map((MutableSeries<D> series) => MutableSeries<D>.clone(series))
         .toList();
 
+    _currentSeriesList = seriesList;
+
+    // Allow listeners to manipulate the seriesList.
+    _fireOnPreprocess(seriesList);
+
+    // Allow listeners to manipulate the processed seriesList.
+    preprocessSeries(seriesList);
+
+    final unusedRenderers = _usingRenderers;
     _rendererToSeriesList = <String, List<MutableSeries<D>>>{};
     _usingRenderers = <String>{};
 
     for (final series in seriesList) {
       final rendererId = series.getAttr(rendererIdKey);
       _rendererToSeriesList.putIfAbsent(rendererId!, () => []).add(series);
+
       _usingRenderers.add(rendererId);
+      unusedRenderers.remove(rendererId);
     }
 
-    // Allow listeners to manipulate the processed seriesList.
-    preprocessNotifier.value = seriesList;
-
-    preprocessSeries(seriesList);
-
-    // Allow listeners to manipulate the processed seriesList.
-    _fireOnPostprocess(seriesList);
+    for (final rendererId in unusedRenderers) {
+      _rendererToSeriesList[rendererId] = [];
+    }
 
     _currentSeriesList = seriesList;
 
-    _playAnimation(transition);
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      // Allow listeners to manipulate the processed seriesList.
+      _fireOnPostprocess(seriesList);
+    });
+
+    onPostLayout(_rendererToSeriesList);
+
+    if (!skipAnimation) {
+      _playAnimation(transition);
+    } else {
+      _animationController.value = 1.0;
+    }
+  }
+
+  void _fireOnPreprocess(List<MutableSeries<D>> seriesList) {
+    for (final listener in _lifecycleListeners) {
+      listener.onPreprocess?.call(seriesList);
+    }
   }
 
   void _fireOnPostprocess(List<MutableSeries<D>> seriesList) {
-    _lifecycleListeners.forEach((LifecycleListener<D> listener) {
+    for (final listener in _lifecycleListeners) {
       listener.onPostprocess?.call(seriesList);
-    });
+    }
   }
+
+  void _fireOnDraw(List<MutableSeries<D>> seriesList) {
+    for (final listener in _lifecycleListeners) {
+      listener.onData?.call(seriesList);
+    }
+  }
+
+  @protected
+  void _fireOnAnimationComplete() {
+    for (final listener in _lifecycleListeners) {
+      listener.onAnimationComplete?.call();
+    }
+  }
+
+  @mustCallSuper
+  void onPostLayout(Map<String, List<MutableSeries<D>>> rendererToSeriesList) {}
 
   void preprocessSeries(List<MutableSeries<D>> seriesList) {}
 
-  /// Redraws and re-lays-out the chart using the previously rendered layout
-  /// dimensions.
   void redraw({
     bool skipAnimation = false,
     bool skipLayout = false,
   }) {
-    setState(() {});
+    _draw(skipAnimation: skipAnimation);
   }
 
   List<MutableSeries<D>> get currentSeriesList => _currentSeriesList!;
@@ -716,28 +696,65 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
 
   @mustCallSuper
   Widget buildChart() {
-    return Stack(
-      children: [
-        widget.defaultRenderer!.build(
-          context,
-          chartState: this,
-          key: _seriesRenderers[SeriesRenderer.defaultRendererId]!,
-          seriesList: _rendererToSeriesList[SeriesRenderer.defaultRendererId]!,
-          rendererId: SeriesRenderer.defaultRendererId,
-        ),
-        ...widget.customSeriesRenderers?.map((customSeriesRenderer) {
-              final customRendererId = customSeriesRenderer.customRendererId!;
+    final chartChildren = <LayoutId>[];
+    final idAndBehaviorMap = <String, ChartBehavior>{};
 
-              return customSeriesRenderer.build(
-                context,
-                key: _seriesRenderers[customRendererId]!,
-                chartState: this,
-                seriesList: _rendererToSeriesList[customRendererId]!,
-                rendererId: customRendererId,
-              );
-            }).toList() ??
-            [],
-      ],
+    chartChildren.add(
+      LayoutId(
+        id: chartLayoutID,
+        child: Stack(
+          children: [
+            widget.defaultRenderer!.build(
+              context,
+              chartState: this,
+              key: _seriesRenderers[SeriesRenderer.defaultRendererId]!,
+              seriesList:
+                  _rendererToSeriesList[SeriesRenderer.defaultRendererId]!,
+              rendererId: SeriesRenderer.defaultRendererId,
+            ),
+            ...widget.customSeriesRenderers?.map((customSeriesRenderer) {
+                  final customRendererId =
+                      customSeriesRenderer.customRendererId!;
+
+                  return customSeriesRenderer.build(
+                    context,
+                    key: _seriesRenderers[customRendererId]!,
+                    chartState: this,
+                    seriesList: _rendererToSeriesList[customRendererId]!,
+                    rendererId: customRendererId,
+                  );
+                }).toList() ??
+                [],
+          ],
+        ),
+      ),
+    );
+
+    // Ignore if there's only `SelectNearest` behavior added.
+    if (addedCommonBehaviorsByRole.length > 1) {
+      addedCommonBehaviorsByRole.forEach((id, behavior) {
+        if (behavior.position == BehaviorPosition.inside) {
+          assert(id != chartLayoutID);
+
+          idAndBehaviorMap[id] = behavior;
+
+          chartChildren.add(
+            LayoutId(
+              id: id,
+              child: behavior.buildBehavior(context),
+            ),
+          );
+        }
+      });
+    }
+
+    return CustomMultiChildLayout(
+      delegate: WidgetLayoutDelegate(
+        chartID: chartLayoutID,
+        idAndBehavior: idAndBehaviorMap,
+        isRTL: isRTL,
+      ),
+      children: chartChildren,
     );
   }
 
@@ -746,24 +763,26 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     _playAnimation(value);
   }
 
-  // @override
-  // void setState(fn) {
-  //   if (mounted) {
-  //     super.setState(fn);
-  //   }
-  // }
+  @protected
+  void animationCompleted() {
+    _fireOnAnimationComplete();
+  }
 
   @override
   void initState() {
     super.initState();
     _animationController = AnimationController(vsync: this);
     _animationController.addStatusListener((status) {
-      if (status == AnimationStatus.completed) {}
+      if (status == AnimationStatus.completed) {
+        SchedulerBinding.instance.addPostFrameCallback((_) {
+          animationCompleted();
+        });
+      }
     });
 
     _animationPosition = CurvedAnimation(
       parent: _animationController,
-      curve: Curves.easeOutQuad,
+      curve: Curves.easeInSine,
     );
 
     _seriesRenderers[SeriesRenderer.defaultRendererId] = GlobalKey();
@@ -781,14 +800,21 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
       }
     }
 
-    _updateBehaviors(); // TODO
-    _updateSelectionModel();
+    _updateList();
+    _updateBehaviors();
   }
 
   @override
   void didChangeDependencies() {
     super.didChangeDependencies();
 
+    _deferAnimation = !TickerMode.of(context);
+
+    if (_deferAnimation) {
+      return;
+    }
+
+    _updateSelectionModel();
     _draw();
   }
 
@@ -802,7 +828,7 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
 
     // Walk them in add order to support behaviors that remove other behaviors.
     for (int i = 0; i < _behaviorStack.length; i += 1) {
-      _behaviorStack[i].removeFrom(this);
+      _behaviorStack[i].dispose();
     }
     _behaviorStack.clear();
     _behaviorRoles.clear();
@@ -824,12 +850,6 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
   @override
   void didUpdateWidget(covariant S oldWidget) {
     super.didUpdateWidget(oldWidget);
-
-    if (widget.seriesList != oldWidget ||
-        !ListEquality<Series<dynamic, D>>()
-            .equals(widget.seriesList, oldWidget.seriesList)) {
-      _draw();
-    }
 
     final customSeriesRenderers = widget.customSeriesRenderers ?? [];
     final oldCustomSeriesRenderers = oldWidget.customSeriesRenderers ?? [];
@@ -856,6 +876,14 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
         _seriesRenderers.remove(customSeriesRenderer.customRendererId);
       }
     }
+
+    if (!ListEquality<Series<dynamic, D>>()
+        .equals(widget.seriesList, oldWidget.seriesList)) {
+      _updateList();
+      if (!_deferAnimation) {
+        _draw();
+      }
+    }
   }
 
   @override
@@ -870,29 +898,39 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
       ),
     );
 
-    // Add widget for each behavior that can build widgets
-    addedCommonBehaviorsByRole.forEach((id, behavior) {
-      assert(id != chartLayoutID);
+    // Ignore if there's only `SelectNearest` behavior added.
+    if (addedCommonBehaviorsByRole.length > 1) {
+      // Add widget for each behavior that can build widgets
+      addedCommonBehaviorsByRole.forEach((id, behavior) {
+        if (behavior.position == BehaviorPosition.start ||
+            behavior.position == BehaviorPosition.top ||
+            behavior.position == BehaviorPosition.end ||
+            behavior.position == BehaviorPosition.bottom) {
+          assert(id != chartLayoutID);
 
-      idAndBehaviorMap[id] = behavior;
+          idAndBehaviorMap[id] = behavior;
 
-      chartChildren.add(
-        LayoutId(
-          id: id,
-          child: behavior.buildBehavior(context),
-        ),
-      );
-    });
+          chartChildren.add(
+            LayoutId(
+              id: id,
+              child: behavior.buildBehavior(context),
+            ),
+          );
+        }
+      });
+    }
 
     return Padding(
       padding: const EdgeInsets.all(12.0),
-      child: CustomMultiChildLayout(
-        delegate: WidgetLayoutDelegate(
-          chartLayoutID,
-          idAndBehaviorMap,
-          isRTL,
+      child: RepaintBoundary(
+        child: CustomMultiChildLayout(
+          delegate: WidgetLayoutDelegate(
+            chartID: chartLayoutID,
+            idAndBehavior: idAndBehaviorMap,
+            isRTL: isRTL,
+          ),
+          children: chartChildren,
         ),
-        children: chartChildren,
       ),
     );
   }
@@ -900,10 +938,14 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
 
 /// Layout delegate that layout chart widget with [Behavior] widgets.
 class WidgetLayoutDelegate extends MultiChildLayoutDelegate {
-  WidgetLayoutDelegate(this.chartID, this.idAndBehavior, this.isRTL);
+  WidgetLayoutDelegate({
+    this.chartID,
+    required this.idAndBehavior,
+    required this.isRTL,
+  });
 
   /// ID of the common chart widget.
-  final String chartID;
+  final String? chartID;
 
   /// Directionality of the widget.
   final bool isRTL;
@@ -948,28 +990,27 @@ class WidgetLayoutDelegate extends MultiChildLayoutDelegate {
     }
 
     // Layout chart.
-    if (hasChild(chartID)) {
+    if (chartID != null && hasChild(chartID!)) {
       layoutChild(
-        chartID,
+        chartID!,
         BoxConstraints.tightFor(
           width: availableWidth,
           height: availableHeight,
         ),
       );
 
-      positionChild(chartID, Offset(chartOffsetX, chartOffsetY));
+      positionChild(chartID!, Offset(chartOffsetX, chartOffsetY));
     }
 
-    // Position buildable behavior.
+    final chartSize = Size(availableWidth, availableHeight);
+
     for (final behaviorID in behaviorIDs) {
-      // TODO: Unable to relayout with smaller width.
-      // In the delegate, all children are required to have layout called
-      // exactly once.
       final behaviorOffset = _getBehaviorOffset(
         idAndBehavior[behaviorID]!,
         behaviorSize: behaviorSize[behaviorID]!,
-        chartSize: Size(availableWidth, availableHeight),
+        chartSize: chartSize,
         isRTL: isRTL,
+        drawAreaBounds: Offset.zero & chartSize,
       );
 
       positionChild(behaviorID, behaviorOffset);
@@ -985,10 +1026,11 @@ class WidgetLayoutDelegate extends MultiChildLayoutDelegate {
 
   // Calculate behavior's offset.
   Offset _getBehaviorOffset(
-    dynamic behavior, {
+    ChartBehavior behavior, {
     required Size behaviorSize,
     required Size chartSize,
     required bool isRTL,
+    required Rect drawAreaBounds,
   }) {
     late Offset behaviorOffset;
 
@@ -1004,25 +1046,18 @@ class WidgetLayoutDelegate extends MultiChildLayoutDelegate {
       final horizontalJustification =
           _getOutsideJustification(outsideJustification, isRTL);
 
-      switch (horizontalJustification) {
-        case _HorizontalJustification.leftDrawArea:
-          behaviorOffset =
-              Offset(behavior.drawAreaBounds!.left.toDouble(), heightOffset);
-          break;
-        case _HorizontalJustification.left:
-          behaviorOffset = Offset(0.0, heightOffset);
-          break;
-        case _HorizontalJustification.rightDrawArea:
-          behaviorOffset = Offset(
-            behavior.drawAreaBounds!.right - behaviorSize.width,
+      behaviorOffset = switch (horizontalJustification) {
+        _HorizontalJustification.leftDrawArea =>
+          Offset(drawAreaBounds.left.toDouble(), heightOffset),
+        _HorizontalJustification.left => behaviorOffset =
+            Offset(0.0, heightOffset),
+        _HorizontalJustification.rightDrawArea => behaviorOffset = Offset(
+            drawAreaBounds.right - behaviorSize.width,
             heightOffset,
-          );
-          break;
-        case _HorizontalJustification.right:
-          behaviorOffset =
-              Offset(chartSize.width - behaviorSize.width, heightOffset);
-          break;
-      }
+          ),
+        _HorizontalJustification.right => behaviorOffset =
+            Offset(chartSize.width - behaviorSize.width, heightOffset),
+      };
     } else if (behaviorPosition == BehaviorPosition.start ||
         behaviorPosition == BehaviorPosition.end) {
       final widthOffset =
@@ -1031,36 +1066,26 @@ class WidgetLayoutDelegate extends MultiChildLayoutDelegate {
               ? chartSize.width
               : 0.0;
 
-      switch (outsideJustification) {
-        case OutsideJustification.startDrawArea:
-        case OutsideJustification.middleDrawArea:
-          behaviorOffset =
-              Offset(widthOffset, behavior.drawAreaBounds!.top.toDouble());
-          break;
-        case OutsideJustification.start:
-        case OutsideJustification.middle:
-          behaviorOffset = Offset(widthOffset, 0.0);
-          break;
-        case OutsideJustification.endDrawArea:
-          behaviorOffset = Offset(widthOffset,
-              behavior.drawAreaBounds!.bottom - behaviorSize.height);
-          break;
-        case OutsideJustification.end:
-          behaviorOffset =
-              Offset(widthOffset, chartSize.height - behaviorSize.height);
-          break;
-      }
-    } else if (behaviorPosition == BehaviorPosition.inside) {
+      behaviorOffset = switch (outsideJustification) {
+        OutsideJustification.startDrawArea ||
+        OutsideJustification.middleDrawArea =>
+          Offset(widthOffset, drawAreaBounds.top),
+        OutsideJustification.start ||
+        OutsideJustification.middle =>
+          Offset(widthOffset, 0.0),
+        OutsideJustification.endDrawArea =>
+          Offset(widthOffset, drawAreaBounds.bottom - behaviorSize.height),
+        OutsideJustification.end =>
+          Offset(widthOffset, chartSize.height - behaviorSize.height),
+      };
+    } else if (behaviorPosition == BehaviorPosition.inside ||
+        behaviorPosition == BehaviorPosition.insideBelowAxis) {
       final rightOffset = Offset(chartSize.width - behaviorSize.width, 0.0);
 
-      switch (insideJustification) {
-        case InsideJustification.topStart:
-          behaviorOffset = isRTL ? rightOffset : Offset.zero;
-          break;
-        case InsideJustification.topEnd:
-          behaviorOffset = isRTL ? Offset.zero : rightOffset;
-          break;
-      }
+      behaviorOffset = switch (insideJustification) {
+        InsideJustification.topStart => isRTL ? rightOffset : Offset.zero,
+        InsideJustification.topEnd => isRTL ? Offset.zero : rightOffset,
+      };
     }
 
     return behaviorOffset;
@@ -1068,34 +1093,21 @@ class WidgetLayoutDelegate extends MultiChildLayoutDelegate {
 
   _HorizontalJustification _getOutsideJustification(
       OutsideJustification justification, bool isRTL) {
-    _HorizontalJustification mappedJustification;
-
-    switch (justification) {
-      case OutsideJustification.startDrawArea:
-      case OutsideJustification.middleDrawArea:
-        mappedJustification = isRTL
+    return switch (justification) {
+      OutsideJustification.startDrawArea ||
+      OutsideJustification.middleDrawArea =>
+        isRTL
             ? _HorizontalJustification.rightDrawArea
-            : _HorizontalJustification.leftDrawArea;
-        break;
-      case OutsideJustification.start:
-      case OutsideJustification.middle:
-        mappedJustification = isRTL
-            ? _HorizontalJustification.right
-            : _HorizontalJustification.left;
-        break;
-      case OutsideJustification.endDrawArea:
-        mappedJustification = isRTL
-            ? _HorizontalJustification.leftDrawArea
-            : _HorizontalJustification.rightDrawArea;
-        break;
-      case OutsideJustification.end:
-        mappedJustification = isRTL
-            ? _HorizontalJustification.left
-            : _HorizontalJustification.right;
-        break;
-    }
-
-    return mappedJustification;
+            : _HorizontalJustification.leftDrawArea,
+      OutsideJustification.start ||
+      OutsideJustification.middle =>
+        isRTL ? _HorizontalJustification.right : _HorizontalJustification.left,
+      OutsideJustification.endDrawArea => isRTL
+          ? _HorizontalJustification.leftDrawArea
+          : _HorizontalJustification.rightDrawArea,
+      OutsideJustification.end =>
+        isRTL ? _HorizontalJustification.left : _HorizontalJustification.right,
+    };
   }
 }
 

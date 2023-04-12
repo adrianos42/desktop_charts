@@ -7,10 +7,8 @@ export 'src/data/data.dart';
 export 'src/color.dart';
 export 'src/date_time_factory.dart'
     show DateTimeFactory, LocalDateTimeFactory, UTCDateTimeFactory;
-export 'src/gesture_listener.dart' show GestureListener;
 export 'src/math.dart' show NullablePoint;
 export 'src/performance.dart' show Performance;
-export 'src/proxy_gesture_listener.dart' show ProxyGestureListener;
 export 'src/rtl_spec.dart' show ChartAxisDirection, RTLSpec;
 export 'src/symbol_renderer.dart'
     show

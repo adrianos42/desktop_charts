@@ -17,7 +17,6 @@
 
 import 'package:flutter/widgets.dart';
 
-import '../../../gesture_listener.dart' show GestureListener;
 import '../../base_chart.dart' show BaseChartState, BaseChart;
 import '../chart_behavior.dart' show ChartBehavior;
 import 'a11y_node.dart' show A11yNode;
@@ -41,10 +40,10 @@ abstract class A11yExploreBehavior<D> extends ChartBehavior<D> {
 
     switch (this.exploreModeTrigger) {
       case ExploreModeTrigger.pressHold:
-        _listener = GestureListener(onLongPress: _toggleExploreMode);
+        //      _listener = GestureListener(onLongPress: _toggleExploreMode);
         break;
       case ExploreModeTrigger.tap:
-        _listener = GestureListener(onTap: _toggleExploreMode);
+        //   _listener = GestureListener(onTap: _toggleExploreMode);
         break;
     }
   }
@@ -66,22 +65,20 @@ abstract class A11yExploreBehavior<D> extends ChartBehavior<D> {
   /// Optionally notify the OS when explore mode is disabled.
   final String? exploreModeDisabledAnnouncement;
 
-  late BaseChartState<D, BaseChart<D>> _chart;
+  //late BaseChartState<D, BaseChart<D>> _chart;
 
-  late GestureListener _listener;
+  // late GestureListener _listener;
   bool _exploreModeOn = false;
 
   bool _toggleExploreMode(Offset _) {
     if (_exploreModeOn) {
       _exploreModeOn = false;
       // Ask native platform to turn off explore mode.
-      _chart.disableA11yExploreMode(
-          announcement: exploreModeDisabledAnnouncement);
+      //_chart.disableA11yExploreMode(announcement: exploreModeDisabledAnnouncement);
     } else {
       _exploreModeOn = true;
       // Ask native platform to turn on explore mode.
-      _chart.enableA11yExploreMode(createA11yNodes(),
-          announcement: exploreModeEnabledAnnouncement);
+      //_chart.enableA11yExploreMode(createA11yNodes(), announcement: exploreModeEnabledAnnouncement);
     }
 
     return true;
@@ -91,13 +88,13 @@ abstract class A11yExploreBehavior<D> extends ChartBehavior<D> {
   List<A11yNode> createA11yNodes();
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    _chart = chart;
-    chart.addGestureListener(_listener);
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {}
+
+  Widget buildBehavior(BuildContext context) {
+    //_chart = chart;
+    return const SizedBox();
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart.removeGestureListener(_listener);
-  }
+  void dispose() {}
 }

@@ -2,7 +2,7 @@
 
 library bar;
 
-export 'bar_chart.dart' show BarChart;
+export 'bar_chart.dart' show BarChart, BarChartState;
 export 'bar_error_decorator.dart' show BarErrorDecorator;
 export 'bar_label_decorator.dart'
     show

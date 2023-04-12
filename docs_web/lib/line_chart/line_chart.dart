@@ -58,6 +58,42 @@ List<(String, String?, WidgetBuilder)> _createItemsWithSeries({
   required List<charts.Series<dynamic, int>> lineAnimationZoomSeries,
   bool animate = true,
 }) {
+  // return [
+  //   (
+  //     'Pan and Zoom Line Chart',
+  //     'Simple line chart pan and zoom behaviors enabled',
+  //     (context) => LineAnimationZoomChart(
+  //           lineAnimationZoomSeries,
+  //           animate: animate,
+  //         ),
+  //   ),
+  //   (
+  //     'Range Annotation Line Chart',
+  //     'Line chart with range annotations',
+  //     (context) => LineRangeAnnotationChart(
+  //           lineRangeAnnotationSeries,
+  //           animate: animate,
+  //         ),
+  //   ),
+  //   (
+  //     'Range Annotation Margin Labels Line Chart',
+  //     'Line chart with range annotations with labels in margins',
+  //     (context) => LineRangeAnnotationMarginChart(
+  //           lineRangeAnnotationMarginSeries,
+  //           animate: animate,
+  //         ),
+  //   ),
+  //   (
+  //     'Line Annotation Line Chart',
+  //     'Line chart with line annotations',
+  //     (context) => LineLineAnnotationChart(
+  //           lineLineAnnotationSeries,
+  //           animate: animate,
+  //         ),
+  //   ),
+    
+  // ];
+
   return [
     (
       'Simple Line Chart',

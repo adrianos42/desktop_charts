@@ -29,7 +29,8 @@ abstract class PointRendererDecorator<D> {
 
   void decorate(
     PointRendererElement<D> pointElement,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     bool rtl = false,

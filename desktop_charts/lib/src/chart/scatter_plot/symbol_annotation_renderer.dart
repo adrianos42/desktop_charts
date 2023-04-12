@@ -22,11 +22,6 @@ import 'package:flutter/rendering.dart';
 import '../base_chart.dart' show BaseChart;
 import '../cartesian/axis/axis.dart' show ImmutableAxis;
 import '../cartesian/cartesian_chart.dart' show CartesianChartState;
-import '../layout/layout_view.dart'
-    show
-        LayoutPosition,
-        LayoutViewPaintOrder,
-        LayoutViewPositionOrder;
 import '../processed_series.dart' show ImmutableSeries;
 import 'point_renderer.dart' show AnimatedPoint, DatumPoint, PointRenderer;
 import 'symbol_annotation_renderer_config.dart'
@@ -180,8 +175,6 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
     PaintingContext context,
     Offset offset,
   ) {
-    update(offset);
-
     super.paint(context, offset);
 
     // Use the domain axis of the attached chart to render the separator lines
@@ -190,13 +183,13 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
       seriesPointMap.forEach((String key, List<AnimatedPoint<D>> points) {
         final seriesInfo = _seriesInfo[key]!;
 
-        final y = offset.dy + seriesInfo.rowStart;
+        final y = seriesInfo.rowStart;
 
         final domainAxis = (chartState as CartesianChartState).domainAxis!;
-        final bounds =
-            Rect.fromLTWH(offset.dx, y.roundToDouble(), size.width, 0);
+        final bounds = Rect.fromLTWH(0.0, y.roundToDouble(), size.width, 0.0);
         domainAxis.tickDrawStrategy.drawAxisLine(
           context.canvas,
+          offset,
           domainAxis.axisDirection,
           bounds,
         );

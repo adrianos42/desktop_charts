@@ -200,8 +200,8 @@ class PointRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
 
     _currentKeys.clear();
 
@@ -341,12 +341,10 @@ class PointRenderer<D, S extends BaseChart<D>>
     PaintingContext context,
     Offset offset,
   ) {
-    update(offset);
-
     super.paint(context, offset);
 
     final animationPercent = chartState.animationPosition.value;
-    final bounds = Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
+    final bounds = Offset.zero & size;
 
     // Clean up the points that no longer exist.
     if (chartState.animationPosition.isCompleted) {
@@ -376,6 +374,7 @@ class PointRenderer<D, S extends BaseChart<D>>
           decorator.decorate(
             point,
             context.canvas,
+            offset,
             drawBounds: bounds,
             animationPercent: animationPercent,
             rtl: isRtl,
@@ -395,10 +394,14 @@ class PointRenderer<D, S extends BaseChart<D>>
           );
 
           if (point.symbolRendererId == defaultSymbolRendererId) {
-            symbolRenderer!.paint(context.canvas, bounds,
-                fillColor: point.fillColor,
-                strokeColor: point.color,
-                strokeWidth: point.strokeWidth);
+            symbolRenderer!.draw(
+              context.canvas,
+              offset,
+              bounds,
+              fillColor: point.fillColor,
+              strokeColor: point.color,
+              strokeWidth: point.strokeWidth,
+            );
           } else {
             final id = point.symbolRendererId;
             if (!config.customSymbolRenderers!.containsKey(id)) {
@@ -406,10 +409,14 @@ class PointRenderer<D, S extends BaseChart<D>>
             }
 
             final customRenderer = config.customSymbolRenderers![id]!;
-            customRenderer.paint(context.canvas, bounds,
-                fillColor: point.fillColor,
-                strokeColor: point.color,
-                strokeWidth: point.strokeWidth);
+            customRenderer.draw(
+              context.canvas,
+              offset,
+              bounds,
+              fillColor: point.fillColor,
+              strokeColor: point.color,
+              strokeWidth: point.strokeWidth,
+            );
           }
         }
 
@@ -421,6 +428,7 @@ class PointRenderer<D, S extends BaseChart<D>>
           decorator.decorate(
             point,
             context.canvas,
+            offset,
             drawBounds: bounds,
             animationPercent: animationPercent,
             rtl: isRtl,
@@ -485,7 +493,7 @@ class PointRenderer<D, S extends BaseChart<D>>
 
   @override
   List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset chartPoint,
+    Offset globalPosition,
     bool byDomain,
     Rect? boundsOverride, {
     bool selectOverlappingPoints = false,
@@ -494,8 +502,9 @@ class PointRenderer<D, S extends BaseChart<D>>
     final nearest = <DatumDetails<D>>[];
     final inside = <DatumDetails<D>>[];
 
-    // Was it even in the component bounds?
-    if (!isPointWithinBounds(chartPoint, boundsOverride!)) {
+    final chartPoint = globalToLocal(globalPosition);
+
+    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
       return nearest;
     }
 

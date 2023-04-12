@@ -79,24 +79,27 @@ class LineRangeAnnotationChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return charts.LineChart(
       seriesList,
       animate: animate,
       behaviors: [
         charts.RangeAnnotation(
           [
-            const charts.RangeAnnotationSegment(
+            charts.RangeAnnotationSegment(
               0.5,
               1.0,
               charts.RangeAnnotationAxisType.domain,
               startLabel: 'Domain 1',
+              color: colorScheme.background[4],
             ),
             charts.RangeAnnotationSegment(
               2,
               4,
               charts.RangeAnnotationAxisType.domain,
               endLabel: 'Domain 2',
-              color: charts.DesktopPalette.gray.lighter,
+              color: colorScheme.background[8],
             ),
             charts.RangeAnnotationSegment(
               15,
@@ -104,7 +107,7 @@ class LineRangeAnnotationChart extends StatelessWidget {
               charts.RangeAnnotationAxisType.measure,
               startLabel: 'Measure 1 Start',
               endLabel: 'Measure 1 End',
-              color: charts.DesktopPalette.gray.lighter.lighter,
+              color: colorScheme.background[12],
             ),
             charts.RangeAnnotationSegment(
               35,
@@ -112,7 +115,7 @@ class LineRangeAnnotationChart extends StatelessWidget {
               charts.RangeAnnotationAxisType.measure,
               startLabel: 'Measure 2 Start',
               endLabel: 'Measure 2 End',
-              color: charts.DesktopPalette.gray.lighter.lighter.lighter,
+              color: colorScheme.background[16],
             ),
           ],
         ),

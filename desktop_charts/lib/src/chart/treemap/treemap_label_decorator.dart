@@ -63,7 +63,8 @@ class TreeMapLabelDecorator<D> extends TreeMapRendererDecorator<D> {
   @override
   void decorate(
     TreeMapRendererElement<D> rendererElement,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     bool rtl = false,
@@ -122,8 +123,13 @@ class TreeMapLabelDecorator<D> extends TreeMapRendererDecorator<D> {
       );
 
       // Draws a label inside of a treemap renderer element.
-      canvas.drawChartText(segment.text, segment.xOffet, segment.yOffset,
-          rotation: segment.rotationAngle);
+      canvas.drawChartText(
+        offset,
+        segment.text,
+        segment.xOffet,
+        segment.yOffset,
+        rotation: segment.rotationAngle,
+      );
     }
   }
 

@@ -91,6 +91,7 @@ class NoneDrawStrategy<D> implements TickDrawStrategy<D> {
   @override
   void drawAxisLine(
     Canvas canvas,
+    Offset offset,
     AxisDirection orientation,
     Rect axisBounds,
   ) {
@@ -118,6 +119,7 @@ class NoneDrawStrategy<D> implements TickDrawStrategy<D> {
     }
 
     canvas.drawChartLine(
+      offset,
       points: [start, end],
       dashPattern: axisLineStyle.dashPattern,
       stroke: axisLineStyle.color ?? const Color(0xff606060), // TODO
@@ -128,6 +130,7 @@ class NoneDrawStrategy<D> implements TickDrawStrategy<D> {
   @override
   void draw(
     Canvas canvas,
+    Offset offset,
     Tick<D> tick, {
     required AxisDirection orientation,
     required Rect axisBounds,

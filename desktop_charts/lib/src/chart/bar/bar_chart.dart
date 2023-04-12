@@ -17,8 +17,7 @@
 
 import 'package:flutter/widgets.dart';
 
-import '../behavior/chart_behavior.dart' show ChartBehavior;
-import '../behavior/domain_highlighter.dart' show DomainHighlighter;
+import '../behavior/behavior.dart';
 import '../cartesian/cartesian_chart.dart'
     show OrdinalCartesianChart, OrdinalCartesianChartState;
 import 'bar_renderer_config.dart';

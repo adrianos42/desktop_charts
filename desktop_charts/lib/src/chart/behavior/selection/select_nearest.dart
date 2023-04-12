@@ -15,10 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:flutter/rendering.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/widgets.dart';
 
-import '../../../gesture_listener.dart' show GestureListener;
 import '../../../rate_limit_utils.dart' show throttle;
 import '../../base_chart.dart' show BaseChartState, BaseChart;
 import '../../datum_details.dart' show DatumDetails;
@@ -27,7 +26,6 @@ import '../../selection_model.dart' show SelectionModelType;
 import '../../series_datum.dart' show SeriesDatum;
 import '../chart_behavior.dart' show ChartBehavior;
 import 'selection_trigger.dart' show SelectionTrigger;
-
 
 /// Chart behavior that listens to the given eventTrigger and updates the
 /// specified [SelectionModel]. This is used to pair input events to behaviors
@@ -70,57 +68,7 @@ class SelectNearest<D> extends ChartBehavior<D> {
     this.eventTrigger = SelectionTrigger.hover,
     this.maximumDomainDistance,
     this.hoverEventDelay,
-  }) {
-    // Setup the appropriate gesture listening.
-    switch (eventTrigger) {
-      case SelectionTrigger.tap:
-        _listener = GestureListener(
-          onTapTest: _onTapTest,
-          onTap: _onSelect,
-        );
-        break;
-      case SelectionTrigger.tapAndDrag:
-        _listener = GestureListener(
-          onTapTest: _onTapTest,
-          onTap: _onSelect,
-          onDragStart: _onSelect,
-          onDragUpdate: _onSelect,
-        );
-        break;
-      case SelectionTrigger.pressHold:
-        _listener = GestureListener(
-          onTapTest: _onTapTest,
-          onLongPress: _onSelect,
-          onDragStart: _onSelect,
-          onDragUpdate: _onSelect,
-          onDragEnd: _onDeselectAll,
-        );
-        break;
-      case SelectionTrigger.longPressHold:
-        _listener = GestureListener(
-          onTapTest: _onTapTest,
-          onLongPress: _onLongPressSelect,
-          onDragStart: _onSelect,
-          onDragUpdate: _onSelect,
-          onDragEnd: _onDeselectAll,
-        );
-        break;
-      case SelectionTrigger.hover:
-      default:
-        _listener = GestureListener(
-          onHover: hoverEventDelay == null
-              ? _onSelect
-              : throttle<Offset, bool>(
-                  _onSelect,
-                  delay: Duration(milliseconds: hoverEventDelay!),
-                  defaultReturn: false,
-                ),
-        );
-        break;
-    }
-  }
-
-  late GestureListener _listener;
+  });
 
   /// Type of selection model that should be updated by input events.
   final SelectionModelType selectionModelType;
@@ -154,34 +102,11 @@ class SelectNearest<D> extends ChartBehavior<D> {
   /// Wait time in milliseconds for when the next event can be called.
   final int? hoverEventDelay;
 
-  BaseChartState<D, BaseChart<D>>? _chart;
+  late BaseChartState<D, BaseChart<D>> _chartState;
 
-  bool _delaySelect = false;
-
-  bool _onTapTest(Offset chartPoint) {
-    // If the tap is within the drawArea, then claim the event from others.
-    _delaySelect = eventTrigger == SelectionTrigger.longPressHold;
-    return _chart!.pointWithinRenderer(chartPoint);
-  }
-
-  bool _onLongPressSelect(Offset chartPoint) {
-    _delaySelect = false;
-    return _onSelect(chartPoint);
-  }
-
-  bool _onSelect(Offset chartPoint, [double? ignored]) {
-    // If _chart has not yet been attached, then quit.
-    if (_chart == null) {
-      return false;
-    }
-
-    // If the selection is delayed (waiting for long press), then quit early.
-    if (_delaySelect) {
-      return false;
-    }
-
-    final details = _chart!.getNearestDatumDetailPerSeries(
-      chartPoint,
+  bool _onSelect(Offset globalPosition, [double? ignored]) {
+    final details = _chartState.getNearestDatumDetailPerSeries(
+      globalPosition,
       selectAcrossAllSeriesRendererComponents,
     );
 
@@ -221,33 +146,27 @@ class SelectNearest<D> extends ChartBehavior<D> {
       }
     }
 
-    return _chart!
+    return _chartState
         .getSelectionModel(selectionModelType)
         .updateSelection(seriesDatumList, seriesList);
   }
 
   List<SeriesDatum<D>> _extractSeriesFromNearestSelection(
       List<DatumDetails<D>> details) {
-    switch (selectionMode) {
-      case SelectionMode.expandToDomain:
-        return _expandToDomain(details.first);
-      case SelectionMode.selectOverlapping:
-        return details
-            .map((datumDetails) =>
-                SeriesDatum<D>(datumDetails.series!, datumDetails.datum))
-            .toList();
-      case SelectionMode.single:
-        return [SeriesDatum<D>(details.first.series!, details.first.datum)];
-    }
+    return switch (selectionMode) {
+      SelectionMode.expandToDomain => _expandToDomain(details.first),
+      SelectionMode.selectOverlapping => details
+          .map((datumDetails) =>
+              SeriesDatum<D>(datumDetails.series!, datumDetails.datum))
+          .toList(),
+      SelectionMode.single => [
+          SeriesDatum<D>(details.first.series!, details.first.datum)
+        ]
+    };
   }
 
-  bool _onDeselectAll(Offset _, double __, double ___) {
-    // If the selection is delayed (waiting for long press), then quit early.
-    if (_delaySelect) {
-      return false;
-    }
-
-    _chart!
+  bool _onDeselectAll() {
+    _chartState
         .getSelectionModel(selectionModelType)
         .updateSelection(<SeriesDatum<D>>[], <ImmutableSeries<D>>[]);
     return false;
@@ -260,7 +179,7 @@ class SelectNearest<D> extends ChartBehavior<D> {
     ];
     final nearestDomain = nearestDetails.domain;
 
-    for (final ImmutableSeries<D> series in _chart!.currentSeriesList) {
+    for (final ImmutableSeries<D> series in _chartState.currentSeriesList) {
       final domainFn = series.domainFn;
       final domainLowerBoundFn = series.domainLowerBoundFn;
       final domainUpperBoundFn = series.domainUpperBoundFn;
@@ -312,32 +231,65 @@ class SelectNearest<D> extends ChartBehavior<D> {
     return data;
   }
 
-  @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    _chart = chart;
-    chart.addGestureListener(_listener);
+  Map<Type, GestureRecognizerFactory> get _gestures {
+    final Map<Type, GestureRecognizerFactory> gestures =
+        <Type, GestureRecognizerFactory>{};
 
-    // TODO: Update this dynamically based on tappable location.
-    switch (eventTrigger) {
-      case SelectionTrigger.tap:
-      case SelectionTrigger.tapAndDrag:
-      case SelectionTrigger.pressHold:
-      case SelectionTrigger.longPressHold:
-        chart.registerTappable(this);
-        break;
-      case SelectionTrigger.hover:
-      default:
-        chart.unregisterTappable(this);
-        break;
+    if (eventTrigger == SelectionTrigger.tapAndDrag ||
+        eventTrigger == SelectionTrigger.pressHold) {
+      gestures[PanGestureRecognizer] =
+          GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
+        () => PanGestureRecognizer(debugOwner: this),
+        (DragGestureRecognizer instance) {
+          instance.onStart = (details) => _onSelect(details.globalPosition);
+          instance.onUpdate = (details) => _onSelect(details.globalPosition);
+          instance.onCancel = () => _onDeselectAll();
+
+          if (eventTrigger == SelectionTrigger.pressHold) {
+            instance.onEnd = (_) => _onDeselectAll();
+          }
+        },
+      );
     }
+
+    if (eventTrigger == SelectionTrigger.tapAndDrag ||
+        eventTrigger == SelectionTrigger.tap) {
+      gestures[TapGestureRecognizer] =
+          GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
+        () => TapGestureRecognizer(debugOwner: this),
+        (TapGestureRecognizer instance) {
+          instance.onTapUp = (details) => _onSelect(details.globalPosition);
+        },
+      );
+    }
+
+    if (eventTrigger == SelectionTrigger.longPressHold ||
+        eventTrigger == SelectionTrigger.pressHold) {
+      gestures[LongPressGestureRecognizer] =
+          GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
+        () => LongPressGestureRecognizer(debugOwner: this),
+        (LongPressGestureRecognizer instance) {
+          instance.onLongPressStart =
+              (details) => _onSelect(details.globalPosition);
+
+          instance.onLongPressMoveUpdate =
+              (details) => _onSelect(details.globalPosition);
+
+          instance.onLongPressCancel = () => _onDeselectAll();
+        },
+      );
+    }
+
+    return gestures;
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart.removeGestureListener(_listener);
-    chart.unregisterTappable(this);
-    _chart = null;
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState = chartState;
   }
+
+  @override
+  void dispose() {}
 
   @override
   String get role => 'SelectNearest-$selectionModelType';
@@ -346,14 +298,20 @@ class SelectNearest<D> extends ChartBehavior<D> {
   Widget buildBehavior(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      child: GestureDetector(
+      onHover: eventTrigger == SelectionTrigger.hover
+          ? (event) => hoverEventDelay == null
+              ? _onSelect(event.position)
+              : throttle<Offset, bool>(
+                  _onSelect,
+                  delay: Duration(milliseconds: hoverEventDelay!),
+                  defaultReturn: false,
+                )(event.position)
+          : null,
+      child: RawGestureDetector(
+        gestures: _gestures,
         behavior: HitTestBehavior.translucent,
-        onTapUp: (TapUpDetails event) {
-          _onSelect(event.globalPosition);
-        },
-        child: Container(
-          alignment: Alignment.center,
-          child: const SizedBox(),
+        child: const Center(
+          child: SizedBox(),
         ),
       ),
     );

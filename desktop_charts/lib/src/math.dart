@@ -96,11 +96,11 @@ class NullablePoint {
   /// coordinates equal to the corresponding coordinates of this point,
   /// and `false` otherwise.
   @override
-  bool operator ==(Object other) =>
-      other is NullablePoint && dx == other.dx && dy == other.dy;
+  bool operator ==(covariant NullablePoint other) =>
+      dx == other.dx && dy == other.dy;
 
   @override
-  int get hashCode => dx.hashCode * 37 + dy.hashCode;
+  int get hashCode => Object.hash(dx, dy);
 
   /// Converts this to a [Offset].
   ///

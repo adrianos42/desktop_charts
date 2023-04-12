@@ -18,6 +18,7 @@
 import 'package:flutter/widgets.dart';
 
 import '../base_chart.dart';
+import '../behavior/behavior.dart' show ChartBehavior, DomainHighlighter;
 import '../datum_details.dart' show DatumDetails;
 import '../selection_model.dart' show SelectionModelType;
 import '../selection_model_config.dart' show SelectionModelConfig;
@@ -29,23 +30,19 @@ import 'arc_renderer_config.dart';
 class PieChart<D> extends BaseChart<D> {
   PieChart(
     super.seriesList, {
-    super.animate,
-    super.animationDuration = const Duration(milliseconds: 400),
     ArcRendererConfig<D>? defaultRenderer,
-    // List<dynamic>? behaviors,
-    super.rtlSpec,
-    super.defaultInteractions = true,
     List<SelectionModelConfig<D>>? selectionModels,
-    super.key,
+    super.animationDuration = const Duration(milliseconds: 400),
+    super.defaultInteractions = true,
+    super.animate,
+    super.rtlSpec,
     super.behaviors,
+    super.key,
   }) : super(defaultRenderer: defaultRenderer ?? ArcRendererConfig());
 
   @override
   PieChartState<D> createState() => PieChartState<D>();
 }
-
-//typedef _ArcRendererState<D>
-//    = ArcRendererState<D, PieChart<D>, ArcRenderer<D, PieChart<D>>>;
 
 class PieChartState<D> extends BaseChartState<D, PieChart<D>> {
   /// Returns a list of datum details from selection model of [type].
@@ -64,5 +61,12 @@ class PieChartState<D> extends BaseChartState<D, PieChart<D>> {
     }
 
     return entries;
+  }
+
+  @override
+  void addDefaultInteractions(List<ChartBehavior> behaviors) {
+    super.addDefaultInteractions(behaviors);
+
+    behaviors.add(DomainHighlighter<D>());
   }
 }

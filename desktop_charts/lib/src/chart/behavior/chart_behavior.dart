@@ -25,19 +25,20 @@ import '../base_chart.dart';
 abstract class ChartBehavior<D> {
   String get role;
 
-  /// Injects the behavior into a chart.
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart);
-
-  /// Removes the behavior from a chart.
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart);
-
   BehaviorPosition get position => BehaviorPosition.inside;
 
   OutsideJustification get outsideJustification => OutsideJustification.start;
 
   InsideJustification get insideJustification => InsideJustification.topEnd;
 
-  Widget buildBehavior(BuildContext context) => const SizedBox();
+  Widget buildBehavior(BuildContext context);
+
+  @mustCallSuper
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState);
+
+  /// Removes the behavior from a chart.
+  @mustCallSuper
+  void dispose();
 }
 
 /// Position of a component within the chart layout.
@@ -59,6 +60,7 @@ enum BehaviorPosition {
   start,
   end,
   inside,
+  insideBelowAxis,
 }
 
 /// Justification for components positioned outside [BehaviorPosition].

@@ -43,7 +43,8 @@ class ComparisonPointsDecorator<D> extends PointRendererDecorator<D> {
   @override
   void decorate(
     PointRendererElement<D> pointElement,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     bool rtl = false,
@@ -56,8 +57,15 @@ class ComparisonPointsDecorator<D> extends PointRendererDecorator<D> {
 
     final color = pointElement.color!.lighter;
 
-    symbolRenderer.paint(canvas, points[0], pointElement.boundsLineRadius,
-        fillColor: color, strokeColor: color, p2: points[1]);
+    symbolRenderer.draw(
+      canvas,
+      offset,
+      points[0],
+      pointElement.boundsLineRadius,
+      fillColor: color,
+      strokeColor: color,
+      p2: points[1],
+    );
   }
 
   /// Computes end points for the [pointElement]'s lower and upper data bounds.
@@ -90,7 +98,8 @@ class ComparisonPointsDecorator<D> extends PointRendererDecorator<D> {
     // First check to see if there is no intersection at all between the line
     // p1p2 and [drawBounds].
     final dataBoundsRect = Rect.fromPoints(p1, p2);
-    if (!drawBounds.overlaps(dataBoundsRect)) { // TODO drawBounds.intersects(dataBoundsRect)
+    if (!drawBounds.overlaps(dataBoundsRect)) {
+      // TODO drawBounds.intersects(dataBoundsRect)
       return null;
     }
 

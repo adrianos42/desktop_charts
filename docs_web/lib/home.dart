@@ -12,9 +12,10 @@ import 'line_chart/line_chart.dart' as line;
 import 'overview.dart';
 import 'pie_chart/pie_chart.dart' as pie;
 import 'scatter_plot_chart/scatter_plot_chart.dart' as scatter_plot;
+import 'sunburst_chart/sunburst_chart.dart' as sunburst;
 import 'time_series_chart/time_series_chart.dart' as time_series;
 
-const String _version = '0.0.1-dev.4';
+const String _version = '0.0.1-dev.5';
 
 ///
 class DocHome extends StatefulWidget {
@@ -292,6 +293,10 @@ class DocApp extends StatelessWidget {
           titleBuilder: (context) => const Text('Pie'),
           builder: (context) => const pie.PiePage(),
         ),
+        // TreeNode.child(
+        //   titleBuilder: (context) => const Text('Sunburst'),
+        //   builder: (context) => const sunburst.SunburstPage(),
+        // ),
         TreeNode.child(
           titleBuilder: (context) => const Text('Line'),
           builder: (context) => const line.LinePage(),

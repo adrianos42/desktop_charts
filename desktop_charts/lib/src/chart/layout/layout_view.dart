@@ -68,24 +68,14 @@ class LayoutViewPositionOrder {
 /// chart.
 LayoutPosition layoutPosition(BehaviorPosition behaviorPosition,
     OutsideJustification outsideJustification, bool isRtl) {
-  LayoutPosition position;
-  switch (behaviorPosition) {
-    case BehaviorPosition.bottom:
-      position = LayoutPosition.bottom;
-      break;
-    case BehaviorPosition.end:
-      position = isRtl ? LayoutPosition.left : LayoutPosition.right;
-      break;
-    case BehaviorPosition.inside:
-      position = LayoutPosition.drawArea;
-      break;
-    case BehaviorPosition.start:
-      position = isRtl ? LayoutPosition.right : LayoutPosition.left;
-      break;
-    case BehaviorPosition.top:
-      position = LayoutPosition.top;
-      break;
-  }
+  LayoutPosition position = switch (behaviorPosition) {
+    BehaviorPosition.bottom => LayoutPosition.bottom,
+    BehaviorPosition.end => isRtl ? LayoutPosition.left : LayoutPosition.right,
+    BehaviorPosition.inside => LayoutPosition.drawArea,
+    BehaviorPosition.start => isRtl ? LayoutPosition.right : LayoutPosition.left,
+    BehaviorPosition.top => LayoutPosition.top,
+    BehaviorPosition.insideBelowAxis => LayoutPosition.bottom
+  };
 
   // If we have a "full" [OutsideJustification], convert the layout position
   // to the "full" form.

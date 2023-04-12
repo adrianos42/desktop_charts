@@ -81,7 +81,8 @@ class BarLabelDecorator<D> extends BarRendererDecorator<D> {
   @override
   void decorate(
     Iterable<ImmutableBarRendererElement<D>> barElements,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     required bool renderingVertically,
@@ -93,15 +94,16 @@ class BarLabelDecorator<D> extends BarRendererDecorator<D> {
     }
 
     if (renderingVertically) {
-      _decorateVerticalBars(barElements, canvas, drawBounds, rtl);
+      _decorateVerticalBars(barElements, canvas, offset, drawBounds, rtl);
     } else {
-      _decorateHorizontalBars(barElements, canvas, drawBounds, rtl);
+      _decorateHorizontalBars(barElements, canvas, offset, drawBounds, rtl);
     }
   }
 
   void _decorateVerticalBars(
     Iterable<ImmutableBarRendererElement<D>> barElements,
     Canvas canvas,
+    Offset offset,
     Rect drawBounds,
     bool rtl,
   ) {
@@ -225,7 +227,7 @@ class BarLabelDecorator<D> extends BarRendererDecorator<D> {
                 labelElement.measurement.horizontalSliceWidth / 2.0)
             .roundToDouble();
 
-        canvas.drawChartText(labelElement, labelX, labelY);
+        canvas.drawChartText(offset, labelElement, labelX, labelY);
         labelsDrawn += 1;
       }
     }
@@ -234,6 +236,7 @@ class BarLabelDecorator<D> extends BarRendererDecorator<D> {
   void _decorateHorizontalBars(
     Iterable<ImmutableBarRendererElement<D>> barElements,
     Canvas canvas,
+    Offset offset,
     Rect drawBounds,
     bool rtl,
   ) {
@@ -251,8 +254,10 @@ class BarLabelDecorator<D> extends BarRendererDecorator<D> {
       // If there are custom styles, use that instead of the default or the
       // style defined for the entire decorator.
       final datumInsideLabelStyle = _getDatumStyle(
-          element.series!.insideLabelStyleAccessor, datumIndex,
-          defaultStyle: insideLabelStyle);
+        element.series!.insideLabelStyleAccessor,
+        datumIndex,
+        defaultStyle: insideLabelStyle,
+      );
       final datumOutsideLabelStyle = _getDatumStyle(
         element.series!.outsideLabelStyleAccessor,
         datumIndex,
@@ -318,8 +323,8 @@ class BarLabelDecorator<D> extends BarRendererDecorator<D> {
         switch (anchor) {
           case BarLabelAnchor.middle:
             labelX = (bounds.left +
-                    bounds.width / 2 -
-                    labelElement.measurement.horizontalSliceWidth / 2)
+                    bounds.width / 2.0 -
+                    labelElement.measurement.horizontalSliceWidth / 2.0)
                 .roundToDouble();
             labelElement.textDirection =
                 rtl ? TextDirection.rtl : TextDirection.ltr;
@@ -380,7 +385,7 @@ class BarLabelDecorator<D> extends BarRendererDecorator<D> {
             .roundToDouble();
       }
 
-      canvas.drawChartText(labelElement, labelX, labelY);
+      canvas.drawChartText(offset, labelElement, labelX, labelY);
     }
   }
 

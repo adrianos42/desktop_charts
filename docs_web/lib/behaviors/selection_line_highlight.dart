@@ -91,16 +91,19 @@ class SelectionLineHighlight extends StatelessWidget {
       // an empty list. An empty list is necessary because passing in a null
       // value will be treated the same as not passing in a value at all.
       charts.LinePointHighlighter(
-          showHorizontalFollowLine:
-              charts.LinePointHighlighterFollowLineType.none,
-          showVerticalFollowLine:
-              charts.LinePointHighlighterFollowLineType.nearest),
+        showHorizontalFollowLine:
+            charts.LinePointHighlighterFollowLineType.nearest,
+        showVerticalFollowLine:
+            charts.LinePointHighlighterFollowLineType.nearest,
+      ),
       // Optional - By default, select nearest is configured to trigger
       // with tap so that a user can have pan/zoom behavior and line point
       // highlighter. Changing the trigger to tap and drag allows the
       // highlighter to follow the dragging gesture but it is not
       // recommended to be used when pan/zoom behavior is enabled.
-      charts.SelectNearest(eventTrigger: charts.SelectionTrigger.tapAndDrag)
+      charts.SelectNearest(
+        eventTrigger: charts.SelectionTrigger.tapAndDrag,
+      )
     ]);
   }
 

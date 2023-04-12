@@ -29,7 +29,8 @@ abstract class ArcRendererDecorator<D> {
 
   void decorate(
     List<ArcRendererElements<D>> arcElementsList,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     bool rtl = false,

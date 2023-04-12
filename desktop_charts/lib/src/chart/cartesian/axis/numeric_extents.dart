@@ -44,7 +44,7 @@ class NumericExtents implements Extents<double> {
         max = value;
       }
     }
-    
+
     return NumericExtents(min, max);
   }
 
@@ -94,8 +94,8 @@ class NumericExtents implements Extents<double> {
   }
 
   @override
-  bool operator ==(Object other) {
-    return other is NumericExtents && min == other.min && max == other.max;
+  bool operator ==(covariant NumericExtents other) {
+    return min == other.min && max == other.max;
   }
 
   @override

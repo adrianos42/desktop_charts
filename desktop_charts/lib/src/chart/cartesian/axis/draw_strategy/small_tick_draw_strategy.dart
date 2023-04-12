@@ -108,6 +108,7 @@ class SmallTickDrawStrategy<D> extends BaseTickDrawStrategy<D> {
   @override
   void draw(
     Canvas canvas,
+    Offset offset,
     Tick<D> tick, {
     required AxisDirection orientation,
     required Rect axisBounds,
@@ -128,6 +129,7 @@ class SmallTickDrawStrategy<D> extends BaseTickDrawStrategy<D> {
     final tickEnd = tickPositions.last;
 
     canvas.drawChartLine(
+      offset,
       points: [tickStart, tickEnd],
       dashPattern: lineStyle.dashPattern,
       stroke: lineStyle.color!,
@@ -136,6 +138,7 @@ class SmallTickDrawStrategy<D> extends BaseTickDrawStrategy<D> {
 
     drawLabel(
       canvas,
+      offset,
       tick,
       orientation: orientation,
       axisBounds: axisBounds,

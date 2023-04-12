@@ -26,7 +26,8 @@ abstract class TreeMapRendererDecorator<D> {
   /// Paints decorator on top of [rendererElement].
   void decorate(
     TreeMapRendererElement<D> rendererElement,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     bool rtl = false,

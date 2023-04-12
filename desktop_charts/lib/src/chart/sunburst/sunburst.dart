@@ -6,4 +6,4 @@ export 'sunburst_arc_label_decorator.dart' show SunburstArcLabelDecorator;
 export 'sunburst_arc_renderer.dart' show SunburstArcRenderer;
 export 'sunburst_arc_renderer_config.dart'
     show SunburstArcRendererConfig, SunburstColorStrategy;
-export 'sunburst_chart.dart' show SunburstChartState;
+export 'sunburst_chart.dart' show SunburstChartState, SunburstChart;

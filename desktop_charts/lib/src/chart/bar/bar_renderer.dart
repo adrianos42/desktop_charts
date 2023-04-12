@@ -252,7 +252,7 @@ class BarRenderer<D, S extends BaseChart<D>>
   ) {
     final bars = <CanvasRect>[];
 
-    final bounds = offset & size;
+    final bounds = Offset.zero & size;
     final animationPercent = chartState.animationPosition.value;
 
     // When adjusting bars for stacked bar padding, do not modify the first bar
@@ -332,7 +332,7 @@ class BarRenderer<D, S extends BaseChart<D>>
     // TODO: When we have initial viewport, add image test for
     // clipping.
     if (barOutsideBounds) {
-      final clipBounds = _getBarStackBounds(barStack.fullStackRect, offset);
+      final clipBounds = _getBarStackBounds(barStack.fullStackRect);
 
       // Do not draw the bar stack if it is completely outside of the component
       // bounds.
@@ -340,10 +340,11 @@ class BarRenderer<D, S extends BaseChart<D>>
         return;
       }
 
-      canvas.setChartClipBounds(clipBounds);
+      canvas.setChartClipBounds(offset, clipBounds);
     }
 
     canvas.drawChartBarStack(
+      offset,
       barStack,
       drawAreaBounds: componentBounds,
       background: chartState.themeData.foreground, // TODO
@@ -357,6 +358,7 @@ class BarRenderer<D, S extends BaseChart<D>>
     barRendererDecorator?.decorate(
       barElements,
       canvas,
+      offset,
       drawBounds: bounds,
       animationPercent: animationPercent,
       renderingVertically: renderingVertically,
@@ -368,14 +370,13 @@ class BarRenderer<D, S extends BaseChart<D>>
   /// stack.
   Rect _getBarStackBounds(
     Rect barStackRect,
-    Offset offset,
   ) {
     double left;
     double right;
     double top;
     double bottom;
 
-    final componentBounds = offset & size;
+    final componentBounds = Offset.zero & size;
 
     if (renderingVertically) {
       // Only clip at the start and end so that the bar's width stays within

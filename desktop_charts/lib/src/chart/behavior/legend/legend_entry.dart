@@ -20,6 +20,7 @@ import 'package:flutter/painting.dart' show TextStyle;
 
 import '../../../symbol_renderer.dart';
 import '../../processed_series.dart' show ImmutableSeries;
+import '../../series_renderer.dart' show rendererKey;
 
 /// The most basic possible legend entry - just a display name and positioning.
 class LegendEntryBase {
@@ -50,16 +51,18 @@ class LegendEntryBase {
   /// Indicates whether this is in the last column of a tabular layout.
   bool? inLastColumn;
 
-  LegendEntryBase(this.label,
-      {this.textStyle,
-      this.rowNumber,
-      this.columnNumber,
-      this.rowCount,
-      this.columnCount,
-      this.inFirstRow,
-      this.inFirstColumn,
-      this.inLastRow,
-      this.inLastColumn});
+  LegendEntryBase(
+    this.label, {
+    this.textStyle,
+    this.rowNumber,
+    this.columnNumber,
+    this.rowCount,
+    this.columnCount,
+    this.inFirstRow,
+    this.inFirstColumn,
+    this.inLastRow,
+    this.inLastColumn,
+  });
 }
 
 /// When the legend groups by category it will create additional legend entries
@@ -88,16 +91,6 @@ class LegendCategory<D> extends LegendEntryBase {
 /// [T] the datum class type for the series passed in.
 /// [D] the domain class type for the datum.
 class LegendEntry<D> extends LegendEntryBase {
-  final ImmutableSeries<D> series;
-  final dynamic datum;
-  final int? datumIndex;
-  final D? domain;
-  final Color? color;
-  double? value;
-  List<int?>? selectedDataIndexes;
-  String? formattedValue;
-  bool isSelected;
-
   // TODO: Forward the default formatters from series and allow for
   // native legends to provide separate formatters.
 
@@ -131,9 +124,19 @@ class LegendEntry<D> extends LegendEntryBase {
             inLastRow: inLastRow,
             inLastColumn: inLastColumn);
 
+  final ImmutableSeries<D> series;
+  final dynamic datum;
+  final int? datumIndex;
+  final D? domain;
+  final Color? color;
+  double? value;
+  List<int?>? selectedDataIndexes;
+  String? formattedValue;
+  bool isSelected;
+
   /// Get the native symbol renderer stored in the series.
-  SymbolRenderer? get symbolRenderer => null;
-  // TODO series.getAttr(rendererKey)!.symbolRenderer;
+  SymbolRenderer? get symbolRenderer =>
+      series.getAttr(rendererKey)?.symbolRenderer;
 
   /// Gets the dash pattern for the symbol from the given datum and series.
   ///

@@ -168,38 +168,33 @@ class _SelectionCallbackState extends State<SelectionCallbackExample> {
 
   @override
   Widget build(BuildContext context) {
-    // The children consist of a Chart and Text widgets below to hold the info.
-    final children = <Widget>[
-      SizedBox(
-          height: 150.0,
-          child: charts.TimeSeriesChart(
-            widget.seriesList,
-            animate: widget.animate,
-            selectionModels: [
-              charts.SelectionModelConfig(
-                type: charts.SelectionModelType.info,
-                changedListener: _onSelectionChanged,
-              )
-            ],
-          )),
-    ];
-
+    final children = [];
     // If there is a selection, then include the details.
-    if (_time != null) {
-      children.add(
-        Padding(
-          padding: const EdgeInsets.only(top: 4.0),
-          child: Text(
-            _time.toString(),
-          ),
-        ),
-      );
-    }
     _measures.forEach((String series, num value) {
       children.add(Text('$series: $value'));
     });
 
-    return Column(children: children);
+    return Column(children: [
+      Expanded(
+        child: charts.TimeSeriesChart(
+          widget.seriesList,
+          animate: widget.animate,
+          selectionModels: [
+            charts.SelectionModelConfig(
+              type: charts.SelectionModelType.info,
+              changedListener: _onSelectionChanged,
+            )
+          ],
+        ),
+      ),
+      Padding(
+        padding: const EdgeInsets.only(top: 4.0),
+        child: Text(
+          _time?.toString() ?? '',
+        ),
+      ),
+      ...children,
+    ]);
   }
 }
 

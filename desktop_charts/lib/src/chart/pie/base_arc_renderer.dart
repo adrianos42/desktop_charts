@@ -134,8 +134,6 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
 
     final animationPercent = chartState.animationPosition.value; // TODO
 
-    final bounds = Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
-
     final arcLists = getArcLists();
     final arcsToElements = <AnimatedArcs<D>, ArcRendererElements<D>>{};
 
@@ -153,6 +151,8 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
       arcsToElements[arcList] = elementsList;
     }
 
+    final bounds = Offset.zero & size;
+
     // Decorate the arcs with decorators that should appear below the main
     // series data.
     _arcRendererDecorators
@@ -163,6 +163,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
             .map<ArcRendererElements<D>>((e) => arcsToElements[e]!)
             .toList(),
         context.canvas,
+        offset,
         drawBounds: bounds,
         animationPercent: animationPercent,
         rtl: isRtl,
@@ -187,6 +188,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
 
       // Draw the arcs.
       context.canvas.drawChartPie(
+        offset,
         CanvasPie(
           circleSectors,
           arcList.center!,
@@ -209,6 +211,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
             .map<ArcRendererElements<D>>((e) => arcsToElements[e]!)
             .toList(),
         context.canvas,
+        offset,
         drawBounds: bounds,
         animationPercent: animationPercent,
         rtl: isRtl,
@@ -218,7 +221,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
 
   @override
   List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset chartPoint,
+    Offset globalPosition,
     bool byDomain,
     Rect? boundsOverride, {
     bool selectOverlappingPoints = false,
@@ -226,8 +229,9 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
   }) {
     final nearest = <DatumDetails<D>>[];
 
-    // Was it even in the component bounds?
-    if (!isPointWithinBounds(chartPoint, boundsOverride!)) {
+    final chartPoint = globalToLocal(globalPosition);
+
+    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
       return nearest;
     }
 

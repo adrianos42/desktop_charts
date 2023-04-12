@@ -111,8 +111,8 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   void tile(TreeNode<Object> node);
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
     // _visibleTreeMapRectKeys is used to remove any [_AnimatedTreeMapRect]s
     // that were rendered in the previous draw cycles, but no longer have a
     // corresponding datum in the series data.
@@ -146,7 +146,7 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   void paint(PaintingContext context, Offset offset) {
     super.paint(context, offset);
 
-    final bounds = Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
+    final bounds = Offset.zero & size;
 
     if (chartState.animationPosition.value == 1.0) {
       _animatedTreeMapRects.removeWhere((_, rect) => rect.animatingOut);
@@ -160,7 +160,8 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
       // canvas.drawRRect is used instead of canvas.drawRect because drawRRect
       // supports FillPatternType.forwardHatch.
       context.canvas.drawChartRRect(
-        rect,
+        offset,
+        RRect.fromRectAndRadius(rect, Radius.zero),
         fill: element.fillColor!,
         fillPattern: element.fillPattern,
         patternStrokeWidth: config.patternStrokeWidth,
@@ -168,15 +169,12 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
         stroke: element.strokeColor,
         strokeWidth: element.strokeWidth!.toDouble(),
         radius: 0,
-        roundTopLeft: false,
-        roundTopRight: false,
-        roundBottomLeft: false,
-        roundBottomRight: false,
       );
 
       // Paint label.
       labelDecorator?.decorate(
         element, context.canvas,
+        offset,
         drawBounds: bounds,
         animationPercent: chartState.animationPosition.value,
         rtl: isRtl,
@@ -190,7 +188,7 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   /// Datum details of nearest rectangles in the treemap.
   @override
   List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset chartPoint,
+    Offset globalPosition,
     bool byDomain,
     Rect? boundsOverride, {
     bool selectOverlappingPoints = false,
@@ -198,8 +196,9 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   }) {
     final nearest = <DatumDetails<D>>[];
 
-    // Checks if the [chartPoint] is within bounds.
-    if (!isPointWithinBounds(chartPoint, boundsOverride!)) {
+    final chartPoint = globalToLocal(globalPosition);
+
+    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
       return nearest;
     }
 

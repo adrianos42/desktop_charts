@@ -19,8 +19,11 @@ import 'package:collection/collection.dart' show ListEquality;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
+import '../behavior/behavior.dart' show ChartBehavior, BehaviorPosition;
+import 'package:flutter/scheduler.dart';
 import '../../data/series.dart' show Series;
-import '../base_chart.dart' show BaseChart, BaseChartState;
+import '../base_chart.dart'
+    show BaseChart, BaseChartState, WidgetLayoutDelegate;
 import '../datum_details.dart' show DatumDetails;
 import '../processed_series.dart' show MutableSeries;
 import '../selection_model.dart' show SelectionModelType;
@@ -225,6 +228,9 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
   bool _usePrimaryMeasureAxis = false;
   bool _useSecondaryMeasureAxis = false;
 
+  Size _drawArea = Size.zero;
+  Size get drawArea => _drawArea;
+
   @override
   bool get isVertical => widget.isVertical;
 
@@ -388,11 +394,6 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
     // return rendererToSeriesList;
   }
 
-  @override
-  void onPostLayout(Map<String, List<MutableSeries<D>>> rendererToSeriesList) {
-    axisConfiguredNotifier.notifyListeners();
-  }
-
   /// Returns a list of datum details from selection model of [type].
   @override
   List<DatumDetails<D>> getDatumDetails(SelectionModelType type) {
@@ -459,9 +460,58 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
         .equals(widget.seriesList, oldWidget.seriesList)) {}
   }
 
+  void axisConfigured() {
+    for (final listener in lifecycleListeners) {
+      listener.onAxisConfigured?.call();
+    }
+  }
+
+  @override 
+  void animationCompleted() {
+    axisConfigured();
+    super.animationCompleted();
+  }
+
   @override
   Widget buildChart() {
-    final result = super.buildChart();
+    final chartChildren = <LayoutId>[];
+    final idAndBehaviorMap = <String, ChartBehavior>{};
+
+    final behaviorsAboveAxis = addedCommonBehaviorsByRole.values
+        .any((element) => element.position == BehaviorPosition.insideBelowAxis);
+
+    final List<Widget> children = [];
+
+    if (behaviorsAboveAxis) {
+      addedCommonBehaviorsByRole.forEach((id, behavior) {
+        if (behavior.position == BehaviorPosition.insideBelowAxis) {
+          idAndBehaviorMap[id] = behavior;
+
+          chartChildren.add(
+            LayoutId(
+              id: id,
+              child: behavior.buildBehavior(context),
+            ),
+          );
+        }
+      });
+
+      children.add(
+        CustomMultiChildLayout(
+          delegate: WidgetLayoutDelegate(
+            idAndBehavior: idAndBehaviorMap,
+            isRTL: isRTL,
+          ),
+          children: chartChildren,
+        ),
+      );
+    }
+
+    children.add(super.buildChart());
+
+    SchedulerBinding.instance.addPostFrameCallback((_) {
+      axisConfigured();
+    });
 
     return _Axis(
       domainAxis: domainAxis!,
@@ -469,23 +519,28 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
       secondaryMeasureAxis: _secondaryMeasureAxis,
       disjointMeasureAxes: _disjointMeasureAxes,
       isVertical: widget.isVertical,
-      child: Container(
-        //color: Color(0xff101010),
-        child: result,
-      ),
+      seriesList: widget.seriesList,
+      axisConfigured: axisConfigured,
+      drawArea: (Size drawAreaSize) => _drawArea = drawAreaSize,
+      children: children,
     );
   }
 }
 
-class _Axis<D> extends SingleChildRenderObjectWidget {
+typedef DrawAreaSize = void Function(Size drawAreaSize);
+
+class _Axis<D> extends MultiChildRenderObjectWidget {
   const _Axis({
     super.key,
-    required super.child,
+    required super.children,
     required this.domainAxis,
     required this.primaryMeasureAxis,
     required this.secondaryMeasureAxis,
     required this.disjointMeasureAxes,
     required this.isVertical,
+    required this.seriesList,
+    required this.axisConfigured,
+    required this.drawArea,
   });
 
   final CartesianAxis<D> domainAxis;
@@ -493,6 +548,9 @@ class _Axis<D> extends SingleChildRenderObjectWidget {
   final NumericAxis? secondaryMeasureAxis;
   final Map<String, NumericAxis> disjointMeasureAxes;
   final bool isVertical;
+  final List<Series<dynamic, D>> seriesList;
+  final VoidCallback axisConfigured;
+  final DrawAreaSize drawArea;
 
   @override
   RenderObject createRenderObject(BuildContext context) => _AxisRender(
@@ -501,6 +559,8 @@ class _Axis<D> extends SingleChildRenderObjectWidget {
         secondaryMeasureAxis: secondaryMeasureAxis,
         disjointMeasureAxes: disjointMeasureAxes,
         isVertical: isVertical,
+        axisConfigured: axisConfigured,
+        drawArea: drawArea,
       );
 
   @override
@@ -510,30 +570,67 @@ class _Axis<D> extends SingleChildRenderObjectWidget {
       ..primaryMeasureAxis = primaryMeasureAxis
       ..secondaryMeasureAxis = secondaryMeasureAxis
       ..disjointMeasureAxes = disjointMeasureAxes
-      ..isVertical = isVertical;
+      ..isVertical = isVertical
+      .._needsUpdate = true;
   }
 }
 
-class _AxisRender<D> extends RenderShiftedBox {
+class _AxisParentData extends ContainerBoxParentData<RenderBox> {}
+
+class _AxisRender<D> extends RenderBox
+    with
+        ContainerRenderObjectMixin<RenderBox, _AxisParentData>,
+        RenderBoxContainerDefaultsMixin<RenderBox, _AxisParentData> {
   _AxisRender({
-    RenderBox? child,
     NumericAxis? primaryMeasureAxis,
     NumericAxis? secondaryMeasureAxis,
     required CartesianAxis<D> domainAxis,
     required Map<String, NumericAxis> disjointMeasureAxes,
     required bool isVertical,
+    required this.axisConfigured,
+    required this.drawArea,
+    List<RenderBox>? children,
   })  : _domainAxis = domainAxis,
         _primaryMeasureAxis = primaryMeasureAxis,
         _secondaryMeasureAxis = secondaryMeasureAxis,
         _disjointMeasureAxes = disjointMeasureAxes,
-        _isVertical = isVertical,
-        super(child);
+        _isVertical = isVertical {
+    addAll(children);
+  }
+
+  @mustCallSuper
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    _domainAxis.addListener(markNeedsPaint);
+    _primaryMeasureAxis?.addListener(markNeedsPaint);
+    _secondaryMeasureAxis?.addListener(markNeedsPaint);
+  }
+
+  @mustCallSuper
+  @override
+  void detach() {
+    _domainAxis.removeListener(markNeedsPaint);
+    _primaryMeasureAxis?.removeListener(markNeedsPaint);
+    _secondaryMeasureAxis?.removeListener(markNeedsPaint);
+    super.detach();
+  }
+
+  @override
+  void setupParentData(RenderObject child) {
+    if (child.parentData is! _AxisParentData) {
+      child.parentData = _AxisParentData();
+    }
+  }
+
+  final DrawAreaSize drawArea;
 
   bool _isVertical;
   set isVertical(bool value) {
     if (_isVertical != value) {
       _isVertical = value;
-      markNeedsLayout();
+      markNeedsPaint();
+      _needsUpdate = true;
     }
   }
 
@@ -541,7 +638,8 @@ class _AxisRender<D> extends RenderShiftedBox {
   set domainAxis(CartesianAxis<D> value) {
     if (_domainAxis != value) {
       _domainAxis = value;
-      markNeedsLayout();
+      markNeedsPaint();
+      _needsUpdate = true;
     }
   }
 
@@ -549,7 +647,8 @@ class _AxisRender<D> extends RenderShiftedBox {
   set primaryMeasureAxis(NumericAxis? value) {
     if (_primaryMeasureAxis != value) {
       _primaryMeasureAxis = value;
-      markNeedsLayout();
+      markNeedsPaint();
+      _needsUpdate = true;
     }
   }
 
@@ -557,7 +656,8 @@ class _AxisRender<D> extends RenderShiftedBox {
   set secondaryMeasureAxis(NumericAxis? value) {
     if (_secondaryMeasureAxis != value) {
       _secondaryMeasureAxis = value;
-      markNeedsLayout();
+      markNeedsPaint();
+      _needsUpdate = true;
     }
   }
 
@@ -565,9 +665,14 @@ class _AxisRender<D> extends RenderShiftedBox {
   set disjointMeasureAxes(Map<String, NumericAxis> value) {
     if (_disjointMeasureAxes != value) {
       _disjointMeasureAxes = value;
-      markNeedsLayout();
+      markNeedsPaint();
+      _needsUpdate = true;
     }
   }
+
+  final VoidCallback axisConfigured;
+
+  bool _needsUpdate = false;
 
   Offset _domainOffset = Offset.zero;
   Offset _primaryMeasureOffsest = Offset.zero;
@@ -672,19 +777,79 @@ class _AxisRender<D> extends RenderShiftedBox {
       _secondaryMeasureOffset = Offset(chartOffsetX, 0.0);
     }
 
-    child!.layout(
-        BoxConstraints(maxWidth: availableWidth, maxHeight: availableHeight));
-    size = constraints.biggest;
+    drawArea(Size(availableWidth, availableHeight));
 
-    final BoxParentData childParentData = child!.parentData! as BoxParentData;
-    childParentData.offset = Offset(chartOffsetX, chartOffsetY);
+    RenderBox? child = firstChild;
+
+    while (child != null) {
+      child.layout(BoxConstraints(
+        maxWidth: availableWidth,
+        maxHeight: availableHeight,
+      ));
+
+      final BoxParentData childParentData = child.parentData! as BoxParentData;
+      childParentData.offset = Offset(chartOffsetX, chartOffsetY);
+
+      child = childAfter(child);
+    }
+
+    _secondaryMeasureAxis?.update();
+    _primaryMeasureAxis?.update();
+    _domainAxis.update();
+
+    _needsUpdate = false;
+
+    //axisConfigured();
+
+    size = constraints.biggest;
+  }
+
+  @override
+  bool hitTestChildren(BoxHitTestResult result, {required Offset position}) {
+    RenderBox? child = firstChild;
+
+    while (child != null) {
+      final childParentData = child.parentData! as _AxisParentData;
+
+      final bool isHit = result.addWithPaintOffset(
+        offset: childParentData.offset,
+        position: position,
+        hitTest: (BoxHitTestResult result, Offset transformed) {
+          assert(transformed == position - childParentData.offset);
+          return child!.hitTest(result, position: transformed);
+        },
+      );
+
+      if (isHit) {
+        return true;
+      }
+
+      child = childAfter(child);
+    }
+
+    return false;
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    _secondaryMeasureAxis?.update(_secondaryMeasureOffset + offset);
-    _primaryMeasureAxis?.update(_primaryMeasureOffsest + offset);
-    _domainAxis.update(_domainOffset + offset);
+    if (_needsUpdate) {
+      _secondaryMeasureAxis?.update();
+      _primaryMeasureAxis?.update();
+      _domainAxis.update();
+
+      _needsUpdate = false;
+    }
+
+    RenderBox? child = firstChild;
+
+    for (int i = 0; i < childCount - 1; i += 1) {
+      context.paintChild(
+        child!,
+        (child.parentData! as BoxParentData).offset + offset,
+      );
+
+      child = childAfter(child);
+    }
 
     _domainAxis.paint(context, _domainOffset + offset);
     _secondaryMeasureAxis?.paint(context, _secondaryMeasureOffset + offset);
@@ -692,7 +857,7 @@ class _AxisRender<D> extends RenderShiftedBox {
 
     context.paintChild(
       child!,
-      (child!.parentData! as BoxParentData).offset + offset,
+      (child.parentData! as BoxParentData).offset + offset,
     );
   }
 }

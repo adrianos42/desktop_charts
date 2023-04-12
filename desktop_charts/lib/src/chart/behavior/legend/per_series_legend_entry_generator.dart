@@ -53,8 +53,7 @@ class PerSeriesLegendEntryGenerator<D> implements LegendEntryGenerator<D> {
         .map((series) => LegendEntry<D>(
               series,
               series.displayName!,
-              // TODO: Should this use series.colorFn if seriesColor is null?
-              color: series.seriesColor!,
+              color: series.seriesColor,
               textStyle: entryTextStyle,
             ))
         .toList();
@@ -98,7 +97,8 @@ class PerSeriesLegendEntryGenerator<D> implements LegendEntryGenerator<D> {
 
       seriesAndMeasure[seriesId] = (seriesAndMeasure[seriesId] ?? 0) + measure;
 
-      if (series.getAttr(measureAxisIdKey) == CartesianAxis.secondaryMeasureAxisId) {
+      if (series.getAttr(measureAxisIdKey) ==
+          CartesianAxis.secondaryMeasureAxisId) {
         secondaryAxisSeriesIDs.add(seriesId);
       }
     }
@@ -154,32 +154,19 @@ class PerSeriesLegendEntryGenerator<D> implements LegendEntryGenerator<D> {
 
     for (final series in seriesList) {
       final seriesId = series.id;
-      num? calculatedMeasure;
-
-      switch (legendDefaultMeasure) {
-        case LegendDefaultMeasure.sum:
-          calculatedMeasure = getMeasureTotal(series);
-          break;
-        case LegendDefaultMeasure.average:
-          calculatedMeasure = getMeasureTotal(series) / series.data.length;
-          break;
-        case LegendDefaultMeasure.firstValue:
-          calculatedMeasure = series.measureFn(0);
-          break;
-        case LegendDefaultMeasure.lastValue:
-          calculatedMeasure = series.measureFn(series.data.length - 1);
-          break;
-        case LegendDefaultMeasure.none:
-          // [calculatedMeasure] intentionally left null, since we do not want
-          // to show any measures.
-          break;
-      }
+      final calculatedMeasure = switch (legendDefaultMeasure) {
+        LegendDefaultMeasure.sum => getMeasureTotal(series),
+        LegendDefaultMeasure.average => getMeasureTotal(series) / series.data.length,
+        LegendDefaultMeasure.firstValue => series.measureFn(0),
+        LegendDefaultMeasure.lastValue => series.measureFn(series.data.length - 1),
+        LegendDefaultMeasure.none => null
+      };
 
       seriesAndMeasure[seriesId] = calculatedMeasure?.toDouble();
-      seriesAndFormattedMeasure[seriesId] =
-          (series.getAttr(measureAxisIdKey) == CartesianAxis.secondaryMeasureAxisId)
-              ? secondaryMeasureFormatter!(calculatedMeasure)
-              : measureFormatter!(calculatedMeasure);
+      seriesAndFormattedMeasure[seriesId] = (series.getAttr(measureAxisIdKey) ==
+              CartesianAxis.secondaryMeasureAxisId)
+          ? secondaryMeasureFormatter!(calculatedMeasure)
+          : measureFormatter!(calculatedMeasure);
     }
 
     for (final entry in legendEntries) {

@@ -209,7 +209,9 @@ class MutableSelectionModel<D> extends SelectionModel<D> {
   /// Note: the listener will not be triggered if [updateSelection] is called
   /// resulting in the same selection state.
   void addSelectionChangedListener(SelectionModelListener<D> listener) {
-    _changedListeners.add(listener);
+    if (!_changedListeners.contains(listener)) {
+      _changedListeners.add(listener);
+    }
   }
 
   /// Remove listener from being notified when this [SelectionModel] changes.

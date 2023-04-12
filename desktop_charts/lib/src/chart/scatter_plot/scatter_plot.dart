@@ -13,7 +13,7 @@ export 'point_renderer.dart'
         PointRendererElement;
 export 'point_renderer_config.dart' show PointRendererConfig;
 export 'point_renderer_decorator.dart' show PointRendererDecorator;
-export 'scatter_plot_chart.dart' show ScatterPlotChart;
+export 'scatter_plot_chart.dart' show ScatterPlotChart, ScatterPlotChartState;
 export 'symbol_annotation_renderer.dart' show SymbolAnnotationRenderer;
 export 'symbol_annotation_renderer_config.dart'
     show SymbolAnnotationRendererConfig;

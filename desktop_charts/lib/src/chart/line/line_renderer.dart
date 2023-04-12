@@ -316,10 +316,10 @@ class LineRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
 
-    final bounds = offset & size;
+    final bounds = Offset.zero & size;
 
     _currentKeys.clear();
 
@@ -392,7 +392,6 @@ class LineRenderer<D, S extends BaseChart<D>>
             styleSegment as _LineRendererElement<D>,
             stackIndex > 0 ? previousInitialPointList[stackIndex - 1] : null,
             true,
-            offset,
           );
           final lineElementList =
               lineAndArea[0] as List<_LineRendererElement<D>>;
@@ -458,7 +457,6 @@ class LineRenderer<D, S extends BaseChart<D>>
           styleSegment as _LineRendererElement<D>,
           stackIndex > 0 ? previousPointList[stackIndex - 1] : null,
           false,
-          offset,
         );
         final lineElementList = lineAndArea[0] as List<_LineRendererElement<D>>;
         final areaElementList = lineAndArea[1] as List<_AreaRendererElement<D>>;
@@ -579,7 +577,6 @@ class LineRenderer<D, S extends BaseChart<D>>
     _LineRendererElement<D> styleSegment,
     List<_DatumPoint<D>>? previousPointList,
     bool initializeFromZero,
-    Offset offset,
   ) {
     final measureAxis =
         (chartState as CartesianChartState<D, CartesianChart<D>>)
@@ -606,7 +603,7 @@ class LineRenderer<D, S extends BaseChart<D>>
 
     _currentKeys.add(styleKey);
 
-    final positionExtent = _createPositionExtent(series, styleSegment, offset);
+    final positionExtent = _createPositionExtent(series, styleSegment);
 
     // Get the line elements we are going to to set up.
     final lineElements = <_LineRendererElement<D>>[];
@@ -939,9 +936,8 @@ class LineRenderer<D, S extends BaseChart<D>>
   _Range<double> _createPositionExtent(
     ImmutableSeries<D> series,
     _LineRendererElement<D> details,
-    Offset offset,
   ) {
-    final bounds = Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
+    final bounds = Rect.fromLTWH(0.0, 0.0, size.width, size.height);
 
     final domainAxis =
         (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
@@ -962,8 +958,6 @@ class LineRenderer<D, S extends BaseChart<D>>
 
   @override
   void paint(PaintingContext context, Offset offset) {
-    update(offset);
-
     super.paint(context, offset);
 
     final animationPercent = chartState.animationPosition.value;
@@ -995,9 +989,11 @@ class LineRenderer<D, S extends BaseChart<D>>
                 animatingArea.getCurrentArea(animationPercent))
             .forEach((area) {
           context.canvas.drawChartPolygon(
-              clipBounds: _getClipBoundsForExtent(area.positionExtent, offset),
-              fill: area.areaColor ?? area.color,
-              points: area.points.toPoints());
+            offset,
+            clipBounds: _getClipBoundsForExtent(area.positionExtent, offset),
+            fill: area.areaColor ?? area.color,
+            points: area.points.toPoints(),
+          );
         });
       }
 
@@ -1011,9 +1007,11 @@ class LineRenderer<D, S extends BaseChart<D>>
                 animatingBounds.getCurrentArea(animationPercent))
             .forEach((bound) {
           context.canvas.drawChartPolygon(
-              clipBounds: _getClipBoundsForExtent(bound.positionExtent, offset),
-              fill: bound.areaColor ?? bound.color,
-              points: bound.points.toPoints());
+            offset,
+            clipBounds: _getClipBoundsForExtent(bound.positionExtent, offset),
+            fill: bound.areaColor ?? bound.color,
+            points: bound.points.toPoints(),
+          );
         });
       }
 
@@ -1027,6 +1025,7 @@ class LineRenderer<D, S extends BaseChart<D>>
                 animatingLine.getCurrentLine(animationPercent))
             .forEach((line) {
           context.canvas.drawChartLine(
+            offset,
             clipBounds: _getClipBoundsForExtent(line.positionExtent!, offset),
             dashPattern: line.dashPattern,
             points: line.points!.toPoints(),
@@ -1044,8 +1043,7 @@ class LineRenderer<D, S extends BaseChart<D>>
     // In RTL mode, the domain range extent has start on the right side of the
     // chart. Adjust the calculated positions to define a regular left-anchored
     // [Rect]. Clamp both ends to be within the draw area.
-    final drawBounds =
-        Rect.fromLTWH(offset.dx, offset.dy, size.width, size.height);
+    final drawBounds = Offset.zero & size;
 
     final left = chartState.isRTL
         ? clampDouble(extent.end, drawBounds.left, drawBounds.right)
@@ -1089,7 +1087,7 @@ class LineRenderer<D, S extends BaseChart<D>>
 
   @override
   List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset chartPoint,
+    Offset globalPosition,
     bool byDomain,
     Rect? boundsOverride, {
     bool selectOverlappingPoints = false,
@@ -1097,8 +1095,9 @@ class LineRenderer<D, S extends BaseChart<D>>
   }) {
     final nearest = <DatumDetails<D>>[];
 
-    // Was it even in the component bounds?
-    if (!isPointWithinBounds(chartPoint, boundsOverride!)) {
+    final chartPoint = globalToLocal(globalPosition);
+
+    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
       return nearest;
     }
 

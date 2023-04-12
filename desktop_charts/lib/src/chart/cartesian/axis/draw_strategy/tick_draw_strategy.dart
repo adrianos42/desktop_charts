@@ -67,6 +67,7 @@ abstract class TickDrawStrategy<D> {
   /// avoid colliding into other ticks.
   void draw(
     Canvas canvas,
+    Offset offset,
     Tick<D> tick, {
     required AxisDirection orientation,
     required Rect axisBounds,
@@ -78,6 +79,7 @@ abstract class TickDrawStrategy<D> {
 
   void drawAxisLine(
     Canvas canvas,
+    Offset offset,
     AxisDirection orientation,
     Rect axisBounds,
   );

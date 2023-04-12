@@ -112,8 +112,8 @@ class BarLaneRenderer<D, S extends BaseChart<D>> extends BarRenderer<D, S> {
   }
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
 
     // Add gray bars to render under every bar stack.
     for (final series in seriesList) {
@@ -367,7 +367,7 @@ class BarLaneRenderer<D, S extends BaseChart<D>> extends BarRenderer<D, S> {
   /// Paints the current bar data on the canvas.
   @override
   void paint(PaintingContext context, Offset offset) {
-    update(offset);
+    super.paint(context, offset);
 
     _barLaneStackMap.forEach((String stackKey, List<AnimatedBar<D>> barStack) {
       // Turn this into a list so that the getCurrentBar isn't called more than
@@ -384,7 +384,5 @@ class BarLaneRenderer<D, S extends BaseChart<D>> extends BarRenderer<D, S> {
         barElements,
       );
     });
-
-    super.paint(context, offset);
   }
 }

@@ -15,7 +15,7 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:flutter/foundation.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../base_chart.dart'
     show BaseChartState, LifecycleListener, BaseChart;
@@ -62,14 +62,19 @@ abstract class KeyboardDomainNavigator<D> implements ChartBehavior<D> {
   int _currentIndex = NO_SELECTION;
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    _chart = chart;
-    chart.addLifecycleListener(_lifecycleListener);
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chart = chartState;
+    _chart.addLifecycleListener(_lifecycleListener);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart.removeLifecycleListener(_lifecycleListener);
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
+  }
+
+  @override
+  void dispose() {
+    _chart.removeLifecycleListener(_lifecycleListener);
   }
 
   /// Resets any hidden series data when data is drawn on the chart.

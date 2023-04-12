@@ -85,8 +85,9 @@ class DomainA11yExploreBehavior<D> extends A11yExploreBehavior<D> {
     domainSeriesDatum.forEach((D domain, List<SeriesDatum<D>> seriesDatums) {
       final a11yDescription = _vocalizationCallback(seriesDatums);
 
-      final firstSeries = seriesDatums.first.series;
-      final domainAxis = null; // TODO firstSeries.getAttr(domainAxisKey) as ImmutableAxis<D>?;
+      //final firstSeries = seriesDatums.first.series;
+      final domainAxis =
+          null; // TODO firstSeries.getAttr(domainAxisKey) as ImmutableAxis<D>?;
       final location = domainAxis!.getLocation(domain)!;
 
       /// If the step size is smaller than the minimum width, use minimum.
@@ -119,23 +120,29 @@ class DomainA11yExploreBehavior<D> extends A11yExploreBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    super.attachTo(chartState);
+
     // Domain selection behavior only works for cartesian charts.
-    assert(chart is CartesianChartState<D, CartesianChart<D>>);
-    _chart = chart as CartesianChartState<D, CartesianChart<D>>;
-
-    chart.addLifecycleListener(_lifecycleListener);
-
-    super.attachTo(chart);
+    assert(chartState is CartesianChartState<D, CartesianChart<D>>);
+    _chart = chartState as CartesianChartState<D, CartesianChart<D>>;
+    _chart.addLifecycleListener(_lifecycleListener);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart.removeLifecycleListener(_lifecycleListener);
+  void dispose() {
+    _chart.removeLifecycleListener(_lifecycleListener);
+
+    super.dispose();
   }
 
   @override
   String get role => 'DomainA11yExplore-$exploreModeTrigger';
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
+  }
 }
 
 /// A11yNode with domain specific information.

@@ -17,11 +17,12 @@
 
 import 'package:flutter/widgets.dart';
 
-import '../../color.dart';
-import '../base_chart.dart' show BaseChartState, LifecycleListener, BaseChart;
-import '../processed_series.dart' show MutableSeries;
-import '../selection_model.dart' show SelectionModel, SelectionModelType;
-import 'chart_behavior.dart' show ChartBehavior, BehaviorPosition;
+import '../../../color.dart';
+import '../../base_chart.dart'
+    show BaseChartState, LifecycleListener, BaseChart;
+import '../../processed_series.dart' show MutableSeries;
+import '../../selection_model.dart' show SelectionModel, SelectionModelType;
+import '../chart_behavior.dart' show ChartBehavior, BehaviorPosition;
 
 /// Chart behavior that monitors the specified [SelectionModel] and darkens the
 /// color for selected data.
@@ -40,17 +41,17 @@ class DomainHighlighter<D> extends ChartBehavior<D> {
 
   final SelectionModelType selectionModelType;
 
-  late BaseChartState<D, BaseChart<D>> _chart;
+  late BaseChartState<D, BaseChart<D>> _chartState;
 
   late LifecycleListener<D> _lifecycleListener;
 
   void _selectionChanged(SelectionModel<D> selectionModel) {
-    _chart.redraw(skipLayout: true, skipAnimation: true);
+    _chartState.redraw(skipLayout: true, skipAnimation: true);
   }
 
   void _updateColorFunctions(List<MutableSeries<D>> seriesList) {
     final SelectionModel<D> selectionModel =
-        _chart.getSelectionModel(selectionModelType);
+        _chartState.getSelectionModel(selectionModelType);
 
     for (final MutableSeries<D> series in seriesList) {
       final origColorFn = series.colorFn;
@@ -69,28 +70,31 @@ class DomainHighlighter<D> extends ChartBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    _chart = chart;
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState = chartState;
 
-    chart.addLifecycleListener(_lifecycleListener);
-    chart
+    _chartState.addLifecycleListener(_lifecycleListener);
+    _chartState
         .getSelectionModel(selectionModelType)
         .addSelectionChangedListener(_selectionChanged);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart
+  void dispose() {
+    _chartState
         .getSelectionModel(selectionModelType)
         .removeSelectionChangedListener(_selectionChanged);
-    chart.removeLifecycleListener(_lifecycleListener);
+    _chartState.removeLifecycleListener(_lifecycleListener);
   }
 
+  @override
   BehaviorPosition get position => BehaviorPosition.inside;
 
   @override
-  Widget buildBehavior(BuildContext context) => const SizedBox();
+  String get role => 'domainHighlight-$selectionModelType';
 
   @override
-  String get role => 'domainHighlight-$selectionModelType';
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
+  }
 }

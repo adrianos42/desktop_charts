@@ -48,7 +48,8 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
   @override
   void decorate(
     Iterable<ImmutableBarRendererElement<D>> barElements,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     required bool renderingVertically,
@@ -102,8 +103,11 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
             if (outlineWidth > 0) {
               // Draw rectangle rendering the outline for the vertical line.
               canvas.drawChartRect(
-                Rect.fromPoints(Offset(x - rectWidth / 2.0, startY),
-                    Offset(x + rectWidth / 2.0, endY)),
+                offset,
+                Rect.fromPoints(
+                  Offset(x - rectWidth / 2.0, startY),
+                  Offset(x + rectWidth / 2.0, endY),
+                ),
                 fill: outlineColor,
                 strokeWidth: outlineWidth,
                 background: const Color(0xff000000), // TODO
@@ -112,6 +116,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
               // Draw rectangle rendering the outline for the horizontal
               // endpoint representing the lower bound.
               canvas.drawChartRect(
+                offset,
                 Rect.fromLTWH(
                   x - rectEndpointLength / 2.0,
                   startY - rectWidth / 2.0,
@@ -126,6 +131,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
               // Draw rectangle rendering the outline for the horizontal
               // endpoint representing the upper bound.
               canvas.drawChartRect(
+                offset,
                 Rect.fromLTWH(
                   x - rectEndpointLength / 2.0,
                   endY - rectWidth / 2.0,
@@ -140,6 +146,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
 
             // Draw vertical whisker line.
             canvas.drawChartLine(
+              offset,
               points: [Offset(x, startY), Offset(x, endY)],
               stroke: strokeColor,
               strokeWidth: strokeWid,
@@ -147,6 +154,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
 
             // Draw horizontal whisker line for the lower bound.
             canvas.drawChartLine(
+              offset,
               points: [
                 Offset(x - endpointLen / 2.0, startY),
                 Offset(x + endpointLen / 2.0, startY)
@@ -157,6 +165,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
 
             // Draw horizontal whisker line for the upper bound.
             canvas.drawChartLine(
+              offset,
               points: [
                 Offset(x - endpointLen / 2.0, endY),
                 Offset(x + endpointLen / 2.0, endY)
@@ -190,6 +199,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
             if (outlineWidth > 0.0) {
               // Draw rectangle rendering the outline for the horizontal line.
               canvas.drawChartRect(
+                offset,
                 Rect.fromPoints(Offset(startX, y - rectWidth / 2.0),
                     Offset(endX, y + rectWidth / 2.0)),
                 fill: outlineColor,
@@ -200,6 +210,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
               // Draw rectangle rendering the outline for the vertical
               // endpoint representing the lower bound.
               canvas.drawChartRect(
+                offset,
                 Rect.fromLTWH(
                   startX - rectWidth / 2.0,
                   y - rectEndpointLength / 2.0,
@@ -214,6 +225,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
               // Draw rectangle rendering the outline for the vertical
               // endpoint representing the upper bound.
               canvas.drawChartRect(
+                offset,
                 Rect.fromLTWH(
                   endX - rectWidth / 2.0,
                   y - rectEndpointLength / 2.0,
@@ -228,6 +240,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
 
             // Draw horizontal whisker line.
             canvas.drawChartLine(
+              offset,
               points: [Offset(startX, y), Offset(endX, y)],
               stroke: strokeColor,
               strokeWidth: strokeWid,
@@ -235,6 +248,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
 
             // Draw vertical whisker line for the lower bound.
             canvas.drawChartLine(
+              offset,
               points: [
                 Offset(startX, y - endpointLen / 2.0),
                 Offset(startX, y + endpointLen / 2.0)
@@ -245,6 +259,7 @@ class BarErrorDecorator<D> extends BarRendererDecorator<D> {
 
             // Draw vertical whisker line for the upper bound.
             canvas.drawChartLine(
+              offset,
               points: [
                 Offset(endX, y - endpointLen / 2.0),
                 Offset(endX, y + endpointLen / 2.0)

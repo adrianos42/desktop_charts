@@ -47,7 +47,8 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
             ArcLabelLeaderLineStyleSpec(
               length: 20.0,
               thickness: 1.0,
-              color: const ChartsThemeData.fallbackw().arcLabelOutsideLeaderLine,
+              color:
+                  const ChartsThemeData.fallbackw().arcLabelOutsideLeaderLine,
             );
 
   // Default configuration
@@ -97,7 +98,8 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
   @override
   void decorate(
     List<ArcRendererElements<D>> arcElementsList,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     bool rtl = false,
@@ -147,8 +149,9 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
             ((arcElements.radius - arcElements.innerRadius) / 2.0);
 
         final outerPoint = Offset(
-            arcElements.center.dx + arcElements.radius * cos(centerAngle),
-            arcElements.center.dy + arcElements.radius * sin(centerAngle));
+          arcElements.center.dx + arcElements.radius * cos(centerAngle),
+          arcElements.center.dy + arcElements.radius * sin(centerAngle),
+        );
 
         final bounds = Rect.fromPoints(arcElements.center, outerPoint);
 
@@ -197,10 +200,17 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
         if (labelElement.maxWidth! > 0.0) {
           // Calculate the start position of label based on [labelAnchor].
           if (calculatedLabelPosition == ArcLabelPosition.inside) {
-            _drawInsideLabel(canvas, arcElements, labelElement, centerAngle);
+            _drawInsideLabel(
+                canvas, offset, arcElements, labelElement, centerAngle);
           } else {
             final l = _drawOutsideLabel(
-                canvas, drawBounds, arcElements, labelElement, centerAngle);
+              canvas,
+              offset,
+              drawBounds,
+              arcElements,
+              labelElement,
+              centerAngle,
+            );
 
             if (l != null) {
               updateCollisionDetectionParams(l);
@@ -250,6 +260,7 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
   /// Draws a label inside of an arc.
   void _drawInsideLabel(
     Canvas canvas,
+    Offset offset,
     ArcRendererElements<D> arcElements,
     TextElement labelElement,
     double centerAngle,
@@ -268,7 +279,7 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
 
     labelElement.textDirection = null;
 
-    canvas.drawChartText(labelElement, labelX, labelY);
+    canvas.drawChartText(offset, labelElement, labelX, labelY);
   }
 
   @protected
@@ -284,6 +295,7 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
   /// Draws a label outside of an arc.
   List<Object>? _drawOutsideLabel(
     Canvas canvas,
+    Offset offset,
     Rect drawBounds,
     ArcRendererElements<D> arcElements,
     TextElement labelElement,
@@ -292,8 +304,9 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
     final labelRadius = getLabelRadius(arcElements);
 
     final labelPoint = Offset(
-        arcElements.center.dx + labelRadius * cos(centerAngle),
-        arcElements.center.dy + labelRadius * sin(centerAngle));
+      arcElements.center.dx + labelRadius * cos(centerAngle),
+      arcElements.center.dy + labelRadius * sin(centerAngle),
+    );
 
     // Use the label's chart quadrant to determine whether it's rendered to the
     // right or left.
@@ -320,8 +333,15 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
     }
 
     if (showLeaderLines) {
-      final tailX = _drawLeaderLine(canvas, labelLeftOfChart, labelPoint,
-          arcElements.radius, arcElements.center, centerAngle);
+      final tailX = _drawLeaderLine(
+        canvas,
+        offset,
+        labelLeftOfChart,
+        labelPoint,
+        arcElements.radius,
+        arcElements.center,
+        centerAngle,
+      );
 
       // Shift the label horizontally by the length of the leader line.
       labelX = (labelX + tailX).truncateToDouble();
@@ -330,7 +350,7 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
           (labelElement.maxWidth! - tailX.abs()).truncateToDouble();
     }
 
-    canvas.drawChartText(labelElement, labelX, labelY);
+    canvas.drawChartText(offset, labelElement, labelX, labelY);
 
     // Return a structured list of values.
     return [labelLeftOfChart, labelY];
@@ -369,6 +389,7 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
   /// Draws a leader line for the current arc.
   double _drawLeaderLine(
     Canvas canvas,
+    Offset offset,
     bool labelLeftOfChart,
     Offset labelPoint,
     double radius,
@@ -384,7 +405,7 @@ class ArcLabelDecorator<D> extends ArcRendererDecorator<D> {
         arcCenterPoint.dx + centerRadius * cos(centerAngle),
         arcCenterPoint.dy + centerRadius * sin(centerAngle));
 
-    canvas.drawChartLine(
+    canvas.drawChartLine(offset,
         points: [
           leaderLineStartPoint,
           labelPoint,

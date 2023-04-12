@@ -15,15 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:flutter/foundation.dart';
-import 'package:flutter/painting.dart' show TextStyle;
+import 'package:desktop/desktop.dart';
+import 'package:flutter/rendering.dart';
 
 import '../../datum_details.dart' show MeasureFormatter;
 import '../../processed_series.dart' show MutableSeries;
 import '../../selection_model.dart' show SelectionModelType;
+import '../../../symbol_renderer.dart' show SymbolRenderer;
 import 'legend.dart';
 import 'legend_entry_generator.dart';
 import 'per_series_legend_entry_generator.dart';
+import '../chart_behavior.dart' show BehaviorPosition;
+import '../../../symbol_renderer.dart';
 
 // TODO: Allows for hovering over a series in legend to highlight
 // corresponding series in draw area.
@@ -40,11 +43,13 @@ class SeriesLegend<D> extends Legend<D> {
     bool? showMeasures,
     LegendDefaultMeasure? legendDefaultMeasure,
     TextStyle? entryTextStyle,
+    super.position,
   }) : super(
-            selectionModelType: selectionModelType ?? SelectionModelType.info,
-            legendEntryGenerator:
-                legendEntryGenerator ?? PerSeriesLegendEntryGenerator(),
-            entryTextStyle: entryTextStyle) {
+          selectionModelType: selectionModelType ?? SelectionModelType.info,
+          legendEntryGenerator:
+              legendEntryGenerator ?? PerSeriesLegendEntryGenerator(),
+          entryTextStyle: entryTextStyle,
+        ) {
     // Calling the setters will automatically use non-null default values.
     this.showMeasures = showMeasures;
     this.legendDefaultMeasure = legendDefaultMeasure;
@@ -191,5 +196,120 @@ class SeriesLegend<D> extends Legend<D> {
   bool isSeriesAlwaysVisible(String seriesId) {
     return _alwaysVisibleSeries != null &&
         _alwaysVisibleSeries!.contains(seriesId);
+  }
+
+  @override
+  void updateLegend() {
+    chartState.requestPaint();
+  }
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    final entryWidgets = (legendState.legendEntries ?? []).map((entry) {
+      final isHidden = isSeriesHidden(entry.series.id);
+
+      return AnimatedBuilder(
+        animation: chartState.animationPosition,
+        builder: (context, child) {
+          //final textStyle = entry.;
+
+          final Color foreground =
+              entry.textStyle?.color ?? ButtonTheme.of(context).color!;
+
+          SymbolRendererBuilder? symbolBuilder;
+
+          if (entry.symbolRenderer != null) {
+            symbolBuilder = entry.symbolRenderer! is SymbolRendererBuilder
+                ? entry.symbolRenderer! as SymbolRendererBuilder
+                : SymbolRendererCanvas(
+                    symbolRenderer: entry.symbolRenderer!,
+                    dashPattern: entry.dashPattern,
+                  );
+          }
+
+          final disabledInteraction =
+              legendTapHandling == LegendTapHandling.hide &&
+                  isSeriesAlwaysVisible(entry.series.id);
+
+          return Button(
+            onPressed: !disabledInteraction
+                ? () {
+                    if (legendTapHandling == LegendTapHandling.hide) {
+                      final seriesId = entry.series.id;
+
+                      if (!isSeriesHidden(seriesId)) {
+                        hideSeries(seriesId);
+                      } else {
+                        showSeries(seriesId);
+                      }
+
+                      chartState.redraw(
+                          skipLayout: true, skipAnimation: false);
+                    }
+                  }
+                : null,
+            body: Text(
+              entry.label,
+              style: entry.textStyle,
+            ),
+            leading: symbolBuilder?.build(
+              context,
+              size: const Size(12.0, 12.0),
+              color: entry.color,
+              enabled: !isHidden,
+            ),
+            theme: ButtonThemeData(
+              textStyle: entry.textStyle,
+              color: foreground,
+            ),
+          );
+        },
+      );
+    }).toList();
+
+    return Flex(
+      direction: position == BehaviorPosition.top ||
+              position == BehaviorPosition.bottom
+          ? Axis.horizontal
+          : Axis.vertical,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: entryWidgets,
+    );
+  }
+}
+
+@immutable
+class _SymbolRenderer extends SingleChildRenderObjectWidget {
+  _SymbolRenderer({
+    required this.symbolRenderer,
+  });
+
+  final SymbolRenderer symbolRenderer;
+
+  @override
+  SymbolRendererRender createRenderObject(BuildContext context) {
+    return SymbolRendererRender(
+      symbolRenderer: symbolRenderer,
+    );
+  }
+
+  @override
+  void updateRenderObject(
+      BuildContext context, covariant SymbolRendererRender renderObject) {}
+}
+
+class SymbolRendererRender extends RenderBox {
+  SymbolRendererRender({required this.symbolRenderer});
+
+  final SymbolRenderer symbolRenderer;
+
+  @override
+  void performLayout() {
+    size = constraints.biggest;
+  }
+
+  @override
+  void paint(PaintingContext context, Offset offset) {
+    symbolRenderer.draw(context.canvas, offset, Offset.zero & size);
   }
 }

@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:flutter/widgets.dart';
+
 import '../../../data/series.dart' show AttributeKey;
 import '../../base_chart.dart'
     show BaseChartState, BaseChart, LifecycleListener;
@@ -55,14 +57,22 @@ class PercentInjector<D> extends ChartBehavior<D> {
   /// The type of data total to be calculated.
   final PercentInjectorTotalType totalType;
 
+  late BaseChartState<D, BaseChart<D>> _chartState;
+
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart.addLifecycleListener(_lifecycleListener);
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState = chartState;
+    _chartState.addLifecycleListener(_lifecycleListener);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    chart.removeLifecycleListener(_lifecycleListener);
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
+  }
+
+  @override
+  void dispose() {
+    _chartState.removeLifecycleListener(_lifecycleListener);
   }
 
   /// Resets the state of the behavior when data is drawn on the chart.

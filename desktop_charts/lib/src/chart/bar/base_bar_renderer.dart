@@ -254,8 +254,6 @@ abstract class BaseBarRenderer<
         elements.add(details);
       }
 
-      
-
       if (needsMeasureOffset) {
         // Override the measure offset function to return the measure offset we
         // calculated for each datum. This already includes any measure offset
@@ -373,8 +371,8 @@ abstract class BaseBarRenderer<
   }
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
 
     _currentKeys.clear();
     _currentGroupsStackKeys.clear();
@@ -591,10 +589,8 @@ abstract class BaseBarRenderer<
   /// Paints the current bar data on the canvas.
   @override
   void paint(PaintingContext context, Offset offset) {
-    update(offset);
-
     super.paint(context, offset);
-
+    
     final animationPercent = chartState.animationPosition.value;
 
     // Clean up the bars that no longer exist.
@@ -653,34 +649,33 @@ abstract class BaseBarRenderer<
   }) {
     var nearest = <DatumDetails<D>>[];
 
-    final chartPosition = globalToLocal(globalPosition);
+    final chartPoint = globalToLocal(globalPosition);
 
-    // Was it even in the component bounds?
-    if (!isPointWithinBounds(chartPosition, boundsOverride!) && false) {
-      print('object');
+    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
       return nearest;
     }
 
     if (_prevDomainAxis is OrdinalAxis) {
       final domainValue = _prevDomainAxis!.getDomain(
-        renderingVertically ? chartPosition.dx : chartPosition.dy,
+        renderingVertically ? chartPoint.dx : chartPoint.dy,
       );
 
       // If we have a domainValue for the event point, then find all segments
       // that match it.
       if (domainValue != null) {
         if (renderingVertically) {
-          nearest = _getVerticalDetailsForDomainValue(domainValue, chartPosition);
+          nearest =
+              _getVerticalDetailsForDomainValue(domainValue, chartPoint);
         } else {
           nearest =
-              _getHorizontalDetailsForDomainValue(domainValue, chartPosition);
+              _getHorizontalDetailsForDomainValue(domainValue, chartPoint);
         }
       }
     } else {
       if (renderingVertically) {
-        nearest = _getVerticalDetailsForDomainValue(null, chartPosition);
+        nearest = _getVerticalDetailsForDomainValue(null, chartPoint);
       } else {
-        nearest = _getHorizontalDetailsForDomainValue(null, chartPosition);
+        nearest = _getHorizontalDetailsForDomainValue(null, chartPoint);
       }
 
       // Find the closest domain and only keep values that match the domain.
@@ -756,19 +751,20 @@ abstract class BaseBarRenderer<
         .map<DatumDetails<D>>((BaseAnimatedBar<D, E> bar) {
       final barBounds = getBoundsForBar(bar.currentBar!)!;
       final segmentDomainDistance = _getDistance(
-        chartPoint.dx.roundToDouble(),
+        chartPoint.dx.toDouble(),
         barBounds.left,
         barBounds.right,
       );
       final segmentMeasureDistance = _getDistance(
-        chartPoint.dy.roundToDouble(),
+        chartPoint.dy.toDouble(),
         barBounds.top,
         barBounds.bottom,
       );
 
       final nearestPoint = Offset(
-          chartPoint.dx.clamp(barBounds.left, barBounds.right).toDouble(),
-          chartPoint.dy.clamp(barBounds.top, barBounds.bottom).toDouble());
+        chartPoint.dx.clamp(barBounds.left, barBounds.right).toDouble(),
+        chartPoint.dy.clamp(barBounds.top, barBounds.bottom).toDouble(),
+      );
 
       final relativeDistance = Point(chartPoint.dx, chartPoint.dy).distanceTo(
         Point(

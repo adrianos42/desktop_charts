@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:ui' show lerpDouble;
+
 import 'tick.dart' show Tick;
 
 class AxisTicks<D> extends Tick<D> implements Comparable<AxisTicks<D>> {
@@ -48,7 +50,7 @@ class AxisTicks<D> extends Tick<D> implements Comparable<AxisTicks<D>> {
   double? _previousOpacity;
 
   /// This tick's target opacity.
-  double? _targetOpacity;
+  double? _targetOpacity = 1.0; // TODO
 
   bool get markedForRemoval => _markedForRemoval;
 
@@ -83,33 +85,20 @@ class AxisTicks<D> extends Tick<D> implements Comparable<AxisTicks<D>> {
     if (animationPercent == 1.0) {
       _currentLocation = _targetLocation;
       _previousLocation = _targetLocation;
-      _currentOpacity = markedForRemoval ? 0.0 : 1.0;
+      _currentOpacity = _targetOpacity;
     } else if (_previousLocation == null) {
       _currentLocation = _targetLocation;
       _currentOpacity = 1.0;
     } else {
       _currentLocation =
-          _lerpDouble(_previousLocation, _targetLocation, animationPercent);
+          lerpDouble(_previousLocation, _targetLocation, animationPercent);
+
       _currentOpacity =
-          _lerpDouble(_previousOpacity, _targetOpacity, animationPercent);
+          lerpDouble(_previousOpacity, _targetOpacity, animationPercent);
     }
 
     location = _currentLocation;
     textElement!.opacity = _currentOpacity;
-  }
-
-  /// Linearly interpolate between two numbers.
-  ///
-  /// From lerpDouble in dart:ui which is Flutter only.
-  double? _lerpDouble(double? a, double? b, double t) {
-    if (a == null && b == null) {
-      return null;
-    }
-
-    a ??= 0.0;
-    b ??= 0.0;
-
-    return a + (b - a) * t;
   }
 
   @override

@@ -16,20 +16,22 @@
 // limitations under the License.
 
 import 'dart:math' show max, min;
+import 'dart:ui' show lerpDouble;
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
-import '../../math.dart' show NullablePoint;
-import '../../symbol_renderer.dart' show CircleSymbolRenderer, SymbolRenderer;
-import '../../theme.dart';
-import '../base_chart.dart' show BaseChartState, LifecycleListener, BaseChart;
-import '../cartesian/cartesian_chart.dart' show CartesianChart;
-import '../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
-import '../layout/layout_view.dart' show LayoutViewPaintOrder;
-import '../processed_series.dart' show ImmutableSeries;
-import '../selection_model.dart' show SelectionModel, SelectionModelType;
-import 'chart_behavior.dart' show ChartBehavior;
+import '../../../math.dart' show NullablePoint;
+import '../../../symbol_renderer.dart'
+    show CircleSymbolRenderer, SymbolRenderer;
+import '../../base_chart.dart'
+    show BaseChartState, LifecycleListener, BaseChart;
+import '../../cartesian/cartesian_chart.dart'
+    show CartesianChartState, CartesianChart;
+import '../../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
+import '../../processed_series.dart' show ImmutableSeries;
+import '../../selection_model.dart' show SelectionModel, SelectionModelType;
+import '../chart_behavior.dart' show ChartBehavior;
 
 /// Chart behavior that monitors the specified [SelectionModel] and renders a
 /// dot for selected data.
@@ -62,10 +64,7 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
             LinePointHighlighterFollowLineType.nearest,
         dashPattern = dashPattern ?? [1, 3],
         drawFollowLinesAcrossChart = drawFollowLinesAcrossChart ?? true,
-        symbolRenderer = symbolRenderer ?? const CircleSymbolRenderer() {
-    _lifecycleListener =
-        LifecycleListener<D>(onAxisConfigured: _updateViewData);
-  }
+        symbolRenderer = symbolRenderer ?? const CircleSymbolRenderer();
 
   final SelectionModelType selectionModelType;
 
@@ -109,18 +108,212 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
   /// Renderer used to draw the highlighted points.
   final SymbolRenderer symbolRenderer;
 
-  late BaseChartState<D, BaseChart<D>> _chart;
+  covariant late CartesianChartState<D, CartesianChart<D>> _chartState;
 
-  late _LinePointLayoutView<D> _view;
+  final GlobalKey _linePointKey = GlobalKey();
 
-  late LifecycleListener<D> _lifecycleListener;
+  Map<String, _AnimatedPoint<D>> get _seriesPointMap =>
+      (_linePointKey.currentContext!.findRenderObject()!
+              as _LinePointLayoutRender<D>)
+          ._seriesPointMap;
 
-  /// Store a map of data drawn on the chart, mapped by series name.
-  ///
-  /// [Map] is used to render the series on the canvas in the same
-  /// order as the data was provided by the selection model.
-  // ignore: prefer_collection_literals, https://github.com/dart-lang/linter/issues/1649
-  var _seriesPointMap = Map<String, _AnimatedPoint<D>>();
+  void _selectionChanged(SelectionModel<D> selectionModel) {
+    _chartState.redraw(skipLayout: true, skipAnimation: true);
+  }
+
+  @override
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    _chartState = chartState as CartesianChartState<D, CartesianChart<D>>;
+
+    assert(_chartState.isVertical);
+
+    _chartState
+        .getSelectionModel(selectionModelType)
+        .addSelectionChangedListener(_selectionChanged);
+  }
+
+  @override
+  void dispose() {
+    _chartState
+        .getSelectionModel(selectionModelType)
+        .removeSelectionChangedListener(_selectionChanged);
+  }
+
+  @override
+  String get role => 'LinePointHighlighter-$selectionModelType';
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    return _LinePointLayoutRenderObjectWidget<D, CartesianChart<D>>(
+      chartState: _chartState,
+      showHorizontalFollowLine: showHorizontalFollowLine,
+      showVerticalFollowLine: showVerticalFollowLine,
+      dashPattern: dashPattern,
+      drawFollowLinesAcrossChart: drawFollowLinesAcrossChart,
+      symbolRenderer: symbolRenderer,
+      defaultRadius: defaultRadius,
+      radiusPadding: radiusPadding,
+      selectionModelType: selectionModelType,
+      key: _linePointKey,
+    );
+  }
+}
+
+class _LinePointLayoutRenderObjectWidget<D, S extends CartesianChart<D>>
+    extends LeafRenderObjectWidget {
+  const _LinePointLayoutRenderObjectWidget({
+    required this.chartState,
+    required this.dashPattern,
+    required this.drawFollowLinesAcrossChart,
+    required this.showHorizontalFollowLine,
+    required this.showVerticalFollowLine,
+    required this.symbolRenderer,
+    required this.defaultRadius,
+    required this.radiusPadding,
+    required this.selectionModelType,
+    required super.key,
+  });
+
+  final CartesianChartState<D, S> chartState;
+  final LinePointHighlighterFollowLineType showHorizontalFollowLine;
+  final LinePointHighlighterFollowLineType showVerticalFollowLine;
+  final SymbolRenderer symbolRenderer;
+  final List<int>? dashPattern;
+  final bool drawFollowLinesAcrossChart;
+  final SelectionModelType selectionModelType;
+  final double defaultRadius;
+  final double radiusPadding;
+
+  @override
+  _LinePointLayoutRender<D> createRenderObject(BuildContext context) =>
+      _LinePointLayoutRender<D>(
+        chartState: chartState,
+        dashPattern: dashPattern,
+        drawFollowLinesAcrossChart: drawFollowLinesAcrossChart,
+        showHorizontalFollowLine: showHorizontalFollowLine,
+        showVerticalFollowLine: showVerticalFollowLine,
+        symbolRenderer: symbolRenderer,
+        defaultRadius: defaultRadius,
+        radiusPadding: radiusPadding,
+        selectionModelType: selectionModelType,
+      );
+
+  @override
+  void updateRenderObject(
+      BuildContext context, _LinePointLayoutRender<D> renderObject) {
+    renderObject
+      ..dashPattern = dashPattern
+      ..drawFollowLinesAcrossChart = drawFollowLinesAcrossChart
+      ..showHorizontalFollowLine = showHorizontalFollowLine
+      ..showVerticalFollowLine = showVerticalFollowLine
+      ..symbolRenderer = symbolRenderer
+      ..defaultRadius = defaultRadius
+      ..radiusPadding = radiusPadding
+      ..selectionModelType = selectionModelType;
+  }
+}
+
+class _LinePointLayoutRender<D> extends RenderBox {
+  _LinePointLayoutRender({
+    required this.chartState,
+    required LinePointHighlighterFollowLineType showHorizontalFollowLine,
+    required LinePointHighlighterFollowLineType showVerticalFollowLine,
+    required SymbolRenderer symbolRenderer,
+    required List<int>? dashPattern,
+    required bool drawFollowLinesAcrossChart,
+    required SelectionModelType selectionModelType,
+    required double defaultRadius,
+    required double radiusPadding,
+  })  : _showHorizontalFollowLine = showHorizontalFollowLine,
+        _showVerticalFollowLine = showVerticalFollowLine,
+        _symbolRenderer = symbolRenderer,
+        _dashPattern = dashPattern,
+        _drawFollowLinesAcrossChart = drawFollowLinesAcrossChart,
+        _selectionModelType = selectionModelType,
+        _defaultRadius = defaultRadius,
+        _radiusPadding = radiusPadding;
+
+  LinePointHighlighterFollowLineType _showHorizontalFollowLine;
+  LinePointHighlighterFollowLineType get showHorizontalFollowLine =>
+      _showHorizontalFollowLine;
+  set showHorizontalFollowLine(LinePointHighlighterFollowLineType value) {
+    if (value != _showHorizontalFollowLine) {
+      _showHorizontalFollowLine = value;
+      update();
+      markNeedsPaint();
+    }
+  }
+
+  LinePointHighlighterFollowLineType _showVerticalFollowLine;
+  LinePointHighlighterFollowLineType get showVerticalFollowLine =>
+      _showVerticalFollowLine;
+  set showVerticalFollowLine(LinePointHighlighterFollowLineType value) {
+    if (value != _showVerticalFollowLine) {
+      _showVerticalFollowLine = value;
+      update();
+      markNeedsPaint();
+    }
+  }
+
+  List<int>? _dashPattern;
+  List<int>? get dashPattern => _dashPattern;
+  set dashPattern(List<int>? value) {
+    if (value != _dashPattern) {
+      _dashPattern = value;
+      update();
+      markNeedsPaint();
+    }
+  }
+
+  SymbolRenderer _symbolRenderer;
+  SymbolRenderer get symbolRenderer => _symbolRenderer;
+  set symbolRenderer(SymbolRenderer value) {
+    if (value != _symbolRenderer) {
+      _symbolRenderer = value;
+      update();
+      markNeedsPaint();
+    }
+  }
+
+  bool _drawFollowLinesAcrossChart;
+  bool get drawFollowLinesAcrossChart => _drawFollowLinesAcrossChart;
+  set drawFollowLinesAcrossChart(bool value) {
+    if (value != _drawFollowLinesAcrossChart) {
+      _drawFollowLinesAcrossChart = value;
+      update();
+      markNeedsPaint();
+    }
+  }
+
+  SelectionModelType _selectionModelType;
+  SelectionModelType get selectionModelType => _selectionModelType;
+  set selectionModelType(SelectionModelType value) {
+    if (value != _selectionModelType) {
+      _selectionModelType = value;
+      update();
+      markNeedsPaint();
+    }
+  }
+
+  double _defaultRadius;
+  double get defaultRadius => _defaultRadius;
+  set defaultRadius(double value) {
+    if (value != _defaultRadius) {
+      _defaultRadius = value;
+      update();
+      markNeedsPaint();
+    }
+  }
+
+  double _radiusPadding;
+  double get radiusPadding => _radiusPadding;
+  set radiusPadding(double value) {
+    if (value != _radiusPadding) {
+      _radiusPadding = value;
+      update();
+      markNeedsPaint();
+    }
+  }
 
   // Store a list of points that exist in the series data.
   //
@@ -129,51 +322,19 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
   // data.
   final _currentKeys = <String>[];
 
-  @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    _chart = chart;
+  /// Store a map of series drawn on the chart, mapped by series name.
+  ///
+  /// [Map] is used to render the series on the canvas in the same
+  /// order as the data was given to the chart.
+  Map<String, _AnimatedPoint<D>> _seriesPointMap = {};
 
-    _view = _LinePointLayoutView<D>(
-      chart: chart,
-      layoutPaintOrder: LayoutViewPaintOrder.linePointHighlighter,
-      showHorizontalFollowLine: showHorizontalFollowLine,
-      showVerticalFollowLine: showVerticalFollowLine,
-      dashPattern: dashPattern,
-      drawFollowLinesAcrossChart: drawFollowLinesAcrossChart,
-      symbolRenderer: symbolRenderer,
-    );
+  final CartesianChartState<D, CartesianChart<D>> chartState;
 
-    if (chart is CartesianChart) {
-      // Only vertical rendering is supported by this behavior.
-      assert((chart as CartesianChart).isVertical);
-    }
-
-    // TODO chart.addView(_view);
-
-    chart.addLifecycleListener(_lifecycleListener);
-    chart
-        .getSelectionModel(selectionModelType)
-        .addSelectionChangedListener(_selectionChanged);
-  }
-
-  @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    // TODO chart.removeView(_view);
-    chart
-        .getSelectionModel(selectionModelType)
-        .removeSelectionChangedListener(_selectionChanged);
-    chart.removeLifecycleListener(_lifecycleListener);
-  }
-
-  void _selectionChanged(SelectionModel<D> selectionModel) {
-    _chart.redraw(skipLayout: true, skipAnimation: true);
-  }
-
-  void _updateViewData() {
+  void update() {
     _currentKeys.clear();
 
     final selectedDatumDetails =
-        _chart.getSelectedDatumDetails(selectionModelType);
+        chartState.getSelectedDatumDetails(selectionModelType);
 
     // Create a map each time to ensure that we have it sorted in the
     // selection model order. This preserves the "nearestDetail" ordering, so
@@ -185,8 +346,8 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
       final series = detail.series!;
       final Object? datum = detail.datum;
 
-      final domainAxis = null; // TODO
-      final measureAxis = null; // TODO
+      final domainAxis = chartState.domainAxis;
+      final measureAxis = chartState.getMeasureAxis();
 
       final lineKey = series.id;
 
@@ -203,11 +364,12 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
       } else {
         // Create a point and have it animate in from axis.
         final point = _DatumPoint<D>(
-            datum: datum,
-            domain: detail.domain,
-            series: series,
-            x: domainAxis!.getLocation(detail.domain),
-            y: measureAxis!.getLocation(0.0));
+          datum: datum,
+          domain: detail.domain,
+          series: series,
+          x: domainAxis!.getLocation(detail.domain),
+          y: measureAxis.getLocation(0.0),
+        );
 
         animatingPoint = _AnimatedPoint<D>(
             key: pointKey, overlaySeries: series.overlaySeries)
@@ -244,7 +406,7 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
         color: detail.color,
         fillColor: detail.fillColor,
         radius: radius,
-        measureAxisPosition: measureAxis!.getLocation(0.0),
+        measureAxisPosition: measureAxis.getLocation(0.0),
         strokeWidth: detail.strokeWidth,
         symbolRenderer: detail.symbolRenderer,
       );
@@ -261,87 +423,54 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
     });
 
     _seriesPointMap = newSeriesMap;
-    _view.seriesPointMap = _seriesPointMap;
+  }
+
+  late LifecycleListener<D> _lifecycleListener;
+
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    chartState.animationPosition.addListener(markNeedsPaint);
+
+    _lifecycleListener = LifecycleListener<D>(onAxisConfigured: () {
+      update();
+      markNeedsPaint();
+    });
+
+    chartState.addLifecycleListener(_lifecycleListener);
   }
 
   @override
-  String get role => 'LinePointHighlighter-$selectionModelType';
-}
-
-class _LinePointLayoutView<D>  {
-  _LinePointLayoutView({
-    required this.chart,
-    required int layoutPaintOrder,
-    required this.showHorizontalFollowLine,
-    required this.showVerticalFollowLine,
-    required this.symbolRenderer,
-    required this.dashPattern,
-    required this.drawFollowLinesAcrossChart,
-  });
-  
-  // : layoutConfig = LayoutViewConfig(
-  //        paintOrder: LayoutViewPaintOrder.linePointHighlighter,
-  //        position: LayoutPosition.drawArea,
-  //        positionOrder: layoutPaintOrder,
-  //      );
-
-  final LinePointHighlighterFollowLineType showHorizontalFollowLine;
-
-  final LinePointHighlighterFollowLineType showVerticalFollowLine;
-
-  final BaseChartState<D, BaseChart<D>> chart;
-
-  final List<int>? dashPattern;
-
-  late Rect _drawAreaBounds;
-
-  Rect get drawBounds => _drawAreaBounds;
-
-  final bool drawFollowLinesAcrossChart;
-
-  final SymbolRenderer symbolRenderer;
-
-  /// Store a map of series drawn on the chart, mapped by series name.
-  ///
-  /// [Map] is used to render the series on the canvas in the same
-  /// order as the data was given to the chart.
-  Map<String, _AnimatedPoint<D>>? _seriesPointMap;
-
-  set seriesPointMap(Map<String, _AnimatedPoint<D>>? value) {
-    _seriesPointMap = value;
+  void detach() {
+    chartState.removeLifecycleListener(_lifecycleListener);
+    chartState.animationPosition.removeListener(markNeedsPaint);
+    super.detach();
   }
 
   @override
-  Size? measure(double maxWidth, double maxHeight) {
-    return null;
+  void performLayout() {
+    size = constraints.biggest;
   }
 
   @override
-  void layout(Rect componentBounds, Rect drawAreaBounds) {
-    _drawAreaBounds = drawAreaBounds;
-  }
-
-  @override
-  void paint(Canvas canvas, double animationPercent) {
-    if (_seriesPointMap == null) {
-      return;
-    }
+  void paint(PaintingContext context, Offset offset) {
+    final animationPercent = chartState.animationPosition.value;
 
     // Clean up the lines that no longer exist.
     if (animationPercent == 1.0) {
       final keysToRemove = <String>[];
 
-      _seriesPointMap!.forEach((String key, _AnimatedPoint<D> point) {
+      _seriesPointMap.forEach((String key, _AnimatedPoint<D> point) {
         if (point.animatingOut) {
           keysToRemove.add(key);
         }
       });
 
-      keysToRemove.forEach(_seriesPointMap!.remove);
+      keysToRemove.forEach(_seriesPointMap.remove);
     }
 
     final points = <_PointRendererElement<D>>[];
-    _seriesPointMap!.forEach((String key, _AnimatedPoint<D> point) {
+    _seriesPointMap.forEach((String key, _AnimatedPoint<D> point) {
       points.add(point.getCurrentPoint(animationPercent));
     });
 
@@ -401,9 +530,9 @@ class _LinePointLayoutView<D>  {
     final paintedHorizontalLinePositions = <double>[];
     final paintedVerticalLinePositions = <double>[];
 
-    final drawBounds = chart.drawableLayoutAreaBounds;
+    final drawBounds = Offset.zero & size;
 
-    final rtl = chart.isRTL;
+    final rtl = chartState.isRTL;
 
     // Draw the follow lines first, below all of the highlight shapes.
     for (final pointElement in points) {
@@ -434,14 +563,16 @@ class _LinePointLayoutView<D>  {
           rightBound = rtl ? drawBounds.left + drawBounds.width : x;
         }
 
-        canvas.drawChartLine(
-            points: [
-              Offset(leftBound, point.dy),
-              Offset(rightBound, point.dy),
-            ],
-            stroke: const ChartsThemeData.fallbackw().linePointHighlighterColor,
-            strokeWidth: 1.0,
-            dashPattern: dashPattern);
+        context.canvas.drawChartLine(
+          offset,
+          points: [
+            Offset(leftBound, point.dy),
+            Offset(rightBound, point.dy),
+          ],
+          stroke: chartState.themeData.linePointHighlighterColor,
+          strokeWidth: 1.0,
+          dashPattern: dashPattern,
+        );
 
         if (showHorizontalFollowLine ==
             LinePointHighlighterFollowLineType.nearest) {
@@ -458,14 +589,16 @@ class _LinePointLayoutView<D>  {
             ? drawBounds.top
             : endPointPerValueVertical[roundedX]!.roundToDouble();
 
-        canvas.drawChartLine(
-            points: [
-              Offset(point.dx, topBound),
-              Offset(point.dx, drawBounds.top + drawBounds.height),
-            ],
-            stroke: const ChartsThemeData.fallbackw().linePointHighlighterColor,
-            strokeWidth: 1.0,
-            dashPattern: dashPattern);
+        context.canvas.drawChartLine(
+          offset,
+          points: [
+            Offset(point.dx, topBound),
+            Offset(point.dx, drawBounds.top + drawBounds.height),
+          ],
+          stroke: chartState.themeData.linePointHighlighterColor,
+          strokeWidth: 1.0,
+          dashPattern: dashPattern,
+        );
 
         if (showVerticalFollowLine ==
             LinePointHighlighterFollowLineType.nearest) {
@@ -495,16 +628,21 @@ class _LinePointLayoutView<D>  {
 
       // Draw the highlight dot. Use the [SymbolRenderer] from the datum if one
       // is defined.
-      (pointElement.symbolRenderer ?? symbolRenderer).paint(canvas, bounds,
-          fillColor: pointElement.fillColor,
-          strokeColor: pointElement.color,
-          strokeWidth: pointElement.strokeWidth);
+      (pointElement.symbolRenderer ?? symbolRenderer).draw(
+        context.canvas,
+        offset,
+        bounds,
+        fillColor: pointElement.fillColor,
+        strokeColor: pointElement.color,
+        strokeWidth: pointElement.strokeWidth,
+      );
     }
   }
 }
 
+@immutable
 class _DatumPoint<D> extends NullablePoint {
-  _DatumPoint({
+  const _DatumPoint({
     this.datum,
     this.domain,
     this.series,
@@ -562,9 +700,9 @@ class _PointRendererElement<D> {
     final targetPoint = target.point;
     final previousPoint = previous.point;
 
-    final x = _lerpDouble(previousPoint.dx, targetPoint.dx, animationPercent);
+    final x = lerpDouble(previousPoint.dx, targetPoint.dx, animationPercent);
 
-    final y = _lerpDouble(previousPoint.dy, targetPoint.dy, animationPercent);
+    final y = lerpDouble(previousPoint.dy, targetPoint.dy, animationPercent);
 
     point = _DatumPoint<D>.from(targetPoint, x, y);
 
@@ -573,7 +711,7 @@ class _PointRendererElement<D> {
     fillColor = getAnimatedColor(
         previous.fillColor!, target.fillColor!, animationPercent);
 
-    radius = _lerpDouble(previous.radius, target.radius, animationPercent)!;
+    radius = lerpDouble(previous.radius, target.radius, animationPercent)!;
 
     final targetStrokeWidth = target.strokeWidth;
     final previousStrokeWidth = previous.strokeWidth;
@@ -584,18 +722,6 @@ class _PointRendererElement<D> {
     } else {
       strokeWidth = null;
     }
-  }
-
-  /// Linear interpolation for doubles.
-  ///
-  /// If either [a] or [b] is null, return null.
-  /// This is different than Flutter's lerpDouble method, we want to return null
-  /// instead of assuming it is 0.0.
-  double? _lerpDouble(double? a, double? b, double t) {
-    if (a == null || b == null) {
-      return null;
-    }
-    return a + (b - a) * t;
   }
 }
 

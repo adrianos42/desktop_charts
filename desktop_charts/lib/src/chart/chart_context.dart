@@ -18,7 +18,6 @@
 import 'package:flutter/widgets.dart';
 import '../date_time_factory.dart';
 import '../rtl_spec.dart' show RTLSpec;
-import 'behavior/a11y/a11y_node.dart' show A11yNode;
 import '../theme.dart';
 
 abstract class ChartContext {
@@ -43,27 +42,17 @@ abstract class ChartContext {
   /// [RTLSpec] is set to reverse the axis direction in rtl mode.
   bool get isRTL;
 
-  /// Whether or not the chart will respond to tap events.
-  ///
-  /// This will generally be true if there is a behavior attached to the chart
-  /// that does something with tap events, such as "click to select data."
-  bool get isTappable;
-
   DateTimeFactory get dateTimeFactory;
-
-  void requestRedraw();
 
   void requestAnimation([Duration? value]);
 
   void requestPaint();
 
-  void enableA11yExploreMode(List<A11yNode> nodes, {String? announcement});
+  //void enableA11yExploreMode(List<A11yNode> nodes, {String? announcement});
 
-  void disableA11yExploreMode({
-    String? announcement,
-  });
-
-  AnimationController get animationController;
+  //void disableA11yExploreMode({
+  //  String? announcement,
+  //});
 
   CurvedAnimation get animationPosition;
 

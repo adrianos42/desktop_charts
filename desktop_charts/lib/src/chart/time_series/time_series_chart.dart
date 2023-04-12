@@ -28,6 +28,7 @@ import '../cartesian/cartesian_chart.dart'
     show CartesianChart, CartesianChartState;
 import '../line/line_renderer_config.dart' show LineRendererConfig;
 import '../series_renderer_config.dart' show SeriesRendererConfig;
+import '../behavior/behavior.dart';
 
 class TimeSeriesChart extends CartesianChart<DateTime> {
   TimeSeriesChart(
@@ -88,5 +89,12 @@ class TimeSeriesChartState
       axisDirection: axisDirection,
       reverseOutputRange: reverseOutputRange,
     );
+  }
+
+  @override
+  void addDefaultInteractions(List<ChartBehavior> behaviors) {
+    super.addDefaultInteractions(behaviors);
+
+    behaviors.add(LinePointHighlighter<DateTime>());
   }
 }

@@ -50,8 +50,8 @@ class SankeyRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  void update(Offset offset) {
-    super.update(offset);
+  void update() {
+    super.update();
     
     // TODO Calculate node and link renderer element positions.
   }
@@ -77,7 +77,7 @@ class SankeyRenderer<D, S extends BaseChart<D>>
   /// Datum details of nearest links or nodes in the sankey chart.
   @override
   List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset chartPoint,
+    Offset globalPosition,
     bool byDomain,
     Rect? boundsOverride, {
     bool selectOverlappingPoints = false,

@@ -81,7 +81,8 @@ class SunburstArcLabelDecorator<D> extends ArcLabelDecorator<D> {
   @override
   void decorate(
     List<ArcRendererElements<D>> arcElementsList,
-    Canvas canvas, {
+    Canvas canvas,
+    Offset offset, {
     required Rect drawBounds,
     required double animationPercent,
     bool rtl = false,
@@ -111,6 +112,7 @@ class SunburstArcLabelDecorator<D> extends ArcLabelDecorator<D> {
     super.decorate(
       arcElementsList,
       canvas,
+      offset,
       drawBounds: drawBounds,
       animationPercent: animationPercent,
       rtl: rtl,

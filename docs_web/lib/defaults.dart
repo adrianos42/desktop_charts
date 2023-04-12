@@ -441,20 +441,21 @@ class App extends StatelessWidget {
       final bool active = index == _index;
       _shouldBuildView[index] = active || _shouldBuildView[index];
 
-      return Offstage(
-        offstage: !active,
-        child: TickerMode(
-          enabled: active,
-          child: Builder(
-            builder: (context) {
-              return _shouldBuildView[index]
-                  ? Padding(
-                      padding: const EdgeInsets.all(12.0),
-                      child: widget.items[index].body(context),
-                    )
-                  : Container();
-            },
-          ),
+      return Visibility(
+        visible: active,
+        maintainState: true,
+        maintainAnimation: false,
+        maintainInteractivity: false,
+        maintainSize: false,
+        child: Builder(
+          builder: (context) {
+            return _shouldBuildView[index]
+                ? Padding(
+                    padding: const EdgeInsets.all(12.0),
+                    child: widget.items[index].body(context),
+                  )
+                : const SizedBox();
+          },
         ),
       );
     });

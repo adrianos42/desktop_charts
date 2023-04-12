@@ -403,6 +403,7 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
   @override
   void drawAxisLine(
     Canvas canvas,
+    Offset offset,
     AxisDirection orientation,
     Rect axisBounds,
   ) {
@@ -429,6 +430,7 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
     }
 
     canvas.drawChartLine(
+      offset,
       points: [start, end],
       stroke: axisLineStyle.color!,
       strokeWidth: axisLineStyle.strokeWidth,
@@ -439,6 +441,7 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
   @protected
   void drawLabel(
     Canvas canvas,
+    Offset offset,
     Tick<D> tick, {
     required AxisDirection orientation,
     required Rect axisBounds,
@@ -470,23 +473,17 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
 
         line.textDirection = direction;
 
-        switch (direction) {
-          case TextDirection.rtl:
-            x = (location +
+        x = switch (direction) {
+          TextDirection.rtl => (location +
                     labelOffsetFromTick(collision: collision) +
                     labelOffset)
-                .roundToDouble();
-            break;
-          case TextDirection.ltr:
-            x = (location -
+                .roundToDouble(),
+          TextDirection.ltr => (location -
                     labelOffsetFromTick(collision: collision) -
                     labelOffset)
-                .roundToDouble();
-            break;
-          default:
-            x = (location - labelOffset).roundToDouble();
-            break;
-        }
+                .roundToDouble(),
+          _ => (location - labelOffset).roundToDouble()
+        };
       } else {
         if (orientation == AxisDirection.left) {
           if (tickLabelJustification == TickLabelJustification.inside) {
@@ -528,6 +525,7 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
         }
       }
       canvas.drawChartText(
+        offset,
         line,
         x,
         y + multiLineLabelOffset,
@@ -647,8 +645,7 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
   /// The [wholeLabel] is split into constituent chunks if it is multiline.
   List<TextElement> splitLabel(TextElement wholeLabel) => wholeLabel.text
       .split(_labelSplitPattern)
-      .map((line) =>
-          (TextElement(line.trim())..textStyle = wholeLabel.textStyle))
+      .map((line) => wholeLabel.withText(line.trim()))
       .toList();
 
   /// The width of the label (handles labels spanning multiple lines).

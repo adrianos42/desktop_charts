@@ -55,8 +55,9 @@ abstract class SymbolRenderer extends BaseSymbolRenderer {
   /// configured.
   final bool isSolid;
 
-  void paint(
+  void draw(
     Canvas canvas,
+    Offset offset,
     Rect bounds, {
     List<int>? dashPattern,
     Color? fillColor,
@@ -90,8 +91,9 @@ abstract class SymbolRenderer extends BaseSymbolRenderer {
 abstract class PointSymbolRenderer extends BaseSymbolRenderer {
   const PointSymbolRenderer();
 
-  void paint(
+  void draw(
     Canvas canvas,
+    Offset offset,
     Offset p1,
     double radius, {
     required Offset p2,
@@ -110,8 +112,9 @@ class RoundedRectSymbolRenderer extends SymbolRenderer {
   final double radius;
 
   @override
-  void paint(
+  void draw(
     Canvas canvas,
+    Offset offset,
     Rect bounds, {
     List<int>? dashPattern,
     Color? fillColor,
@@ -120,15 +123,11 @@ class RoundedRectSymbolRenderer extends SymbolRenderer {
     double? strokeWidth,
   }) {
     canvas.drawChartRRect(
-      bounds,
-      fill: getSolidFillColor(fillColor)!,
+      offset,
+      RRect.fromRectAndRadius(bounds, Radius.circular(radius)),
+      fill: getSolidFillColor(fillColor ?? const Color(0x7f00ff00))!,
       fillPattern: fillPattern,
       stroke: strokeColor,
-      radius: radius,
-      roundTopLeft: true,
-      roundTopRight: true,
-      roundBottomRight: true,
-      roundBottomLeft: true,
     );
   }
 
@@ -169,12 +168,16 @@ class LineSymbolRenderer extends SymbolRenderer {
   final List<int>? _dashPattern;
 
   @override
-  void paint(Canvas canvas, Rect bounds,
-      {List<int>? dashPattern,
-      Color? fillColor,
-      FillPatternType? fillPattern,
-      Color? strokeColor,
-      double? strokeWidth}) {
+  void draw(
+    Canvas canvas,
+    Offset offset,
+    Rect bounds, {
+    List<int>? dashPattern,
+    Color? fillColor,
+    FillPatternType? fillPattern,
+    Color? strokeColor,
+    double? strokeWidth,
+  }) {
     final centerHeight = (bounds.bottom - bounds.top) / 2;
 
     // If we have a dash pattern, do not round the end caps, and set
@@ -203,6 +206,7 @@ class LineSymbolRenderer extends SymbolRenderer {
     // TODO: Pass in strokeWidth, roundEndCaps, and dashPattern from
     // line renderer config.
     canvas.drawChartLine(
+      offset,
       points: [Offset(left, centerHeight), Offset(right, centerHeight)],
       dashPattern: localDashPattern,
       // TODO fill: getSolidFillColor(fillColor)!,
@@ -238,8 +242,9 @@ class CircleSymbolRenderer extends SymbolRenderer {
   });
 
   @override
-  void paint(
+  void draw(
     Canvas canvas,
+    Offset offset,
     Rect bounds, {
     List<int>? dashPattern,
     Color? fillColor,
@@ -253,11 +258,13 @@ class CircleSymbolRenderer extends SymbolRenderer {
     );
     final radius = min(bounds.width, bounds.height) / 2;
     canvas.drawChartPoint(
-        point: center,
-        radius: radius,
-        fill: getSolidFillColor(fillColor),
-        stroke: strokeColor,
-        strokeWidth: getSolidStrokeWidth(strokeWidth));
+      offset,
+      point: center,
+      radius: radius,
+      fill: getSolidFillColor(fillColor),
+      stroke: strokeColor,
+      strokeWidth: getSolidStrokeWidth(strokeWidth),
+    );
   }
 
   @override
@@ -280,8 +287,9 @@ class RectSymbolRenderer extends SymbolRenderer {
   });
 
   @override
-  void paint(
+  void draw(
     Canvas canvas,
+    Offset offset,
     Rect bounds, {
     List<int>? dashPattern,
     Color? fillColor,
@@ -290,13 +298,13 @@ class RectSymbolRenderer extends SymbolRenderer {
     double? strokeWidth,
   }) {
     canvas.drawChartRect(
-      bounds,
+      offset, bounds,
       fill: getSolidFillColor(fillColor)!,
       stroke: strokeColor,
       strokeWidth: getSolidStrokeWidth(
         strokeWidth,
       ),
-      background: Color(0xff000000) // TODO
+      background: Color(0xff000000), // TODO
     );
   }
 
@@ -320,12 +328,16 @@ class TriangleSymbolRenderer extends SymbolRenderer {
   });
 
   @override
-  void paint(Canvas canvas, Rect bounds,
-      {List<int>? dashPattern,
-      Color? fillColor,
-      FillPatternType? fillPattern,
-      Color? strokeColor,
-      double? strokeWidth}) {
+  void draw(
+    Canvas canvas,
+    Offset offset,
+    Rect bounds, {
+    List<int>? dashPattern,
+    Color? fillColor,
+    FillPatternType? fillPattern,
+    Color? strokeColor,
+    double? strokeWidth,
+  }) {
     // To maximize the size of the triangle in the available space, we can use
     // the width as the length of each size. Set the bottom edge to be the full
     // width, and then calculate the height based on the 30/60/90 degree right
@@ -333,14 +345,16 @@ class TriangleSymbolRenderer extends SymbolRenderer {
     final dy = sqrt(3) / 2 * bounds.width;
     final centerX = (bounds.left + bounds.right) / 2;
     canvas.drawChartPolygon(
-        points: [
-          Offset(bounds.left, bounds.top + dy),
-          Offset(bounds.right, bounds.top + dy),
-          Offset(centerX, bounds.top),
-        ],
-        fill: getSolidFillColor(fillColor),
-        stroke: strokeColor,
-        strokeWidth: getSolidStrokeWidth(strokeWidth));
+      offset,
+      points: [
+        Offset(bounds.left, bounds.top + dy),
+        Offset(bounds.right, bounds.top + dy),
+        Offset(centerX, bounds.top),
+      ],
+      fill: getSolidFillColor(fillColor),
+      stroke: strokeColor,
+      strokeWidth: getSolidStrokeWidth(strokeWidth),
+    );
   }
 
   @override
@@ -362,8 +376,9 @@ class CylinderSymbolRenderer extends PointSymbolRenderer {
   const CylinderSymbolRenderer();
 
   @override
-  void paint(
+  void draw(
     Canvas canvas,
+    Offset offset,
     Offset p1,
     double radius, {
     required Offset p2,
@@ -372,6 +387,7 @@ class CylinderSymbolRenderer extends PointSymbolRenderer {
     double? strokeWidth,
   }) {
     canvas.drawChartLine(
+      offset,
       points: [p1, p2],
       stroke: strokeColor!,
       roundEndCaps: true,
@@ -397,8 +413,9 @@ class RectangleRangeSymbolRenderer extends PointSymbolRenderer {
   const RectangleRangeSymbolRenderer();
 
   @override
-  void paint(
+  void draw(
     Canvas canvas,
+    Offset offset,
     Offset p1,
     double radius, {
     required Offset p2,
@@ -407,6 +424,7 @@ class RectangleRangeSymbolRenderer extends PointSymbolRenderer {
     double? strokeWidth,
   }) {
     canvas.drawChartLine(
+      offset,
       points: [p1, p2],
       stroke: strokeColor!,
       roundEndCaps: false,
@@ -426,34 +444,26 @@ class RectangleRangeSymbolRenderer extends PointSymbolRenderer {
   int get hashCode => Object.hash(super.hashCode, runtimeType.hashCode);
 }
 
-// Copyright 2018 the Charts project authors. Please see the AUTHORS file
-// for details.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 /// Flutter widget responsible for painting a common SymbolRenderer from the
 /// chart.
 ///
 /// If you want to customize the symbol, then use [CustomSymbolRenderer].
 class SymbolRendererCanvas implements SymbolRendererBuilder {
-  const SymbolRendererCanvas(this.commonSymbolRenderer, this.dashPattern);
+  const SymbolRendererCanvas({
+    required this.symbolRenderer,
+    this.dashPattern,
+  });
 
-  final SymbolRenderer commonSymbolRenderer;
+  final SymbolRenderer symbolRenderer;
   final List<int>? dashPattern;
 
   @override
-  Widget build(BuildContext context,
-      {Color? color, required Size size, bool enabled = true}) {
+  Widget build(
+    BuildContext context, {
+    Color? color,
+    required Size size,
+    bool enabled = true,
+  }) {
     if (color != null && !enabled) {
       color = color.withOpacity(0.26);
     }
@@ -463,7 +473,7 @@ class SymbolRendererCanvas implements SymbolRendererBuilder {
       child: CustomPaint(
         painter: _SymbolCustomPaint(
           context,
-          commonSymbolRenderer,
+          symbolRenderer,
           color,
           dashPattern,
         ),
@@ -484,21 +494,24 @@ abstract class CustomSymbolRenderer extends SymbolRenderer
   /// Must override this method to build the custom Widget with the given color
   /// as
   @override
-  Widget build(BuildContext context,
-      {Color? color, required Size size, bool enabled = true});
+  Widget build(
+    BuildContext context, {
+    Color? color,
+    required Size size,
+    bool enabled = true,
+  });
 
   @override
-  void paint(
+  void draw(
     Canvas canvas,
+    Offset offset,
     Rect bounds, {
     List<int>? dashPattern,
     Color? fillColor,
     FillPatternType? fillPattern,
     Color? strokeColor,
     double? strokeWidth,
-  }) {
-    // Intentionally ignored (never called).
-  }
+  }) {}
 
   @override
   bool shouldRepaint(SymbolRenderer oldRenderer) {
@@ -532,8 +545,9 @@ class _SymbolCustomPaint extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final bounds = Rect.fromLTWH(0, 0, size.width, size.height);
     final commonColor = color;
-    symbolRenderer.paint(
+    symbolRenderer.draw(
       canvas,
+      Offset.zero,
       bounds,
       fillColor: commonColor,
       strokeColor: commonColor,

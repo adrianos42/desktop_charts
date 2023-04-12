@@ -75,6 +75,7 @@ class SimplePieChart extends StatelessWidget {
     return charts.PieChart(
       seriesList,
       animate: animate,
+      defaultInteractions: true,
     );
   }
 

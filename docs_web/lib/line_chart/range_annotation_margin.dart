@@ -81,6 +81,8 @@ class LineRangeAnnotationMarginChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return charts.LineChart(seriesList,
         animate: animate,
 
@@ -101,7 +103,7 @@ class LineRangeAnnotationMarginChart extends StatelessWidget {
               startLabel: 'D1 Start',
               endLabel: 'D1 End',
               labelAnchor: charts.AnnotationLabelAnchor.end,
-              color: charts.DesktopPalette.gray.lighter,
+              color: colorScheme.background[8],
               // Override the default vertical direction for domain labels.
               labelDirection: charts.AnnotationLabelDirection.horizontal,
             ),
@@ -112,7 +114,7 @@ class LineRangeAnnotationMarginChart extends StatelessWidget {
               startLabel: 'M1 Start',
               endLabel: 'M1 End',
               labelAnchor: charts.AnnotationLabelAnchor.end,
-              color: charts.DesktopPalette.gray.lighter.lighter,
+              color: colorScheme.background[12],
             ),
             charts.RangeAnnotationSegment(
               35,
@@ -121,7 +123,7 @@ class LineRangeAnnotationMarginChart extends StatelessWidget {
               startLabel: 'M2 Start',
               endLabel: 'M2 End',
               labelAnchor: charts.AnnotationLabelAnchor.start,
-              color: charts.DesktopPalette.gray.lighter.lighter.lighter,
+              color: colorScheme.background[16],
             ),
           ], defaultLabelPosition: charts.AnnotationLabelPosition.margin),
         ]);

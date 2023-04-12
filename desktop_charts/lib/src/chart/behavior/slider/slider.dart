@@ -15,10 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
-import '../../../gesture_listener.dart' show GestureListener;
 import '../../../symbol_renderer.dart' show RectSymbolRenderer, SymbolRenderer;
 import '../../../theme.dart';
 import '../../base_chart.dart'
@@ -26,8 +25,6 @@ import '../../base_chart.dart'
 import '../../cartesian/cartesian_chart.dart'
     show CartesianChartState, CartesianChart;
 import '../../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
-import '../../layout/layout_view.dart'
-    show LayoutPosition, LayoutViewPaintOrder, LayoutViewPositionOrder;
 import '../../processed_series.dart' show MutableSeries;
 import '../chart_behavior.dart' show ChartBehavior;
 import '../selection/selection_trigger.dart' show SelectionTrigger;
@@ -77,7 +74,6 @@ class Slider<D> extends ChartBehavior<D> {
     String? roleId,
     this.snapToDatum = false,
     SliderStyle? style,
-    this.layoutPaintOrder = LayoutViewPaintOrder.slider,
   })  : _handleRenderer = handleRenderer ?? const RectSymbolRenderer(),
         _roleId = roleId ?? '',
         _style = style ?? SliderStyle(),
@@ -88,30 +84,30 @@ class Slider<D> extends ChartBehavior<D> {
 
     // Setup the appropriate gesture listening.
     switch (eventTrigger) {
-      case SelectionTrigger.tapAndDrag:
-        _gestureListener = GestureListener(
-            onTapTest: _onTapTest,
-            onTap: _onSelect,
-            onDragStart: _onSelect,
-            onDragUpdate: _onSelect,
-            onDragEnd: _onDragEnd);
-        break;
-      case SelectionTrigger.pressHold:
-        _gestureListener = GestureListener(
-            onTapTest: _onTapTest,
-            onLongPress: _onSelect,
-            onDragStart: _onSelect,
-            onDragUpdate: _onSelect,
-            onDragEnd: _onDragEnd);
-        break;
-      case SelectionTrigger.longPressHold:
-        _gestureListener = GestureListener(
-            onTapTest: _onTapTest,
-            onLongPress: _onLongPressSelect,
-            onDragStart: _onSelect,
-            onDragUpdate: _onSelect,
-            onDragEnd: _onDragEnd);
-        break;
+      // case SelectionTrigger.tapAndDrag:
+      //   _gestureListener = GestureListener(
+      //       onTapTest: _onTapTest,
+      //       onTap: _onSelect,
+      //       onDragStart: _onSelect,
+      //       onDragUpdate: _onSelect,
+      //       onDragEnd: _onDragEnd);
+      //   break;
+      // case SelectionTrigger.pressHold:
+      //   _gestureListener = GestureListener(
+      //       onTapTest: _onTapTest,
+      //       onLongPress: _onSelect,
+      //       onDragStart: _onSelect,
+      //       onDragUpdate: _onSelect,
+      //       onDragEnd: _onDragEnd);
+      //   break;
+      // case SelectionTrigger.longPressHold:
+      //   _gestureListener = GestureListener(
+      //       onTapTest: _onTapTest,
+      //       onLongPress: _onLongPressSelect,
+      //       onDragStart: _onSelect,
+      //       onDragUpdate: _onSelect,
+      //       onDragEnd: _onDragEnd);
+      //   break;
       default:
         throw ArgumentError('Slider does not support the event trigger '
             '"$eventTrigger"');
@@ -130,17 +126,9 @@ class Slider<D> extends ChartBehavior<D> {
 
   late _SliderLayoutView<D> _view;
 
-  late GestureListener _gestureListener;
-
   late LifecycleListener<D> _lifecycleListener;
 
   late SliderEventListener<D> _sliderEventListener;
-
-  /// The order to paint slider on the canvas.
-  ///
-  /// The smaller number is drawn first.  This value should be relative to
-  /// LayoutPaintViewOrder.slider (e.g. LayoutViewPaintOrder.slider + 1).
-  int layoutPaintOrder;
 
   /// Type of input event for the slider.
   ///
@@ -165,7 +153,7 @@ class Slider<D> extends ChartBehavior<D> {
   /// Color and size styles for the slider.
   final SliderStyle _style;
 
-  CartesianChartState<D, CartesianChart<D>>? _chart;
+  late CartesianChartState<D, CartesianChart<D>> _chartState;
 
   /// Rendering data for the slider line and handle.
   _AnimatedSlider<D>? _sliderHandle;
@@ -222,13 +210,13 @@ class Slider<D> extends ChartBehavior<D> {
     if (positionChanged) {
       _dragStateToFireOnPostRender = SliderListenerDragState.drag;
 
-      _chart!.redraw(skipAnimation: true, skipLayout: true);
+      _chartState.redraw(skipAnimation: true, skipLayout: true);
     }
 
     return true;
   }
 
-  bool _onDragEnd(Offset chartPoint, double __, double ___) {
+  bool _onDragEnd(Offset globalPosition, double __, double ___) {
     // If the selection is delayed (waiting for long press), then quit early.
     if (_delaySelect) {
       return false;
@@ -239,7 +227,8 @@ class Slider<D> extends ChartBehavior<D> {
     // If snapToDatum is enabled, use the x position of the nearest datum
     // instead of the mouse point.
     if (snapToDatum) {
-      final details = _chart!.getNearestDatumDetailPerSeries(chartPoint, true);
+      final details =
+          _chartState.getNearestDatumDetailPerSeries(globalPosition, true);
       if (details.isNotEmpty && details[0].chartPosition!.dx != null) {
         // Only trigger an animating draw cycle if we need to move the slider.
         if (_domainValue != details[0].domain) {
@@ -249,19 +238,19 @@ class Slider<D> extends ChartBehavior<D> {
           // over.
           _dragStateToFireOnPostRender = SliderListenerDragState.end;
 
-          _chart!.redraw(skipAnimation: false, skipLayout: true);
+          _chartState.redraw(skipAnimation: false, skipLayout: true);
         }
       }
     } else {
       // Move the slider line along the domain axis, without adjusting the
       // measure position.
-      _moveSliderToPoint(chartPoint);
+      _moveSliderToPoint(globalPosition);
 
       // Always fire the end event to notify listeners that the gesture is
       // over.
       _dragStateToFireOnPostRender = SliderListenerDragState.end;
 
-      _chart!.redraw(skipAnimation: true, skipLayout: true);
+      _chartState.redraw(skipAnimation: true, skipLayout: true);
     }
 
     return false;
@@ -282,7 +271,7 @@ class Slider<D> extends ChartBehavior<D> {
     // If not set in the constructor, initial position for the handle is the
     // center of the draw area.
     if (_domainValue == null) {
-      final newDomainValue = _chart!.domainAxis!
+      final newDomainValue = _chartState.domainAxis!
           .getDomain(_view.drawBounds.left + _view.drawBounds.width / 2);
       _domainValue = (newDomainValue is double)
           ? (newDomainValue.round().toDouble() as D)
@@ -364,82 +353,81 @@ class Slider<D> extends ChartBehavior<D> {
   bool _moveSliderToPoint(Offset point) {
     bool positionChanged = false;
 
-    if (_chart != null) {
-      final viewBounds = null;
+    final viewBounds = null;
 
-      // Clamp the position to the edge of the viewport.
-      final positionX = point.dx.clamp(viewBounds.left, viewBounds.right);
+    // Clamp the position to the edge of the viewport.
+    final positionX = point.dx.clamp(viewBounds.left, viewBounds.right);
 
-      final previousYPosition = _handleBounds == null
-          ? 0.0
-          : _handleBounds!.top +
-              _style.handleSize.height / 2 -
-              _style.handleOffset.dy;
+    final previousYPosition = _handleBounds == null
+        ? 0.0
+        : _handleBounds!.top +
+            _style.handleSize.height / 2 -
+            _style.handleOffset.dy;
 
-      double positionY = point.dy;
-      if (point.dy == 0.0) {
-        if (_handleBounds == null) {
-          positionY = viewBounds.bottom.toDouble();
-        } else {
-          positionY = previousYPosition;
-        }
-      }
-
-      // Clamp the position to the edge of the viewport.
-      positionY = positionY.clamp(viewBounds.top, viewBounds.bottom).toDouble();
-
-      final positionXChanged = _previousDomainCenterPoint != null &&
-          positionX != _previousDomainCenterPoint!.dx;
-
-      final positionYChanged =
-          _style.handlePosition == SliderHandlePosition.manual &&
-              _handleBounds != null &&
-              positionY != previousYPosition;
-
-      positionChanged = positionXChanged || positionYChanged;
-
-      // Reset the domain value if the position was outside of the chart.
-      _domainValue = _chart!.domainAxis!.getDomain(positionX.toDouble());
-
-      if (_domainCenterPoint != null) {
-        _domainCenterPoint = Offset(
-          positionX.roundToDouble(),
-          _domainCenterPoint!.dy,
-        );
+    double positionY = point.dy;
+    if (point.dy == 0.0) {
+      if (_handleBounds == null) {
+        positionY = viewBounds.bottom.toDouble();
       } else {
-        _domainCenterPoint = Offset(positionX.roundToDouble(),
-            (viewBounds.top + viewBounds.height / 2.0).roundToDouble());
+        positionY = previousYPosition;
       }
-
-      double handleReferenceY;
-      switch (_style.handlePosition) {
-        case SliderHandlePosition.middle:
-          handleReferenceY = _domainCenterPoint!.dy;
-          break;
-        case SliderHandlePosition.top:
-          handleReferenceY = viewBounds.top;
-          break;
-        case SliderHandlePosition.manual:
-          handleReferenceY = positionY;
-          break;
-        default:
-          throw ArgumentError('Slider does not support the handle position '
-              '"${_style.handlePosition}"');
-      }
-
-      // Move the slider handle along the domain axis.
-      _handleBounds = Rect.fromLTWH(
-          (_domainCenterPoint!.dx -
-                  _style.handleSize.width / 2.0 +
-                  _style.handleOffset.dx)
-              .roundToDouble(),
-          (handleReferenceY -
-                  _style.handleSize.height / 2.0 +
-                  _style.handleOffset.dy)
-              .roundToDouble(),
-          _style.handleSize.width,
-          _style.handleSize.height);
     }
+
+    // Clamp the position to the edge of the viewport.
+    positionY = positionY.clamp(viewBounds.top, viewBounds.bottom).toDouble();
+
+    final positionXChanged = _previousDomainCenterPoint != null &&
+        positionX != _previousDomainCenterPoint!.dx;
+
+    final positionYChanged =
+        _style.handlePosition == SliderHandlePosition.manual &&
+            _handleBounds != null &&
+            positionY != previousYPosition;
+
+    positionChanged = positionXChanged || positionYChanged;
+
+    // Reset the domain value if the position was outside of the chart.
+    _domainValue = _chartState.domainAxis!.getDomain(positionX.toDouble());
+
+    if (_domainCenterPoint != null) {
+      _domainCenterPoint = Offset(
+        positionX.roundToDouble(),
+        _domainCenterPoint!.dy,
+      );
+    } else {
+      _domainCenterPoint = Offset(positionX.roundToDouble(),
+          (viewBounds.top + viewBounds.height / 2.0).roundToDouble());
+    }
+
+    double handleReferenceY;
+    switch (_style.handlePosition) {
+      case SliderHandlePosition.middle:
+        handleReferenceY = _domainCenterPoint!.dy;
+        break;
+      case SliderHandlePosition.top:
+        handleReferenceY = viewBounds.top;
+        break;
+      case SliderHandlePosition.manual:
+        handleReferenceY = positionY;
+        break;
+      default:
+        throw ArgumentError('Slider does not support the handle position '
+            '"${_style.handlePosition}"');
+    }
+
+    // Move the slider handle along the domain axis.
+    _handleBounds = Rect.fromLTWH(
+      (_domainCenterPoint!.dx -
+              _style.handleSize.width / 2.0 +
+              _style.handleOffset.dx)
+          .roundToDouble(),
+      (handleReferenceY -
+              _style.handleSize.height / 2.0 +
+              _style.handleOffset.dy)
+          .roundToDouble(),
+      _style.handleSize.width,
+      _style.handleSize.height,
+    );
 
     return positionChanged;
   }
@@ -461,9 +449,10 @@ class Slider<D> extends ChartBehavior<D> {
   /// Returns whether or not the position actually changed. This will generally
   /// be false if the mouse was dragged outside of the domain axis viewport.
   bool _moveSliderToDomain(D? domain, {double? measure}) {
-    final x = _chart!.domainAxis!.getLocation(domain)!;
-    final y =
-        measure != null ? _chart!.getMeasureAxis().getLocation(measure)! : 0.0;
+    final x = _chartState.domainAxis!.getLocation(domain)!;
+    final y = measure != null
+        ? _chartState.getMeasureAxis().getLocation(measure)!
+        : 0.0;
 
     return _moveSliderToPoint(Offset(x, y));
   }
@@ -497,7 +486,7 @@ class Slider<D> extends ChartBehavior<D> {
   }) {
     // Nothing to do if we are unattached to a chart or asked to move to the
     // current location.
-    if (_chart == null || domain == _domainValue) {
+    if (domain == _domainValue) {
       return;
     }
 
@@ -506,39 +495,32 @@ class Slider<D> extends ChartBehavior<D> {
     if (positionChanged) {
       _dragStateToFireOnPostRender = SliderListenerDragState.end;
 
-      _chart!.redraw(skipAnimation: skipAnimation, skipLayout: true);
+      _chartState.redraw(skipAnimation: skipAnimation, skipLayout: true);
     }
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    if (chart is! CartesianChartState<D, CartesianChart<D>>) {
+  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
+    if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
       throw ArgumentError('Slider can only be attached to a cartesian chart.');
     }
 
-    // TODO _chart = chart;
-
-    // Only vertical rendering is supported by this behavior.
-    // TODO assert(chart.vertical);
-
-    _view = _SliderLayoutView<D>(
-        layoutPaintOrder: layoutPaintOrder, handleRenderer: _handleRenderer);
-
-    // TODO chart.addView(_view);
-    chart.addGestureListener(_gestureListener);
-    chart.addLifecycleListener(_lifecycleListener);
+    // _chartState = chart;
+    // _chartState.addLifecycleListener(_lifecycleListener);
   }
 
   @override
-  void removeFrom<S extends BaseChart<D>>(BaseChartState<D, S> chart) {
-    // TODO chart.removeView(_view);
-    chart.removeGestureListener(_gestureListener);
-    chart.removeLifecycleListener(_lifecycleListener);
-    _chart = null;
+  void dispose() {
+    _chartState.removeLifecycleListener(_lifecycleListener);
   }
 
   @override
   String get role => 'Slider-$eventTrigger-$_roleId';
+
+  @override
+  Widget buildBehavior(BuildContext context) {
+    return const SizedBox();
+  }
 }
 
 /// Style configuration for a [Slider] behavior.
@@ -613,11 +595,11 @@ class _SliderLayoutView<D> {
   _SliderLayoutView({
     required int layoutPaintOrder,
     required SymbolRenderer handleRenderer,
-  })  : 
-  //layoutConfig = LayoutViewConfig(
-  //          paintOrder: layoutPaintOrder,
-  //          position: LayoutPosition.drawArea,
-  //          positionOrder: LayoutViewPositionOrder.drawArea),
+  }) :
+        //layoutConfig = LayoutViewConfig(
+        //          paintOrder: layoutPaintOrder,
+        //          position: LayoutPosition.drawArea,
+        //          positionOrder: LayoutViewPositionOrder.drawArea),
         _handleRenderer = handleRenderer;
 
   late Rect _drawAreaBounds;
@@ -645,18 +627,27 @@ class _SliderLayoutView<D> {
   }
 
   @override
-  void paint(Canvas canvas, double animationPercent) {
+  void paint(Canvas canvas, Offset offset, double animationPercent) {
     final sliderElement = _sliderHandle!.getCurrentSlider(animationPercent);
 
-    canvas.drawChartLine(points: [
-      Offset(sliderElement.domainCenterPoint.dx, _drawAreaBounds.top),
-      Offset(sliderElement.domainCenterPoint.dx, _drawAreaBounds.bottom),
-    ], stroke: sliderElement.stroke, strokeWidth: sliderElement.strokeWidth);
+    canvas.drawChartLine(
+      offset,
+      points: [
+        Offset(sliderElement.domainCenterPoint.dx, _drawAreaBounds.top),
+        Offset(sliderElement.domainCenterPoint.dx, _drawAreaBounds.bottom),
+      ],
+      stroke: sliderElement.stroke,
+      strokeWidth: sliderElement.strokeWidth,
+    );
 
-    _handleRenderer.paint(canvas, sliderElement.buttonBounds,
-        fillColor: sliderElement.fill,
-        strokeColor: sliderElement.stroke,
-        strokeWidth: sliderElement.strokeWidth);
+    _handleRenderer.draw(
+      canvas,
+      offset,
+      sliderElement.buttonBounds,
+      fillColor: sliderElement.fill,
+      strokeColor: sliderElement.stroke,
+      strokeWidth: sliderElement.strokeWidth,
+    );
   }
 }
 

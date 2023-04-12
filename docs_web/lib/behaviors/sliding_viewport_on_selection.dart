@@ -97,7 +97,7 @@ class SlidingViewportOnSelection extends StatelessWidget {
         // A pan and zoom behavior helps demonstrate the sliding viewport
         // behavior by allowing the data visible in the viewport to be adjusted
         // dynamically.
-        // TODO charts.PanAndZoomBehavior(),
+        charts.PanAndZoomBehavior(),
       ],
       // Set an initial viewport to demonstrate the sliding viewport behavior on
       // initial chart load.

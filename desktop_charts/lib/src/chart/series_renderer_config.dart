@@ -78,8 +78,6 @@ abstract class BaseSeriesRenderObjectWidget<
 
   @override
   void updateRenderObject(BuildContext context, R renderObject) {
-    renderObject
-      ..chartState = chartState
-      ..seriesList = seriesList;
+    renderObject.seriesList = seriesList;
   }
 }
