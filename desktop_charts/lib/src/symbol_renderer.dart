@@ -77,8 +77,8 @@ abstract class SymbolRenderer extends BaseSymbolRenderer {
   }
 
   @override
-  bool operator ==(Object other) {
-    return other is SymbolRenderer && other.isSolid == isSolid;
+  bool operator ==(covariant SymbolRenderer other) {
+    return other.isSolid == isSolid;
   }
 
   @override

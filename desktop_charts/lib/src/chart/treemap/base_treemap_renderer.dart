@@ -44,7 +44,6 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
     extends BaseSeriesRenderer<D, S> {
   BaseTreeMapRenderer({
     required this.config,
-    required super.seriesList,
     required super.chartState,
     String? rendererId,
   })  : labelDecorator = config.labelDecorator,
@@ -77,7 +76,7 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   bool get isRtl => _chart?.isRTL ?? false;
 
   @override
-  void configureSeries() {
+  void configureSeries(List<MutableSeries<D>> seriesList) {
     assignMissingColors(
       seriesList,
       emptyCategoryUsesSinglePalette: true,
@@ -86,7 +85,7 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  void preprocessSeries() {
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {
     _ensureSingleTree(seriesList);
 
     // Clears [_treeNodeToRendererElement] map when a seriesList is passed
@@ -111,8 +110,8 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   void tile(TreeNode<Object> node);
 
   @override
-  void update() {
-    super.update();
+  void update(List<MutableSeries<D>> seriesList) {
+    super.update(seriesList);
     // _visibleTreeMapRectKeys is used to remove any [_AnimatedTreeMapRect]s
     // that were rendered in the previous draw cycles, but no longer have a
     // corresponding datum in the series data.
@@ -143,10 +142,10 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  void paint(PaintingContext context, Offset offset) {
-    super.paint(context, offset);
-
-    final bounds = Offset.zero & size;
+  void draw(PaintingContext context, Offset offset) {
+    //super.draw(context, offset);
+//
+    final bounds = Offset.zero & Size.zero; // TODO size
 
     if (chartState.animationPosition.value == 1.0) {
       _animatedTreeMapRects.removeWhere((_, rect) => rect.animatingOut);
@@ -196,11 +195,12 @@ abstract class BaseTreeMapRenderer<D, S extends BaseChart<D>>
   }) {
     final nearest = <DatumDetails<D>>[];
 
-    final chartPoint = globalToLocal(globalPosition);
+    final chartPoint = Offset.zero;
+    // final chartPoint = globalToLocal(globalPosition);// TODO
 
-    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
-      return nearest;
-    }
+    // if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
+    //   return nearest;
+    // }
 
     final root = _treeNodeToRendererElement.entries.first.key;
     final queue = Queue<TreeNode<Object>>()..add(root);

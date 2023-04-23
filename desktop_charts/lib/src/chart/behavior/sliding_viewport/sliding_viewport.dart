@@ -22,7 +22,7 @@ import '../../base_chart.dart' show BaseChart;
 import '../../cartesian/cartesian_chart.dart'
     show CartesianChartState, CartesianChart;
 import '../../selection_model.dart' show SelectionModel, SelectionModelType;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 
 /// Chart behavior that centers the viewport on the selected domain.
 ///
@@ -30,12 +30,39 @@ import '../chart_behavior.dart' show ChartBehavior;
 /// and notify this behavior to update the viewport on selection change.
 ///
 /// This behavior can only be used on [CartesianChart].
+@immutable
 class SlidingViewport<D> extends ChartBehavior<D> {
-  SlidingViewport([this.selectionModelType = SelectionModelType.info]);
+  const SlidingViewport({this.selectionModelType = SelectionModelType.info});
 
   final SelectionModelType selectionModelType;
 
-  late CartesianChartState<D, CartesianChart<D>> _chartState;
+  @override
+  String get role => 'slidingViewport-$selectionModelType';
+
+  @override
+  ChartBehaviorState<D, S, SlidingViewport<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _SlidingViewportState<D, S>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class _SlidingViewportState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, SlidingViewport<D>> {
+  _SlidingViewportState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    chartState
+        .getSelectionModel(behavior.selectionModelType)
+        .addSelectionChangedListener(_selectionChanged);
+  }
+
+  CartesianChartState<D, CartesianChart<D>> get _chartState =>
+      chartState as CartesianChartState<D, CartesianChart<D>>;
 
   void _selectionChanged(SelectionModel<D> selectionModel) {
     if (selectionModel.hasAnySelection == false) {
@@ -59,26 +86,11 @@ class SlidingViewport<D> extends ChartBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState as CartesianChartState<D, CartesianChart<D>>;
-
-    _chartState
-        .getSelectionModel(selectionModelType)
-        .addSelectionChangedListener(_selectionChanged);
-  }
-
-  @override
   void dispose() {
     _chartState
-        .getSelectionModel(selectionModelType)
+        .getSelectionModel(behavior.selectionModelType)
         .removeSelectionChangedListener(_selectionChanged);
-  }
 
-  @override
-  Widget buildBehavior(BuildContext context) {
-    return const SizedBox();
+    super.dispose();
   }
-
-  @override
-  String get role => 'slidingViewport-$selectionModelType';
 }

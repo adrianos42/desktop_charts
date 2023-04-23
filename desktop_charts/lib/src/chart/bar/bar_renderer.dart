@@ -27,13 +27,16 @@ import '../cartesian/axis/axis.dart' show ImmutableAxis, measureAxisIdKey;
 import '../cartesian/cartesian_chart.dart';
 import '../chart_canvas.dart' show ChartCanvas, FillPatternType;
 import '../datum_details.dart' show DatumDetails;
-import '../processed_series.dart' show ImmutableSeries;
+import '../processed_series.dart' show ImmutableSeries, MutableSeries;
+import '../series_renderer.dart' show BaseSeriesRenderObjectWidget;
 import '../series_datum.dart' show SeriesDatum;
+import '../series_renderer.dart';
 import 'bar_renderer_config.dart' show BarRendererConfig;
 import 'bar_renderer_decorator.dart' show BarRendererDecorator;
 import 'base_bar_renderer.dart'
     show
         BaseBarRenderer,
+        BaseBarRendererRender,
         allBarGroupWeightsKey,
         barGroupCountKey,
         barGroupIndexKey,
@@ -49,7 +52,6 @@ class BarRenderer<D, S extends BaseChart<D>>
     BarRendererConfig config = const BarRendererConfig(),
     String? rendererId,
     required super.chartState,
-    required super.seriesList,
   }) : super(
           config: config,
           rendererId: rendererId ?? 'bar',
@@ -58,16 +60,11 @@ class BarRenderer<D, S extends BaseChart<D>>
   /// If we are grouped, use this spacing between the bars in a group.
   double get _barGroupInnerPadding => config.barGroupInnerPadding;
 
-  /// The padding between bar stacks.
-  ///
-  /// The padding comes out of the bottom of the bar.
-  double get _stackedBarPadding => config.stackedBarPadding;
-
   BarRendererDecorator<Object?>? get barRendererDecorator =>
       (config as BarRendererConfig).barRendererDecorator;
 
   @override
-  void configureSeries() {
+  void configureSeries(List<MutableSeries<D>> seriesList) {
     assignMissingColors(
       getOrderedSeriesList(seriesList),
       emptyCategoryUsesSinglePalette: true,
@@ -244,163 +241,6 @@ class BarRenderer<D, S extends BaseChart<D>>
       );
   }
 
-  @override
-  void paintBar(
-    Canvas canvas,
-    Offset offset,
-    Iterable<BarRendererElement<D>> barElements,
-  ) {
-    final bars = <CanvasRect>[];
-
-    final bounds = Offset.zero & size;
-    final animationPercent = chartState.animationPosition.value;
-
-    // When adjusting bars for stacked bar padding, do not modify the first bar
-    // if rendering vertically and do not modify the last bar if rendering
-    // horizontally.
-    final unmodifiedBar =
-        renderingVertically ? barElements.first : barElements.last;
-
-    // Find the max bar width from each segment to calculate corner radius.
-    double maxBarWidth = 0.0;
-
-    bool measureIsNegative = false;
-
-    for (final bar in barElements) {
-      Rect? barBounds = bar.bounds;
-
-      measureIsNegative = measureIsNegative || bar.measureIsNegative!;
-
-      if (bar != unmodifiedBar) {
-        barBounds = renderingVertically
-            ? Rect.fromLTWH(
-                bar.bounds!.left,
-                max(
-                    0,
-                    bar.bounds!.top +
-                        (measureIsNegative ? _stackedBarPadding : 0)),
-                bar.bounds!.width,
-                max(0, bar.bounds!.height - _stackedBarPadding),
-              )
-            : Rect.fromLTWH(
-                max(
-                    0,
-                    bar.bounds!.left +
-                        (measureIsNegative ? _stackedBarPadding : 0)),
-                bar.bounds!.top,
-                max(0, bar.bounds!.width - _stackedBarPadding),
-                bar.bounds!.height,
-              );
-      }
-
-      bars.add(
-        CanvasRect(
-          barBounds!,
-          dashPattern: bar.dashPattern,
-          fill: bar.fillColor,
-          pattern: bar.fillPattern,
-          stroke: bar.color,
-          strokeWidth: bar.strokeWidth,
-        ),
-      );
-
-      maxBarWidth = max(
-        maxBarWidth,
-        renderingVertically ? barBounds.width : barBounds.height,
-      );
-    }
-
-    final barStack = CanvasBarStack(
-      bars,
-      stackedBarPadding: _stackedBarPadding,
-    );
-
-    // If bar stack's range width is:
-    // * Within the component bounds, then draw the bar stack.
-    // * Partially out of component bounds, then clip the stack where it is out
-    // of bounds.
-    // * Fully out of component bounds, do not draw.
-
-    final componentBounds = bounds;
-
-    final barOutsideBounds = renderingVertically
-        ? barStack.fullStackRect.left < componentBounds.left ||
-            barStack.fullStackRect.right > componentBounds.right
-        : barStack.fullStackRect.top < componentBounds.top ||
-            barStack.fullStackRect.bottom > componentBounds.bottom;
-
-    // TODO: When we have initial viewport, add image test for
-    // clipping.
-    if (barOutsideBounds) {
-      final clipBounds = _getBarStackBounds(barStack.fullStackRect);
-
-      // Do not draw the bar stack if it is completely outside of the component
-      // bounds.
-      if (clipBounds.width <= 0 || clipBounds.height <= 0) {
-        return;
-      }
-
-      canvas.setChartClipBounds(offset, clipBounds);
-    }
-
-    canvas.drawChartBarStack(
-      offset,
-      barStack,
-      drawAreaBounds: componentBounds,
-      background: chartState.themeData.foreground, // TODO
-    );
-
-    if (barOutsideBounds) {
-      canvas.resetChartClipBounds();
-    }
-
-    // Decorate the bar segments if there is a decorator.
-    barRendererDecorator?.decorate(
-      barElements,
-      canvas,
-      offset,
-      drawBounds: bounds,
-      animationPercent: animationPercent,
-      renderingVertically: renderingVertically,
-      rtl: isRtl,
-    );
-  }
-
-  /// Calculate the clipping region for a rectangle that represents the full bar
-  /// stack.
-  Rect _getBarStackBounds(
-    Rect barStackRect,
-  ) {
-    double left;
-    double right;
-    double top;
-    double bottom;
-
-    final componentBounds = Offset.zero & size;
-
-    if (renderingVertically) {
-      // Only clip at the start and end so that the bar's width stays within
-      // the viewport, but any bar decorations above the bar can still show.
-      left = max(componentBounds.left, barStackRect.left);
-      right = min(componentBounds.right, barStackRect.right);
-      top = barStackRect.top;
-      bottom = barStackRect.bottom;
-    } else {
-      // Only clip at the top and bottom so that the bar's height stays within
-      // the viewport, but any bar decorations to the right of the bar can still
-      // show.
-      left = barStackRect.left;
-      right = barStackRect.right;
-      top = max(componentBounds.top, barStackRect.top);
-      bottom = min(componentBounds.bottom, barStackRect.bottom);
-    }
-
-    final double width = right - left;
-    final double height = bottom - top;
-
-    return Rect.fromLTWH(left, top, width, height);
-  }
-
   /// Generates a set of bounds that describe a bar.
   Rect _getBarBounds(
     D? domainValue,
@@ -520,6 +360,213 @@ class BarRenderer<D, S extends BaseChart<D>>
 
   @override
   Rect? getBoundsForBar(BarRendererElement<D> bar) => bar.bounds;
+
+  @override
+  Widget build(
+    BuildContext context, {
+    required List<ImmutableSeries<D>> seriesList,
+    required Key key,
+  }) {
+    return _BarRender<D, S>(
+      key: key,
+      seriesList: seriesList,
+      renderer: this,
+    );
+  }
+}
+
+class _BarRender<D, S extends BaseChart<D>>
+    extends BaseSeriesRenderObjectWidget<D, S,
+        BarRendererRender<D, S, BarRenderer<D, S>>> {
+  const _BarRender({
+    required this.renderer,
+    required super.seriesList,
+    required super.key,
+  });
+
+  final BarRenderer<D, S> renderer;
+
+  @override
+  BarRendererRender<D, S, BarRenderer<D, S>> createRenderObject(
+      BuildContext context) {
+    return BarRendererRender<D, S, BarRenderer<D, S>>(
+      chartState: renderer.chartState,
+      renderer: renderer,
+      seriesList: seriesList,
+    );
+  }
+}
+
+class BarRendererRender<D, S extends BaseChart<D>, R extends BarRenderer<D, S>>
+    extends BaseBarRendererRender<D, BarRendererElement<D>, AnimatedBar<D>, S,
+        R> {
+  BarRendererRender({
+    required super.chartState,
+    required super.renderer,
+    required super.seriesList,
+  });
+
+  /// The padding between bar stacks.
+  ///
+  /// The padding comes out of the bottom of the bar.
+  double get _stackedBarPadding => renderer.config.stackedBarPadding;
+
+  /// Calculate the clipping region for a rectangle that represents the full bar
+  /// stack.
+  Rect _getBarStackBounds(
+    Rect barStackRect,
+  ) {
+    double left;
+    double right;
+    double top;
+    double bottom;
+
+    final componentBounds = Offset.zero & size;
+
+    if (renderer.renderingVertically) {
+      // Only clip at the start and end so that the bar's width stays within
+      // the viewport, but any bar decorations above the bar can still show.
+      left = max(componentBounds.left, barStackRect.left);
+      right = min(componentBounds.right, barStackRect.right);
+      top = barStackRect.top;
+      bottom = barStackRect.bottom;
+    } else {
+      // Only clip at the top and bottom so that the bar's height stays within
+      // the viewport, but any bar decorations to the right of the bar can still
+      // show.
+      left = barStackRect.left;
+      right = barStackRect.right;
+      top = max(componentBounds.top, barStackRect.top);
+      bottom = min(componentBounds.bottom, barStackRect.bottom);
+    }
+
+    final double width = right - left;
+    final double height = bottom - top;
+
+    return Rect.fromLTWH(left, top, width, height);
+  }
+
+  @override
+  void paintBar(
+    Canvas canvas,
+    Offset offset,
+    Iterable<BarRendererElement<D>> barElements,
+  ) {
+    final bars = <CanvasRect>[];
+
+    final bounds = Offset.zero & size;
+    final animationPercent = chartState.animationPosition.value;
+
+    // When adjusting bars for stacked bar padding, do not modify the first bar
+    // if rendering vertically and do not modify the last bar if rendering
+    // horizontally.
+    final unmodifiedBar =
+        renderer.renderingVertically ? barElements.first : barElements.last;
+
+    // Find the max bar width from each segment to calculate corner radius.
+    double maxBarWidth = 0.0;
+
+    bool measureIsNegative = false;
+
+    for (final bar in barElements) {
+      Rect? barBounds = bar.bounds;
+
+      measureIsNegative = measureIsNegative || bar.measureIsNegative!;
+
+      if (bar != unmodifiedBar) {
+        barBounds = renderer.renderingVertically
+            ? Rect.fromLTWH(
+                bar.bounds!.left,
+                max(
+                    0,
+                    bar.bounds!.top +
+                        (measureIsNegative ? _stackedBarPadding : 0)),
+                bar.bounds!.width,
+                max(0, bar.bounds!.height - _stackedBarPadding),
+              )
+            : Rect.fromLTWH(
+                max(
+                    0,
+                    bar.bounds!.left +
+                        (measureIsNegative ? _stackedBarPadding : 0)),
+                bar.bounds!.top,
+                max(0, bar.bounds!.width - _stackedBarPadding),
+                bar.bounds!.height,
+              );
+      }
+
+      bars.add(
+        CanvasRect(
+          barBounds!,
+          dashPattern: bar.dashPattern,
+          fill: bar.fillColor,
+          pattern: bar.fillPattern,
+          stroke: bar.color,
+          strokeWidth: bar.strokeWidth,
+        ),
+      );
+
+      maxBarWidth = max(
+        maxBarWidth,
+        renderer.renderingVertically ? barBounds.width : barBounds.height,
+      );
+    }
+
+    final barStack = CanvasBarStack(
+      bars,
+      stackedBarPadding: _stackedBarPadding,
+    );
+
+    // If bar stack's range width is:
+    // * Within the component bounds, then draw the bar stack.
+    // * Partially out of component bounds, then clip the stack where it is out
+    // of bounds.
+    // * Fully out of component bounds, do not draw.
+
+    final componentBounds = bounds;
+
+    final barOutsideBounds = renderer.renderingVertically
+        ? barStack.fullStackRect.left < componentBounds.left ||
+            barStack.fullStackRect.right > componentBounds.right
+        : barStack.fullStackRect.top < componentBounds.top ||
+            barStack.fullStackRect.bottom > componentBounds.bottom;
+
+    // TODO: When we have initial viewport, add image test for
+    // clipping.
+    if (barOutsideBounds) {
+      final clipBounds = _getBarStackBounds(barStack.fullStackRect);
+
+      // Do not draw the bar stack if it is completely outside of the component
+      // bounds.
+      if (clipBounds.width <= 0 || clipBounds.height <= 0) {
+        return;
+      }
+
+      canvas.setChartClipBounds(offset, clipBounds);
+    }
+
+    canvas.drawChartBarStack(
+      offset,
+      barStack,
+      drawAreaBounds: componentBounds,
+      background: chartState.themeData.foreground, // TODO
+    );
+
+    if (barOutsideBounds) {
+      canvas.resetChartClipBounds();
+    }
+
+    // Decorate the bar segments if there is a decorator.
+    renderer.barRendererDecorator?.decorate(
+      barElements,
+      canvas,
+      offset,
+      drawBounds: bounds,
+      animationPercent: animationPercent,
+      renderingVertically: renderer.renderingVertically,
+      rtl: renderer.isRtl,
+    );
+  }
 }
 
 abstract class ImmutableBarRendererElement<D> {

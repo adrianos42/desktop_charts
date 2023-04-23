@@ -26,7 +26,7 @@ import '../../cartesian/cartesian_chart.dart'
     show CartesianChartState, CartesianChart;
 import '../../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
 import '../../processed_series.dart' show MutableSeries;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 import '../selection/selection_trigger.dart' show SelectionTrigger;
 
 /// Chart behavior that adds a slider widget to a chart. When the slider is
@@ -210,7 +210,7 @@ class Slider<D> extends ChartBehavior<D> {
     if (positionChanged) {
       _dragStateToFireOnPostRender = SliderListenerDragState.drag;
 
-      _chartState.redraw(skipAnimation: true, skipLayout: true);
+      _chartState.redraw(skipAnimation: true);
     }
 
     return true;
@@ -238,7 +238,7 @@ class Slider<D> extends ChartBehavior<D> {
           // over.
           _dragStateToFireOnPostRender = SliderListenerDragState.end;
 
-          _chartState.redraw(skipAnimation: false, skipLayout: true);
+          _chartState.redraw(skipAnimation: false);
         }
       }
     } else {
@@ -250,7 +250,7 @@ class Slider<D> extends ChartBehavior<D> {
       // over.
       _dragStateToFireOnPostRender = SliderListenerDragState.end;
 
-      _chartState.redraw(skipAnimation: true, skipLayout: true);
+      _chartState.redraw(skipAnimation: true);
     }
 
     return false;
@@ -495,7 +495,7 @@ class Slider<D> extends ChartBehavior<D> {
     if (positionChanged) {
       _dragStateToFireOnPostRender = SliderListenerDragState.end;
 
-      _chartState.redraw(skipAnimation: skipAnimation, skipLayout: true);
+      _chartState.redraw(skipAnimation: skipAnimation);
     }
   }
 
@@ -518,8 +518,15 @@ class Slider<D> extends ChartBehavior<D> {
   String get role => 'Slider-$eventTrigger-$_roleId';
 
   @override
-  Widget buildBehavior(BuildContext context) {
+  Widget buildBehavior2(BuildContext context) {
     return const SizedBox();
+  }
+
+  @override
+  ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>(
+      {required BaseChartState<D, S> chartState}) {
+    // TODO: implement build
+    throw UnimplementedError();
   }
 }
 

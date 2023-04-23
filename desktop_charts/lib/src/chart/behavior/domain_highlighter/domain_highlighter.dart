@@ -22,7 +22,8 @@ import '../../base_chart.dart'
     show BaseChartState, LifecycleListener, BaseChart;
 import '../../processed_series.dart' show MutableSeries;
 import '../../selection_model.dart' show SelectionModel, SelectionModelType;
-import '../chart_behavior.dart' show ChartBehavior, BehaviorPosition;
+import '../chart_behavior.dart'
+    show ChartBehavior, BehaviorPosition, ChartBehaviorState;
 
 /// Chart behavior that monitors the specified [SelectionModel] and darkens the
 /// color for selected data.
@@ -31,27 +32,56 @@ import '../chart_behavior.dart' show ChartBehavior, BehaviorPosition;
 ///
 /// It is used in combination with SelectNearest to update the selection model
 /// and expand selection out to the domain value.
+@immutable
 class DomainHighlighter<D> extends ChartBehavior<D> {
-  DomainHighlighter([
+  const DomainHighlighter([
     this.selectionModelType = SelectionModelType.info,
-  ]) {
-    _lifecycleListener =
-        LifecycleListener<D>(onPostprocess: _updateColorFunctions);
-  }
+  ]);
 
   final SelectionModelType selectionModelType;
 
-  late BaseChartState<D, BaseChart<D>> _chartState;
+  @override
+  BehaviorPosition get position => BehaviorPosition.inside;
+
+  @override
+  String get role => 'domainHighlight-$selectionModelType';
+
+  @override
+  ChartBehaviorState<D, S, DomainHighlighter<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _DomainHighlighterState<D, S>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class _DomainHighlighterState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, DomainHighlighter<D>> {
+  _DomainHighlighterState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    chartState
+        .getSelectionModel(behavior.selectionModelType)
+        .addSelectionChangedListener(_selectionChanged);
+
+    _lifecycleListener =
+        LifecycleListener<D>(onPostprocess: _updateColorFunctions);
+
+    chartState.addLifecycleListener(_lifecycleListener);
+  }
 
   late LifecycleListener<D> _lifecycleListener;
 
   void _selectionChanged(SelectionModel<D> selectionModel) {
-    _chartState.redraw(skipLayout: true, skipAnimation: true);
+    chartState.redraw(skipAnimation: true);
   }
 
   void _updateColorFunctions(List<MutableSeries<D>> seriesList) {
     final SelectionModel<D> selectionModel =
-        _chartState.getSelectionModel(selectionModelType);
+        chartState.getSelectionModel(behavior.selectionModelType);
 
     for (final MutableSeries<D> series in seriesList) {
       final origColorFn = series.colorFn;
@@ -70,31 +100,12 @@ class DomainHighlighter<D> extends ChartBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState;
-
-    _chartState.addLifecycleListener(_lifecycleListener);
-    _chartState
-        .getSelectionModel(selectionModelType)
-        .addSelectionChangedListener(_selectionChanged);
-  }
-
-  @override
   void dispose() {
-    _chartState
-        .getSelectionModel(selectionModelType)
+    chartState
+        .getSelectionModel(behavior.selectionModelType)
         .removeSelectionChangedListener(_selectionChanged);
-    _chartState.removeLifecycleListener(_lifecycleListener);
-  }
+    chartState.removeLifecycleListener(_lifecycleListener);
 
-  @override
-  BehaviorPosition get position => BehaviorPosition.inside;
-
-  @override
-  String get role => 'domainHighlight-$selectionModelType';
-
-  @override
-  Widget buildBehavior(BuildContext context) {
-    return const SizedBox();
+    super.dispose();
   }
 }

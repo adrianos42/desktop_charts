@@ -19,8 +19,7 @@ import 'package:flutter/widgets.dart';
 
 import '../base_chart.dart' show BaseChart, BaseChartState;
 import '../layout/layout_view.dart' show LayoutViewPaintOrder;
-import '../processed_series.dart' show MutableSeries;
-import '../series_renderer_config.dart' show BaseSeriesRenderObjectWidget;
+import '../series_renderer.dart';
 import 'bar_label_decorator.dart' show BarLabelDecorator;
 import 'bar_lane_renderer.dart' show BarLaneRenderer;
 import 'bar_renderer_config.dart' show BarRendererConfig;
@@ -67,19 +66,14 @@ class BarLaneRendererConfig extends BarRendererConfig<String> {
   final bool renderNegativeLanes;
 
   @override
-  Widget build<S extends BaseChart<String>>(
-    BuildContext context, {
-    required Key key,
+  SeriesRenderer<String, S> build<S extends BaseChart<String>>({
     required BaseChartState<String, S> chartState,
-    required List<MutableSeries<String>> seriesList,
     String? rendererId,
   }) {
-    return _BarLaneRenderObjectWidget(
-      key: key,
-      chartState: chartState,
+    return BarLaneRenderer<String, S>(
       rendererId: rendererId,
-      seriesList: seriesList,
       config: this,
+      chartState: chartState,
     );
   }
 
@@ -102,26 +96,5 @@ class BarLaneRendererConfig extends BarRendererConfig<String> {
         emptyLaneLabel,
         mergeEmptyLanes,
         renderNegativeLanes,
-      );
-}
-
-class _BarLaneRenderObjectWidget<S extends BaseChart<String>>
-    extends BaseSeriesRenderObjectWidget<String, S, BarLaneRenderer<String, S>,
-        BarLaneRendererConfig> {
-  const _BarLaneRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
-
-  @override
-  BarLaneRenderer<String, S> createRenderObject(BuildContext context) =>
-      BarLaneRenderer<String, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
       );
 }

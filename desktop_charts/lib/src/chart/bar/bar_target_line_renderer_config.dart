@@ -20,11 +20,10 @@ import 'package:flutter/widgets.dart';
 import '../../symbol_renderer.dart' show LineSymbolRenderer;
 import '../base_chart.dart' show BaseChart, BaseChartState;
 import '../layout/layout_view.dart' show LayoutViewPaintOrder;
-import '../processed_series.dart' show MutableSeries;
+import '../series_renderer.dart';
+import 'bar_target_line_renderer.dart';
 import 'base_bar_renderer_config.dart'
     show BarGroupingType, BaseBarRendererConfig;
-import 'bar_target_line_renderer.dart';
-import '../series_renderer_config.dart';
 
 /// Configuration for a bar target line renderer.
 @immutable
@@ -57,54 +56,25 @@ class BarTargetLineRendererConfig<D> extends BaseBarRendererConfig<D> {
   final double overDraw;
 
   @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
+  SeriesRenderer<D, S> build<S extends BaseChart<D>>({
     required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
     String? rendererId,
   }) {
-    return _BarTargetLineRenderObjectWidget(
+    return BarTargetLineRenderer(
       chartState: chartState,
-      config: this,
-      key: key,
-      seriesList: seriesList,
       rendererId: rendererId,
+      config: this,
     );
   }
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(covariant BarTargetLineRendererConfig<D> other) {
     if (identical(this, other)) {
       return true;
     }
-    return other is BarTargetLineRendererConfig &&
-        other.overDrawOuter == overDrawOuter &&
-        other.overDraw == overDraw &&
-        super == other;
+    return other.overDrawOuter == overDrawOuter && other.overDraw == overDraw;
   }
 
   @override
   int get hashCode => Object.hash(overDrawOuter, overDraw);
-}
-
-class _BarTargetLineRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, BarTargetLineRenderer<D, S>,
-        BarTargetLineRendererConfig<D>> {
-  const _BarTargetLineRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
-
-  @override
-  BarTargetLineRenderer<D, S> createRenderObject(BuildContext context) =>
-      BarTargetLineRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
-      );
 }

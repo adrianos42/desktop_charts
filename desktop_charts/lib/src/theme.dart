@@ -291,7 +291,7 @@ class ChartsTheme extends InheritedTheme {
       final Color defaultSeriesColor = colorScheme.background[12];
       final Color linePointHighlighterColor = colorScheme.shade[100];
       final Color noDataColor = colorScheme.disabled;
-      final Color rangeAnnotationColor = colorScheme.shade[30];
+      final Color rangeAnnotationColor = colorScheme.background[4];
       const double rangeBandSize = 0.65;
       final Color sliderFillColor = colorScheme.background[0];
       final Color sliderStrokeColor = colorScheme.background[20];

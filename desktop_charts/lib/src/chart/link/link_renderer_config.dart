@@ -25,7 +25,7 @@ import '../series_renderer_config.dart';
 import 'link_renderer.dart' show LinkRenderer;
 
 /// Configuration for a [SankeyRenderer].
-class LinkRendererConfig<D> implements SeriesRendererConfig<D> {
+class LinkRendererConfig<D> extends SeriesRendererConfig<D> {
   LinkRendererConfig({
     this.customRendererId,
     this.layoutPaintOrder = LayoutViewPaintOrder.bar,
@@ -38,47 +38,44 @@ class LinkRendererConfig<D> implements SeriesRendererConfig<D> {
   @override
   final SymbolRenderer symbolRenderer;
 
-  @override
-  final RendererAttributes rendererAttributes = RendererAttributes();
-
   /// The order to paint this renderer on the canvas.
   final int layoutPaintOrder;
 
-  @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
-    required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
-    String? rendererId,
-  }) {
-    return _LinkRenderObjectWidget(
-      chartState: chartState,
-      config: this,
-      key: key,
-      rendererId: rendererId,
-      seriesList: seriesList,
-    );
-  }
+  // @override
+  // Widget build<S extends BaseChart<D>>(
+  //   BuildContext context, {
+  //   required Key key,
+  //   required BaseChartState<D, S> chartState,
+  //   required List<MutableSeries<D>> seriesList,
+  //   String? rendererId,
+  // }) {
+  //   return _LinkRenderObjectWidget(
+  //     chartState: chartState,
+  //     config: this,
+  //     key: key,
+  //     rendererId: rendererId,
+  //     seriesList: seriesList,
+  //   );
+  // }
 }
 
-class _LinkRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, LinkRenderer<D, S>,
-        LinkRendererConfig<D>> {
-  const _LinkRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
+// class _LinkRenderObjectWidget<D, S extends BaseChart<D>>
+//     extends BaseSeriesRenderObjectWidget<D, S, LinkRenderer<D, S>,
+//         LinkRendererConfig<D>> {
+//   const _LinkRenderObjectWidget({
+//     required super.chartState,
+//     required super.config,
+//     required super.key,
+//     required super.rendererId,
+//     required super.seriesList,
+//   });
 
-  @override
-  LinkRenderer<D, S> createRenderObject(BuildContext context) =>
-      LinkRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
-      );
-}
+//   @override
+//   LinkRenderer<D, S> createRenderObject(BuildContext context) =>
+//       LinkRenderer<D, S>(
+//         rendererId: rendererId,
+//         config: config,
+//         chartState: chartState,
+//         seriesList: seriesList,
+//       );
+// }

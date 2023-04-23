@@ -118,9 +118,9 @@ class DefaultHiddenSeriesLegend extends StatelessWidget {
       // Add the series legend behavior to the chart to turn on series legends.
       // By default the legend will display above the chart.
       behaviors: [
-        charts.SeriesLegend(
+        const charts.SeriesLegend(
           // Configures the "Other" series to be hidden on first chart draw.
-         // TODO defaultHiddenSeries: ['Other'],
+          defaultHiddenSeries: ['Other'],
         )
       ],
     );

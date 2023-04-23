@@ -22,20 +22,19 @@ import '../../base_chart.dart'
 import '../../processed_series.dart' show MutableSeries;
 import '../../selection_model.dart' show SelectionModel, SelectionModelType;
 import '../../series_datum.dart' show SeriesDatumConfig;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 
 /// Behavior that sets initial selection.
+@immutable
 class InitialSelection<D> extends ChartBehavior<D> {
   // TODO : When the series changes, if the user does not also
   // change the index the wrong item could be highlighted.
-  InitialSelection({
+  const InitialSelection({
     this.selectionModelType = SelectionModelType.info,
     this.selectedDataConfig,
     this.selectedSeriesConfig,
     this.shouldPreserveSelectionOnDraw = false,
-  }) {
-    _lifecycleListener = LifecycleListener<D>(onData: _setInitialSelection);
-  }
+  });
 
   final SelectionModelType selectionModelType;
 
@@ -49,24 +48,48 @@ class InitialSelection<D> extends ChartBehavior<D> {
   /// selection until the fist draw or redraw call.
   final bool shouldPreserveSelectionOnDraw;
 
-  late BaseChartState<D, BaseChart<D>> _chartState;
+  @override
+  String get role => 'InitialSelection-$selectionModelType';
+
+  @override
+  ChartBehaviorState<D, S, InitialSelection<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _InitialSelectionState<D, S>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class _InitialSelectionState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, InitialSelection<D>> {
+  _InitialSelectionState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    _lifecycleListener = LifecycleListener<D>(onData: _setInitialSelection);
+    chartState.addLifecycleListener(_lifecycleListener);
+  }
+
   late LifecycleListener<D> _lifecycleListener;
+
   bool _firstDraw = true;
 
   void _setInitialSelection(List<MutableSeries<D>> seriesList) {
-    if (!_firstDraw && !shouldPreserveSelectionOnDraw) {
+    if (!_firstDraw && !behavior.shouldPreserveSelectionOnDraw) {
       return;
     }
 
     _firstDraw = false;
 
     final immutableModel = SelectionModel<D>.fromConfig(
-      selectedDataConfig,
-      selectedSeriesConfig,
+      behavior.selectedDataConfig,
+      behavior.selectedSeriesConfig,
       seriesList,
     );
 
-    _chartState.getSelectionModel(selectionModelType).updateSelection(
+    chartState.getSelectionModel(behavior.selectionModelType).updateSelection(
           immutableModel.selectedDatum,
           immutableModel.selectedSeries,
           notifyListeners: false,
@@ -74,21 +97,8 @@ class InitialSelection<D> extends ChartBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState;
-    _chartState.addLifecycleListener(_lifecycleListener);
-  }
-
-  @override
   void dispose() {
-    _chartState.removeLifecycleListener(_lifecycleListener);
-  }
-
-  @override
-  String get role => 'InitialSelection-$selectionModelType';
-
-  @override
-  Widget buildBehavior(BuildContext context) {
-    return const SizedBox();
+    chartState.removeLifecycleListener(_lifecycleListener);
+    super.dispose();
   }
 }

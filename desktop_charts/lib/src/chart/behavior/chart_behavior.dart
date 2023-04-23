@@ -22,7 +22,10 @@ import '../base_chart.dart';
 /// Interface for adding behavior to a chart.
 ///
 /// For example pan and zoom are implemented via behavior strategies.
+@immutable
 abstract class ChartBehavior<D> {
+  const ChartBehavior();
+
   String get role;
 
   BehaviorPosition get position => BehaviorPosition.inside;
@@ -31,14 +34,28 @@ abstract class ChartBehavior<D> {
 
   InsideJustification get insideJustification => InsideJustification.topEnd;
 
-  Widget buildBehavior(BuildContext context);
+  ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  });
+}
+
+abstract class ChartBehaviorState<D, S extends BaseChart<D>,
+    B extends ChartBehavior<D>> {
+  const ChartBehaviorState({
+    required this.chartState,
+    required this.behavior,
+  });
+
+  final BaseChartState<D, S> chartState;
+
+  final B behavior;
 
   @mustCallSuper
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState);
+  void dispose() {}
 
-  /// Removes the behavior from a chart.
-  @mustCallSuper
-  void dispose();
+  Widget buildBehaviorWidget(BuildContext context) {
+    return const SizedBox();
+  }
 }
 
 /// Position of a component within the chart layout.

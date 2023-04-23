@@ -24,14 +24,15 @@ import '../../base_chart.dart'
 import '../../cartesian/axis/axis.dart' show CartesianAxis;
 import '../../cartesian/cartesian_chart.dart'
     show CartesianChart, CartesianChartState;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 
 /// Adds initial hint behavior for [CartesianChart].
 ///
 /// This behavior animates to the final viewport from an initial translate and
 /// or scale factor.
+@immutable
 class InitialHintBehavior<D> extends ChartBehavior<D> {
-  InitialHintBehavior({
+  const InitialHintBehavior({
     this.hintDuration = const Duration(milliseconds: 3000),
     this.maxHintTranslate = 0.0,
     this.maxHintScaleFactor,
@@ -58,10 +59,45 @@ class InitialHintBehavior<D> extends ChartBehavior<D> {
   /// By default maxHintScaleFactor is not set.
   final double? maxHintScaleFactor;
 
-  /// Chart lifecycle listener to setup hint animation.
-  late LifecycleListener<D> _lifecycleListener;
+  @override
+  String get role => 'InitialHint';
 
-  covariant late CartesianChartState<D, CartesianChart<D>> _chartState;
+  @override
+  ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return InitialHintBehaviorState<D, S, InitialHintBehavior<D>>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class InitialHintBehaviorState<D, S extends BaseChart<D>,
+    R extends InitialHintBehavior<D>> extends ChartBehaviorState<D, S, R> {
+  InitialHintBehaviorState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
+      throw ArgumentError(
+          'InitialHintBehavior can only be attached to a CartesianChart<D>');
+    }
+
+    _hintAnimation = AnimationController(vsync: _chartState);
+    _hintAnimation!.addListener(onHintTick);
+
+    _lifecycleListener = LifecycleListener<D>(
+      onAxisConfigured: _onAxisConfigured,
+      onAnimationComplete: _onAnimationComplete,
+    );
+
+    chartState.addLifecycleListener(_lifecycleListener);
+  }
+
+  late LifecycleListener<D> _lifecycleListener;
+  CartesianChartState<D, CartesianChart<D>> get _chartState =>
+      chartState as CartesianChartState<D, CartesianChart<D>>;
 
   /// Flag to indicate that hint animation controller has already been set up.
   ///
@@ -80,14 +116,6 @@ class InitialHintBehavior<D> extends ChartBehavior<D> {
   late double _targetViewportScalingFactor;
   AnimationController? _hintAnimation;
 
-  @override
-  void dispose() {
-    stopHintAnimation();
-    _hintAnimation?.dispose();
-    _hintAnimation = null;
-    _chartState.removeLifecycleListener(_lifecycleListener);
-  }
-
   /// Calculate the animation's initial and target viewport and scale factor
   /// and shift the viewport to the start.
   void _onAxisConfigured() {
@@ -97,7 +125,7 @@ class InitialHintBehavior<D> extends ChartBehavior<D> {
       final domainAxis = _chartState.domainAxis!;
 
       // TODO: Translation animation only works for axis with a
-      // rangeband type that returns a non zero step size. If two rows have
+      // range band type that returns a non zero step size. If two rows have
       // the same domain value, step size could also equal 0.
       //assert(domainAxis.stepSize != 0.0);
 
@@ -107,12 +135,12 @@ class InitialHintBehavior<D> extends ChartBehavior<D> {
       _targetViewportScalingFactor = domainAxis.viewportScalingFactor;
 
       // Calculate the amount to translate from the target viewport.
-      final translateAmount = domainAxis.stepSize * maxHintTranslate;
+      final translateAmount = domainAxis.stepSize * behavior.maxHintTranslate;
 
       _initialViewportTranslate = _targetViewportTranslate - translateAmount;
 
       _initialViewportScalingFactor =
-          maxHintScaleFactor ?? _targetViewportScalingFactor;
+          behavior.maxHintScaleFactor ?? _targetViewportScalingFactor;
 
       assert(_initialViewportScalingFactor != null);
       domainAxis.setViewportSettings(
@@ -121,7 +149,6 @@ class InitialHintBehavior<D> extends ChartBehavior<D> {
       );
       _chartState.redraw(
         skipAnimation: true,
-        skipLayout: false,
       );
     }
   }
@@ -151,7 +178,7 @@ class InitialHintBehavior<D> extends ChartBehavior<D> {
         .lockAxis = true;
 
     _hintAnimation!
-      ..duration = hintDuration
+      ..duration = behavior.hintDuration
       ..forward(from: 0.0);
   }
 
@@ -211,37 +238,25 @@ class InitialHintBehavior<D> extends ChartBehavior<D> {
       stopHintAnimation();
       _chartState.redraw();
     } else {
-      _chartState.redraw(skipAnimation: true, skipLayout: true);
+      _chartState.redraw(skipAnimation: true);
     }
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
-      throw ArgumentError(
-          'InitialHintBehavior can only be attached to a CartesianChart<D>');
-    }
+  void dispose() {
+    stopHintAnimation();
+    _hintAnimation?.dispose();
+    _hintAnimation = null;
+    _chartState.removeLifecycleListener(_lifecycleListener);
 
-    _lifecycleListener = LifecycleListener<D>(
-      onAxisConfigured: _onAxisConfigured,
-      onAnimationComplete: _onAnimationComplete,
-    );
-
-    _chartState = chartState as CartesianChartState<D, CartesianChart<D>>;
-    _chartState.addLifecycleListener(_lifecycleListener);
-
-    _hintAnimation = AnimationController(vsync: _chartState);
-    _hintAnimation!.addListener(onHintTick);
+    super.dispose();
   }
 
   @override
-  String get role => 'InitialHint';
-
-  @override
-  Widget buildBehavior(BuildContext context) {
+  Widget buildBehaviorWidget(BuildContext context) {
     return GestureDetector(
       onTap: () => stopHintAnimation(),
-      onTapUp: (details) {},
+      behavior: HitTestBehavior.translucent,
       child: const Center(
         child: SizedBox(),
       ),

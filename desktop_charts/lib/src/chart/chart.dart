@@ -26,8 +26,7 @@ export 'selection_model.dart'
 export 'selection_model_config.dart' show SelectionModelConfig;
 export 'series_datum.dart' show SeriesDatum, SeriesDatumConfig;
 export 'series_renderer.dart' show rendererIdKey, rendererKey, SeriesRenderer;
-export 'series_renderer_config.dart'
-    show RendererAttributeKey, SeriesRendererConfig;
+export 'series_renderer_config.dart' show SeriesRendererConfig;
 export 'sunburst/sunburst.dart';
 export 'time_series/time_series.dart';
 export 'treemap/treemap.dart';

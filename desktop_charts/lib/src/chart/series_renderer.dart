@@ -18,6 +18,7 @@
 import 'dart:math' show max;
 
 import 'package:collection/collection.dart' show ListEquality;
+
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -25,7 +26,7 @@ import '../data/series.dart' show AttributeKey;
 import '../symbol_renderer.dart' show SymbolRenderer;
 import 'base_chart.dart' show BaseChart, BaseChartState;
 import 'datum_details.dart' show DatumDetails;
-import 'processed_series.dart' show MutableSeries;
+import 'processed_series.dart' show MutableSeries, ImmutableSeries;
 import 'series_datum.dart' show SeriesDatum;
 
 /// Unique identifier used to associate custom series renderers on a chart with
@@ -38,15 +39,12 @@ const rendererIdKey = AttributeKey<String>('SeriesRenderer.rendererId');
 const rendererKey =
     AttributeKey<SeriesRenderer<dynamic, dynamic>>('SeriesRenderer.renderer');
 
-abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox {
+abstract class SeriesRenderer<D, S extends BaseChart<D>> {
   SeriesRenderer({
     required this.rendererId,
     required this.chartState,
-    required List<MutableSeries<D>> seriesList,
     this.symbolRenderer,
-  }) : _seriesList = seriesList {
-    configure();
-  }
+  });
 
   /// Symbol renderer for this renderer.
   ///
@@ -57,47 +55,12 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox {
 
   final BaseChartState<D, S> chartState;
 
-  List<MutableSeries<D>> _seriesList;
-  List<MutableSeries<D>> get seriesList => _seriesList;
-  set seriesList(List<MutableSeries<D>> value) {
-    if (value != _seriesList ||
-        !ListEquality<MutableSeries<D>>().equals(value, _seriesList)) {
-      _seriesList = value;
-      configure();
-      markNeedsUpdate();
-    }
-  }
-
-
-  @protected
-  @mustCallSuper
-  void configure() {
-    configureSeries();
-    preprocessSeries();
-  }
-
-  void markNeedsUpdate();
-
-  @mustCallSuper
-  void update();
-
-  @mustCallSuper
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-    chartState.animationPosition.addListener(markNeedsPaint);
-  }
-
-  @mustCallSuper
-  @override
-  void detach() {
-    chartState.animationPosition.removeListener(markNeedsPaint);
-    super.detach();
-  }
-
-  @mustCallSuper
-  @override
-  void paint(PaintingContext context, Offset offset);
+  // @mustCallSuper
+  // void configure() {
+  //   configureDomainAxes();
+  //   configureMeasureAxes();
+  //   markNeedsUpdate();
+  // }
 
   static const defaultRendererId = 'default';
 
@@ -109,48 +72,30 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox {
   ///
   /// Typically, a series renderer should assign color mapping functions to
   /// series that do not have them.
-  void configureSeries();
+  void configureSeries(List<MutableSeries<D>> seriesList);
 
   /// Pre-calculates some details for the series that will be needed later
   /// during the drawing phase.
-  void preprocessSeries();
+  void preprocessSeries(List<MutableSeries<D>> seriesList);
 
   /// Adds the domain values for the given series to the chart's domain axis.
-  void configureDomainAxes();
+  void configureDomainAxes(List<MutableSeries<D>> seriesList);
 
   /// Adds the measure values for the given series to the chart's measure axes.
-  void configureMeasureAxes();
+  void configureMeasureAxes(List<MutableSeries<D>> seriesList);
+
+  Widget build(
+    BuildContext context, {
+    required Key key,
+    required List<ImmutableSeries<D>> seriesList,
+  }) {
+    throw '';
+  }
 
   /// Generates rendering data needed to paint the data on the chart.
   ///
   /// This is called during the post layout phase of the chart draw cycle.
   // void update(List<ImmutableSeries<D>> seriesList, bool isAnimating);
-
-  /// Gets a list of the data from each series that is closest to a given point.
-  ///
-  /// [globalPosition] represents a point in the chart, such as a point that was
-  /// clicked/tapped on by a user.
-  ///
-  /// [selectOverlappingPoints] specifies whether to include all points that
-  /// overlap the tapped position in the result. If specified, the method will
-  /// return either the closest point or all the overlapping points with the
-  /// tapped position.
-  ///
-  /// [byDomain] specifies whether the nearest data should be defined by domain
-  /// distance, or relative Cartesian distance.
-  ///
-  /// [boundsOverride] optionally specifies a bounding box for the selection
-  /// event. If specified, then no data should be returned if [chartPoint] lies
-  /// outside the box. If not specified, then each series renderer on the chart
-  /// will use its own component bounds for filtering out selection events
-  /// (usually the chart draw area).
-  List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset globalPosition,
-    bool byDomain,
-    Rect? boundsOverride, {
-    bool selectOverlappingPoints = false,
-    bool selectExactEventLocation = false,
-  });
 
   /// Get an expanded set of processed [DatumDetails] for a given [SeriesDatum].
   ///
@@ -174,13 +119,10 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> extends RenderBox {
 abstract class BaseSeriesRenderer<D, S extends BaseChart<D>>
     extends SeriesRenderer<D, S> {
   BaseSeriesRenderer({
-    this.symbolRenderer,
+    super.symbolRenderer,
     required super.rendererId,
     required super.chartState,
-    required super.seriesList,
   });
-
-  final SymbolRenderer? symbolRenderer;
 
   /// Assigns colors to series that are missing their colorFn.
   ///
@@ -312,16 +254,19 @@ abstract class BaseSeriesRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  void configureSeries() {}
+  void configureSeries(List<MutableSeries<D>> seriesList) {}
 
   @override
-  void preprocessSeries() {}
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {}
 
   @override
-  void configureDomainAxes() {}
+  void configureDomainAxes(List<MutableSeries<D>> seriesList) {}
 
   @override
-  void configureMeasureAxes() {}
+  void configureMeasureAxes(List<MutableSeries<D>> seriesList) {}
+
+  @mustCallSuper
+  void update(List<MutableSeries<D>> seriesList) {}
 
   @override
   DatumDetails<D> getDetailsForSeriesDatum(SeriesDatum<D> seriesDatum) {
@@ -400,6 +345,92 @@ abstract class BaseSeriesRenderer<D, S extends BaseChart<D>>
     // added by concrete [SeriesRenderer] classes.
     return addPositionToDetailsForSeriesDatum(details, seriesDatum);
   }
+}
+
+abstract class BaseSeriesRenderObjectWidget<D, S extends BaseChart<D>,
+    R extends SeriesRendererRender<D, S>> extends LeafRenderObjectWidget {
+  const BaseSeriesRenderObjectWidget({
+    required super.key,
+    required this.seriesList,
+  });
+
+  final List<ImmutableSeries<D>> seriesList;
+
+  @override
+  R createRenderObject(BuildContext context);
+
+  @override
+  void updateRenderObject(BuildContext context, R renderObject) {
+    renderObject.seriesList = seriesList;
+  }
+}
+
+abstract class SeriesRendererRender<D, S extends BaseChart<D>>
+    extends RenderBox {
+  SeriesRendererRender({
+    required this.chartState,
+    required List<ImmutableSeries<D>> seriesList,
+  }) : _seriesList = seriesList;
+
+  final BaseChartState<D, S> chartState;
+
+  List<ImmutableSeries<D>> _seriesList;
+  List<ImmutableSeries<D>> get seriesList => _seriesList;
+  set seriesList(List<ImmutableSeries<D>> value) {
+    if (!ListEquality<ImmutableSeries<D>>().equals(value, _seriesList)) {
+      markNeedsUpdate();
+      _seriesList = value;
+    }
+  }
+
+  @mustCallSuper
+  void update() {}
+
+  @mustCallSuper
+  @override
+  void attach(PipelineOwner owner) {
+    super.attach(owner);
+    chartState.animationPosition.addListener(markNeedsPaint);
+  }
+
+  @mustCallSuper
+  @override
+  void detach() {
+    chartState.animationPosition.removeListener(markNeedsPaint);
+    super.detach();
+  }
+
+  @override
+  void performLayout() {
+    markNeedsUpdate();
+    size = constraints.biggest;
+  }
+
+  /// Gets a list of the data from each series that is closest to a given point.
+  ///
+  /// [globalPosition] represents a point in the chart, such as a point that was
+  /// clicked/tapped on by a user.
+  ///
+  /// [selectOverlappingPoints] specifies whether to include all points that
+  /// overlap the tapped position in the result. If specified, the method will
+  /// return either the closest point or all the overlapping points with the
+  /// tapped position.
+  ///
+  /// [byDomain] specifies whether the nearest data should be defined by domain
+  /// distance, or relative Cartesian distance.
+  ///
+  /// [boundsOverride] optionally specifies a bounding box for the selection
+  /// event. If specified, then no data should be returned if [chartPoint] lies
+  /// outside the box. If not specified, then each series renderer on the chart
+  /// will use its own component bounds for filtering out selection events
+  /// (usually the chart draw area).
+  List<DatumDetails<D>> getNearestDatumDetailPerSeries(
+    Offset globalPosition,
+    bool byDomain,
+    Rect? boundsOverride, {
+    bool selectOverlappingPoints = false,
+    bool selectExactEventLocation = false,
+  });
 
   /// Returns true of [chartPoint] is within the component bounds for this
   /// renderer.
@@ -414,31 +445,19 @@ abstract class BaseSeriesRenderer<D, S extends BaseChart<D>>
     return bounds.contains(chartPoint);
   }
 
-  bool _needsUpdate = false;
+  bool _needsUpdate = true;
 
-  @override
   void markNeedsUpdate() {
     _needsUpdate = true;
     markNeedsPaint();
   }
 
-  @override
-  void update() {}
-
   @mustCallSuper
-  @override
-  void performLayout() {
-    markNeedsUpdate();
-    size = constraints.biggest;
-  }
-
   @override
   void paint(PaintingContext context, Offset offset) {
     if (_needsUpdate) {
       _needsUpdate = false;
       update();
     }
-
-    super.paint(context, offset);
   }
 }

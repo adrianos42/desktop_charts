@@ -19,6 +19,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../date_time_factory.dart'
     show DateTimeFactory, LocalDateTimeFactory;
+import '../behavior/behavior.dart';
 import '../cartesian/axis/draw_strategy/small_tick_draw_strategy.dart'
     show SmallTickRendererSpec;
 import '../cartesian/axis/spec/axis_spec.dart' show AxisSpec;
@@ -28,10 +29,9 @@ import '../cartesian/cartesian_chart.dart'
     show CartesianChart, CartesianChartState;
 import '../line/line_renderer_config.dart' show LineRendererConfig;
 import '../series_renderer_config.dart' show SeriesRendererConfig;
-import '../behavior/behavior.dart';
 
 class TimeSeriesChart extends CartesianChart<DateTime> {
-  TimeSeriesChart(
+  const TimeSeriesChart(
     super.seriesList, {
     DateTimeAxisSpec? domainAxis,
     SeriesRendererConfig<DateTime>? defaultRenderer,
@@ -52,7 +52,8 @@ class TimeSeriesChart extends CartesianChart<DateTime> {
     super.userManagedState,
   }) : super(
           domainAxis: domainAxis,
-          defaultRenderer: defaultRenderer ?? LineRendererConfig(),
+          defaultRenderer:
+              defaultRenderer ?? const LineRendererConfig<DateTime>(),
         );
 
   final DateTimeFactory dateTimeFactory;

@@ -72,11 +72,12 @@ class SimpleSunburstChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return charts.SunburstChart(
-      [],
-      animate: animate,
-      defaultInteractions: true,
-    );
+    // return charts.SunburstChart(
+    //   [],
+    //   animate: animate,
+    //   defaultInteractions: true,
+    // );
+    return SizedBox();
   }
 
   /// Create one series with sample hard coded data.

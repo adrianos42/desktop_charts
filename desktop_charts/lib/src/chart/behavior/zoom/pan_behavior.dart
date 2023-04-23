@@ -23,7 +23,7 @@ import '../../base_chart.dart' show BaseChart, BaseChartState;
 import '../../cartesian/axis/axis.dart' show CartesianAxis;
 import '../../cartesian/cartesian_chart.dart'
     show CartesianChart, CartesianChartState;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 import 'panning_tick_provider.dart';
 
 /// Adds domain axis panning support to a chart.
@@ -31,15 +31,40 @@ import 'panning_tick_provider.dart';
 /// Panning is supported by clicking and dragging the mouse for web, or tapping
 /// and dragging on the chart for mobile devices.
 class PanBehavior<D> extends ChartBehavior<D> {
+  @override
+  String get role => 'Pan';
+
+  @override
+  ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return PanBehaviorState<D, S, PanBehavior<D>>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
+    extends ChartBehaviorState<D, S, R> {
+  PanBehaviorState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
+      throw ArgumentError(
+          'PanBehavior can only be attached to a CartesianChart<D>');
+    }
+  }
+
   /// Wrapped domain tick provider for pan and zoom behavior.
   late PanningTickProvider<D> _domainAxisTickProvider;
 
   @protected
   PanningTickProvider<D> get domainAxisTickProvider => _domainAxisTickProvider;
 
-  /// The chart to which the behavior is attached.
-  @protected
-  late CartesianChartState<D, CartesianChart<D>> chartState;
+  CartesianChartState<D, CartesianChart<D>> get _chartState =>
+      chartState as CartesianChartState<D, CartesianChart<D>>;
 
   /// Flag which is enabled to indicate that the user is "panning" the chart.
   bool _isPanning = false;
@@ -101,7 +126,7 @@ class PanBehavior<D> extends ChartBehavior<D> {
     }
 
     // Update the domain axis's viewport translate to pan the chart.
-    final domainAxis = chartState.domainAxis;
+    final domainAxis = _chartState.domainAxis;
 
     if (domainAxis == null) {
       return false;
@@ -127,13 +152,13 @@ class PanBehavior<D> extends ChartBehavior<D> {
     domainAxis.setViewportSettings(
       domainScalingFactor,
       domainChange,
-      drawAreaWidth: chartState.drawArea.width,
-      drawAreaHeight: chartState.drawArea.height,
+      drawAreaWidth: _chartState.drawArea.width,
+      drawAreaHeight: _chartState.drawArea.height,
     );
 
     _lastPosition = globalPosition;
 
-    chartState.redraw(skipAnimation: true, skipLayout: true);
+    _chartState.redraw(skipAnimation: true);
     return true;
   }
 
@@ -152,8 +177,8 @@ class PanBehavior<D> extends ChartBehavior<D> {
     // after the tick provider generates the ticks. If we do not tell the axis
     // not to update the location of the measure axes, we get a jittery effect
     // as the measure axes location changes ever so slightly during pan/zoom.
-    chartState.getMeasureAxis().lockAxis = true;
-    chartState
+    _chartState.getMeasureAxis().lockAxis = true;
+    _chartState
         .getMeasureAxis(axisId: CartesianAxis.secondaryMeasureAxisId)
         .lockAxis = true;
   }
@@ -166,11 +191,11 @@ class PanBehavior<D> extends ChartBehavior<D> {
     // request redraw.
     _domainAxisTickProvider.mode = PanningTickProviderMode.passThrough;
 
-    chartState.getMeasureAxis().lockAxis = false;
-    chartState
+    _chartState.getMeasureAxis().lockAxis = false;
+    _chartState
         .getMeasureAxis(axisId: CartesianAxis.secondaryMeasureAxisId)
         .lockAxis = false;
-    chartState.redraw();
+    _chartState.redraw();
 
     _panningCompletedCallback?.call();
   }
@@ -185,42 +210,28 @@ class PanBehavior<D> extends ChartBehavior<D> {
   bool _controlDown = false;
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
-      throw ArgumentError(
-          'PanBehavior can only be attached to a CartesianChart<D>');
-    }
-
-    this.chartState = chartState as CartesianChartState<D, CartesianChart<D>>;
-
-  }
-
-  /// Removes the behavior from a chart.
-  @override
   void dispose() {
     // Restore the default autoViewport state.
-    chartState.domainAxis!.autoViewport = true;
+    _chartState.domainAxis!.autoViewport = true;
 
     // Restore the original tick providers
-    chartState.domainAxis!.tickProvider = _domainAxisTickProvider.tickProvider;
+    _chartState.domainAxis!.tickProvider = _domainAxisTickProvider.tickProvider;
 
     _focusNode.dispose();
+
+    super.dispose();
   }
 
   @override
-  String get role => 'Pan';
-
-  @mustCallSuper
-  @override
-  Widget buildBehavior(BuildContext context) {
+  Widget buildBehaviorWidget(BuildContext context) {
     // Disable the autoViewport feature to enable panning.
-    this.chartState.domainAxis!.autoViewport = false;
+    _chartState.domainAxis!.autoViewport = false;
 
     // Wrap domain axis tick provider with the panning behavior one.
     _domainAxisTickProvider =
-        PanningTickProvider<D>(this.chartState.domainAxis!.tickProvider!);
-    this.chartState.domainAxis!.tickProvider = _domainAxisTickProvider;
-    
+        PanningTickProvider<D>(_chartState.domainAxis!.tickProvider!);
+    _chartState.domainAxis!.tickProvider = _domainAxisTickProvider;
+
     return MouseRegion(
       onHover: null,
       hitTestBehavior: HitTestBehavior.translucent,
@@ -251,7 +262,7 @@ class PanBehavior<D> extends ChartBehavior<D> {
                   onDragUpdate(Offset.zero, 1.0 + zoomScale);
                 } else {
                   onDragUpdate(
-                    (!chartState.domainAxis!.isVertical
+                    (!_chartState.domainAxis!.isVertical
                         ? event.position -
                             Offset(
                               event.scrollDelta.dy,

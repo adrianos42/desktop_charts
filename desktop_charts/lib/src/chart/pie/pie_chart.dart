@@ -32,13 +32,13 @@ class PieChart<D> extends BaseChart<D> {
     super.seriesList, {
     ArcRendererConfig<D>? defaultRenderer,
     List<SelectionModelConfig<D>>? selectionModels,
-    super.animationDuration = const Duration(milliseconds: 400),
+    super.animationDuration,
     super.defaultInteractions = true,
     super.animate,
     super.rtlSpec,
     super.behaviors,
     super.key,
-  }) : super(defaultRenderer: defaultRenderer ?? ArcRendererConfig());
+  }) : super(defaultRenderer: defaultRenderer ?? ArcRendererConfig<D>());
 
   @override
   PieChartState<D> createState() => PieChartState<D>();

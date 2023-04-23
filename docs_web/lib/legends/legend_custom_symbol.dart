@@ -152,7 +152,7 @@ class LegendWithCustomSymbol extends StatelessWidget {
       //
       // To change the symbol used in the legend, set the renderer attribute of
       // symbolRendererKey to a SymbolRenderer.
-      behaviors: [charts.SeriesLegend()],
+      behaviors: const [charts.SeriesLegend()],
       defaultRenderer: charts.BarRendererConfig(
         symbolRenderer: IconRenderer(Icons.cloud),
       ),

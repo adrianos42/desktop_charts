@@ -87,8 +87,11 @@ class TimeSeriesRangeAnnotationChart extends StatelessWidget {
     return charts.TimeSeriesChart(seriesList, animate: animate, behaviors: [
       charts.RangeAnnotation(
         [
-          charts.RangeAnnotationSegment(DateTime(2017, 10, 4),
-              DateTime(2017, 10, 15), charts.RangeAnnotationAxisType.domain),
+          charts.RangeAnnotationSegment(
+            DateTime(2017, 10, 4),
+            DateTime(2017, 10, 15),
+            charts.RangeAnnotationAxisType.domain,
+          ),
         ],
       ),
     ]);

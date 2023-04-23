@@ -18,17 +18,16 @@
 import 'package:flutter/widgets.dart';
 
 import '../../symbol_renderer.dart';
-import '../base_chart.dart' show BaseChart, BaseChartState;
+import '../base_chart.dart' show BaseChartState, BaseChart;
 import '../layout/layout_view.dart' show LayoutViewPaintOrder;
-import '../processed_series.dart' show MutableSeries;
-import '../series_renderer_config.dart'
-    show RendererAttributes, SeriesRendererConfig, BaseSeriesRenderObjectWidget;
-import 'point_renderer.dart' show PointRenderer, pointSymbolRendererIdKey;
+import '../series_renderer_config.dart' show SeriesRendererConfig;
+import 'point_renderer.dart' show pointSymbolRendererIdKey, PointRenderer;
 import 'point_renderer_decorator.dart' show PointRendererDecorator;
 
 /// Configuration for a line renderer.
-class PointRendererConfig<D> implements SeriesRendererConfig<D> {
-  PointRendererConfig({
+@immutable
+class PointRendererConfig<D> extends SeriesRendererConfig<D> {
+  const PointRendererConfig({
     this.customRendererId,
     this.layoutPaintOrder = LayoutViewPaintOrder.point,
     this.pointRendererDecorators = const [],
@@ -60,9 +59,6 @@ class PointRendererConfig<D> implements SeriesRendererConfig<D> {
   /// [symbolRenderer].
   final Map<String, SymbolRenderer>? customSymbolRenderers;
 
-  @override
-  final RendererAttributes rendererAttributes = RendererAttributes();
-
   /// Default radius of the points, used if a series does not define a radius
   /// accessor function.
   final double radius;
@@ -83,40 +79,41 @@ class PointRendererConfig<D> implements SeriesRendererConfig<D> {
   final double? boundsLineRadius;
 
   @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
+  PointRenderer<D, S> build<S extends BaseChart<D>>({
     required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
     String? rendererId,
   }) {
-    return _PointRenderObjectWidget(
+    return PointRenderer(
       chartState: chartState,
-      config: this,
-      key: key,
-      seriesList: seriesList,
       rendererId: rendererId,
+      config: this,
     );
   }
-}
-
-class _PointRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, PointRenderer<D, S>,
-        PointRendererConfig<D>> {
-  const _PointRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.seriesList,
-    required super.rendererId,
-  });
 
   @override
-  PointRenderer<D, S> createRenderObject(BuildContext context) =>
-      PointRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
+  bool operator ==(covariant PointRendererConfig<D> other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other.customRendererId == customRendererId &&
+        other.layoutPaintOrder == layoutPaintOrder &&
+        other.pointRendererDecorators == pointRendererDecorators &&
+        other.symbolRenderer == symbolRenderer &&
+        other.customSymbolRenderers == customSymbolRenderers &&
+        other.radius == radius &&
+        other.strokeWidth == strokeWidth &&
+        other.boundsLineRadius == boundsLineRadius;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        customRendererId,
+        layoutPaintOrder,
+        pointRendererDecorators,
+        symbolRenderer,
+        customSymbolRenderers,
+        radius,
+        strokeWidth,
+        boundsLineRadius,
       );
 }

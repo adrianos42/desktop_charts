@@ -21,8 +21,7 @@ import 'package:flutter/foundation.dart';
 import '../../symbol_renderer.dart'
     show SymbolRenderer, RoundedRectSymbolRenderer;
 import '../chart_canvas.dart' show FillPatternType;
-import '../series_renderer_config.dart'
-    show RendererAttributes, SeriesRendererConfig;
+import '../series_renderer_config.dart' show SeriesRendererConfig;
 
 /// Shared configuration for bar chart renderers.
 ///
@@ -43,7 +42,7 @@ import '../series_renderer_config.dart'
 ///   such that bars from the last series will be "on top" of bars from previous
 ///   series.
 @immutable
-abstract class BaseBarRendererConfig<D> implements SeriesRendererConfig<D> {
+abstract class BaseBarRendererConfig<D> extends SeriesRendererConfig<D> {
   const BaseBarRendererConfig({
     this.barGroupInnerPadding = 2.0,
     this.customRendererId,
@@ -109,9 +108,6 @@ abstract class BaseBarRendererConfig<D> implements SeriesRendererConfig<D> {
   /// Not used for stacked bars.
   final List<int>? weightPattern;
 
-  @override
-  RendererAttributes get rendererAttributes => RendererAttributes();
-
   /// Whether or not the bars should be organized into groups.
   bool get grouped =>
       groupingType == BarGroupingType.grouped ||
@@ -123,12 +119,11 @@ abstract class BaseBarRendererConfig<D> implements SeriesRendererConfig<D> {
       groupingType == BarGroupingType.groupedStacked;
 
   @override
-  bool operator ==(Object other) {
+  bool operator ==(covariant BaseBarRendererConfig<D> other) {
     if (identical(this, other)) {
       return true;
     }
-    return other is BaseBarRendererConfig &&
-        other.customRendererId == customRendererId &&
+    return other.customRendererId == customRendererId &&
         other.dashPattern == dashPattern &&
         other.fillPattern == fillPattern &&
         other.groupingType == groupingType &&

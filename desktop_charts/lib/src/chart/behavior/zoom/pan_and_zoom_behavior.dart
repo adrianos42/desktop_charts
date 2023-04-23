@@ -19,6 +19,10 @@ import 'dart:math' show min, max;
 
 import 'package:flutter/widgets.dart';
 
+import '../../base_chart.dart';
+import '../../cartesian/cartesian_chart.dart'
+    show CartesianChart, CartesianChartState;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 import 'pan_behavior.dart';
 import 'panning_tick_provider.dart' show PanningTickProviderMode;
 
@@ -35,6 +39,27 @@ import 'panning_tick_provider.dart' show PanningTickProviderMode;
 class PanAndZoomBehavior<D> extends PanBehavior<D> {
   @override
   String get role => 'PanAndZoom';
+
+  @override
+  ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return PanAndZoomBehaviorState<D, S, PanAndZoomBehavior<D>>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class PanAndZoomBehaviorState<D, S extends BaseChart<D>,
+    R extends PanAndZoomBehavior<D>> extends PanBehaviorState<D, S, R> {
+  PanAndZoomBehaviorState({
+    required super.behavior,
+    required super.chartState,
+  });
+
+  CartesianChartState<D, CartesianChart<D>> get _chartState =>
+      chartState as CartesianChartState<D, CartesianChart<D>>;
 
   /// Flag which is enabled to indicate that the user is "zooming" the chart.
   bool _isZooming = false;
@@ -59,7 +84,7 @@ class PanAndZoomBehavior<D> extends PanBehavior<D> {
     super.onDragStart(globalPosition);
 
     // Save the current scaling factor to make zoom events relative.
-    _scalingFactor = chartState.domainAxis!.viewportScalingFactor;
+    _scalingFactor = _chartState.domainAxis!.viewportScalingFactor;
     _isZooming = true;
 
     return true;
@@ -81,7 +106,7 @@ class PanAndZoomBehavior<D> extends PanBehavior<D> {
     }
 
     // Update the domain axis's viewport scale factor to zoom the chart.
-    final domainAxis = chartState.domainAxis;
+    final domainAxis = _chartState.domainAxis;
 
     if (domainAxis == null) {
       return false;
@@ -103,11 +128,11 @@ class PanAndZoomBehavior<D> extends PanBehavior<D> {
     domainAxis.setViewportSettings(
       newScalingFactor,
       domainAxis.viewportTranslate,
-      drawAreaWidth: chartState.drawArea.width,
-      drawAreaHeight: chartState.drawArea.height,
+      drawAreaWidth: _chartState.drawArea.width,
+      drawAreaHeight: _chartState.drawArea.height,
     );
 
-    chartState.redraw(skipAnimation: true, skipLayout: true);
+    _chartState.redraw(skipAnimation: true);
 
     return true;
   }

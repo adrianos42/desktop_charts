@@ -19,7 +19,6 @@ import 'dart:math' show Point;
 
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/foundation.dart';
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../data/series.dart' show AttributeKey, Accessor;
@@ -27,14 +26,16 @@ import '../../math.dart';
 import '../base_chart.dart' show BaseChart;
 import '../cartesian/axis/axis.dart'
     show ImmutableAxis, OrdinalAxis, measureAxisIdKey;
+import '../cartesian/cartesian_chart.dart'
+    show CartesianChartState, CartesianChart;
 import '../cartesian/cartesian_renderer.dart' show BaseCartesianRenderer;
 import '../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
 import '../datum_details.dart' show DatumDetails;
 import '../processed_series.dart' show ImmutableSeries, MutableSeries;
 import '../series_datum.dart' show SeriesDatum;
+import '../series_renderer.dart'
+    show BaseSeriesRenderObjectWidget, SeriesRendererRender;
 import 'line_renderer_config.dart' show LineRendererConfig;
-import '../cartesian/cartesian_chart.dart'
-    show CartesianChartState, CartesianChart;
 
 const styleSegmentsKey = AttributeKey<List<_LineRendererElement<Object>>>(
     'LineRenderer.styleSegments');
@@ -47,7 +48,6 @@ class LineRenderer<D, S extends BaseChart<D>>
     String? rendererId,
     required this.config,
     required super.chartState,
-    required super.seriesList,
   }) : super(
           rendererId: rendererId ?? 'line',
           symbolRenderer: config.symbolRenderer,
@@ -55,41 +55,13 @@ class LineRenderer<D, S extends BaseChart<D>>
 
   final LineRendererConfig<D> config;
 
-  @override
-  void attach(PipelineOwner owner) {
-    super.attach(owner);
-
-    // _pointRenderer = PointRenderer<D, S>(
-    //   config: PointRendererConfig(
-    //     radius: config.radius,
-    //   ),
-    // );
-  }
-
-  // Configuration used to extend the clipping area to extend the draw bounds.
-  static const drawBoundTopExtension = 5.0;
-  static const drawBoundBottomExtension = 5.0;
-
   /// True if any series has a measureUpperBoundFn and measureLowerBoundFn.
   ///
   /// Used to enable drawing confidence interval areas segments.
   late bool _hasMeasureBounds;
 
-  /// Store a map of series drawn on the chart, mapped by series name.
-  ///
-  /// [Map] is used to render the series on the canvas in the same
-  /// order as the data was given to the chart.
-  final _seriesLineMap = <String, List<_AnimatedElements<D>>>{};
-
-  // Store a list of lines that exist in the series data.
-  //
-  // This list will be used to remove any [_AnimatedLine] that were rendered in
-  // previous draw cycles, but no longer have a corresponding datum in the new
-  // data.
-  final _currentKeys = <String>[];
-
   @override
-  void configureSeries() {
+  void configureSeries(List<MutableSeries<D>> seriesList) {
     assignMissingColors(seriesList, emptyCategoryUsesSinglePalette: false);
 
     for (final series in seriesList) {
@@ -112,7 +84,7 @@ class LineRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  void preprocessSeries() {
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {
     int stackIndex = 0;
 
     _hasMeasureBounds = seriesList.any((series) =>
@@ -271,6 +243,224 @@ class LineRenderer<D, S extends BaseChart<D>>
     return (int? i) => curOffsets[domainFn(i)];
   }
 
+  _DatumPoint<D> _getPoint(
+    dynamic datum,
+    D? domainValue,
+    ImmutableSeries<D> series,
+    ImmutableAxis<D> domainAxis,
+    num? measureValue,
+    num? measureOffsetValue,
+    ImmutableAxis<num> measureAxis, {
+    int? index,
+  }) {
+    final domainPosition = domainAxis.getLocation(domainValue);
+
+    final measurePosition = measureValue != null && measureOffsetValue != null
+        ? measureAxis.getLocation(measureValue + measureOffsetValue)
+        : null;
+
+    return _DatumPoint<D>(
+      datum: datum,
+      domain: domainValue,
+      series: series,
+      dx: domainPosition,
+      dy: measurePosition,
+      index: index,
+    );
+  }
+
+  @override
+  DatumDetails<D> addPositionToDetailsForSeriesDatum(
+      DatumDetails<D> details, SeriesDatum<D> seriesDatum) {
+    final series = details.series!;
+
+    final domainAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
+    final measureAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>)
+            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
+
+    final point = _getPoint(
+      seriesDatum.datum,
+      details.domain,
+      series,
+      domainAxis!,
+      details.measure,
+      details.measureOffset,
+      measureAxis,
+    );
+    final chartPosition = NullablePoint(point.dx, point.dy);
+
+    return DatumDetails.from(details, chartPosition: chartPosition);
+  }
+
+  @override
+  Widget build(
+    BuildContext context, {
+    required List<ImmutableSeries<D>> seriesList,
+    required Key key,
+  }) {
+    return _LineRender<D, S>(
+      key: key,
+      seriesList: seriesList,
+      renderer: this,
+    );
+  }
+}
+
+class _LineRender<D, S extends BaseChart<D>>
+    extends BaseSeriesRenderObjectWidget<D, S,
+        LineRendererRender<D, S, LineRenderer<D, S>>> {
+  const _LineRender({
+    required this.renderer,
+    required super.seriesList,
+    required super.key,
+  });
+
+  final LineRenderer<D, S> renderer;
+
+  @override
+  LineRendererRender<D, S, LineRenderer<D, S>> createRenderObject(
+      BuildContext context) {
+    return LineRendererRender<D, S, LineRenderer<D, S>>(
+      chartState: renderer.chartState,
+      renderer: renderer,
+      seriesList: seriesList,
+    );
+  }
+}
+
+class LineRendererRender<D, S extends BaseChart<D>,
+    R extends LineRenderer<D, S>> extends SeriesRendererRender<D, S> {
+  LineRendererRender({
+    required super.chartState,
+    required super.seriesList,
+    required this.renderer,
+  });
+
+  // Configuration used to extend the clipping area to extend the draw bounds.
+  static const drawBoundTopExtension = 5.0;
+  static const drawBoundBottomExtension = 5.0;
+
+  final R renderer;
+
+  /// Store a map of series drawn on the chart, mapped by series name.
+  ///
+  /// [Map] is used to render the series on the canvas in the same
+  /// order as the data was given to the chart.
+  final _seriesLineMap = <String, List<_AnimatedElements<D>>>{};
+
+  // Store a list of lines that exist in the series data.
+  //
+  // This list will be used to remove any [_AnimatedLine] that were rendered in
+  // previous draw cycles, but no longer have a corresponding datum in the new
+  // data.
+  final _currentKeys = <String>[];
+
+  @override
+  List<DatumDetails<D>> getNearestDatumDetailPerSeries(
+    Offset globalPosition,
+    bool byDomain,
+    Rect? boundsOverride, {
+    bool selectOverlappingPoints = false,
+    bool selectExactEventLocation = false,
+  }) {
+    final nearest = <DatumDetails<D>>[];
+
+    final chartPoint = globalToLocal(globalPosition);
+
+    bool isFirstSeriesAbovePoint = false;
+
+    for (final seriesSegments in _seriesLineMap.values) {
+      _DatumPoint<D>? nearestPoint;
+      double nearestDomainDistance = 10000.0;
+      double nearestMeasureDistance = 10000.0;
+      double nearestRelativeDistance = 10000.0;
+
+      for (final segment in seriesSegments) {
+        if (segment.overlaySeries) {
+          continue;
+        }
+
+        for (final p in segment.allPoints) {
+          // // Don't look at points not in the drawArea.
+          // if (p.dx! < componentBounds.left || p.dx! > componentBounds.right) {
+          //   continue;
+          // }
+
+          double measureDistance;
+          double relativeDistance;
+          double domainDistance;
+
+          if (p.dy != null) {
+            measureDistance = (p.dy! - chartPoint.dy).abs();
+            domainDistance = (p.dx! - chartPoint.dx).abs();
+            relativeDistance = Point(chartPoint.dx, chartPoint.dy).distanceTo(
+              Point(
+                p.toPoint().dx,
+                p.toPoint().dy,
+              ),
+            );
+          } else {
+            // Null measures have no real position, so make them the farthest
+            // away by real distance.
+            measureDistance = double.infinity;
+            domainDistance = double.infinity;
+            relativeDistance = byDomain ? domainDistance : double.infinity;
+          }
+
+          if (byDomain) {
+            if ((domainDistance < nearestDomainDistance) ||
+                ((domainDistance == nearestDomainDistance) &&
+                    (measureDistance < nearestMeasureDistance))) {
+              nearestPoint = p;
+              nearestDomainDistance = domainDistance;
+              nearestMeasureDistance = measureDistance;
+              nearestRelativeDistance = relativeDistance;
+            }
+          } else {
+            if (relativeDistance < nearestRelativeDistance) {
+              nearestPoint = p;
+              nearestDomainDistance = domainDistance;
+              nearestMeasureDistance = measureDistance;
+              nearestRelativeDistance = relativeDistance;
+            }
+          }
+        }
+
+        // For area charts, check if the current series is the first series
+        // above [chartPoint] or not. If it is, it means that [chartPoint] is
+        // inside the area skirt of the current series. In this case, set the
+        // measure distance to 0 so the current [nearestPoint] has the smallest
+        // measure distance among all.
+        if (renderer.config.includeArea &&
+            !isFirstSeriesAbovePoint &&
+            nearestPoint != null &&
+            _isPointBelowSeries(chartPoint, nearestPoint, segment.allPoints)) {
+          nearestMeasureDistance = 0;
+          isFirstSeriesAbovePoint = true;
+        }
+      }
+
+      // Found a point, add it to the list.
+      if (nearestPoint != null) {
+        nearest.add(DatumDetails<D>(
+            chartPosition: NullablePoint(nearestPoint.dx, nearestPoint.dy),
+            datum: nearestPoint.datum,
+            domain: nearestPoint.domain,
+            series: nearestPoint.series,
+            domainDistance: nearestDomainDistance,
+            measureDistance: nearestMeasureDistance,
+            relativeDistance: nearestRelativeDistance));
+      }
+    }
+
+    // Note: the details are already sorted by domain & measure distance in
+    // base chart.
+
+    return nearest;
+  }
+
   /// Merge the line map and the series so that the elements are mixed
   /// with the previous ones.
   ///
@@ -313,6 +503,477 @@ class LineRenderer<D, S extends BaseChart<D>>
     _seriesLineMap.clear();
 
     _seriesLineMap.addEntries(newLineMap);
+  }
+
+  /// Checks if [chartPoint] is below the series represented by
+  /// [allPointsForSeries] or not.
+  ///
+  /// [nearestPoint] is the point in [allPointsForSeries] that is closest to
+  /// [chartPoint].
+  bool _isPointBelowSeries(Offset chartPoint, _DatumPoint<D> nearestPoint,
+      List<_DatumPoint<D>> allPointsForSeries) {
+    _DatumPoint<D>? leftPoint;
+    _DatumPoint<D>? rightPoint;
+    final nearestPointIdx =
+        allPointsForSeries.indexWhere((p) => p == nearestPoint);
+    if (chartPoint.dx < nearestPoint.dx!) {
+      leftPoint =
+          nearestPointIdx > 0 ? allPointsForSeries[nearestPointIdx - 1] : null;
+      rightPoint = nearestPoint;
+    } else {
+      leftPoint = nearestPoint;
+      rightPoint = nearestPointIdx < allPointsForSeries.length - 1
+          ? allPointsForSeries[nearestPointIdx + 1]
+          : null;
+    }
+    double limit = chartPoint.dy;
+    if (leftPoint != null &&
+        leftPoint.dy != null &&
+        rightPoint != null &&
+        rightPoint.dy != null) {
+      final slope =
+          (rightPoint.dy! - leftPoint.dy!) / (rightPoint.dx! - leftPoint.dx!);
+      limit = (chartPoint.dx - leftPoint.dx!) * slope + leftPoint.dy!;
+    } else if (leftPoint != null && leftPoint.dy != null) {
+      limit = leftPoint.dy!;
+    } else if (rightPoint != null && rightPoint.dy != null) {
+      limit = rightPoint.dy!;
+    }
+
+    return chartPoint.dy >= limit;
+  }
+
+  /// Converts the domain value extent for the series into axis positions,
+  /// clamped to the edges of the draw area.
+  ///
+  /// [series] the series that this line represents.
+  ///
+  /// [details] represents the element details for a line segment.
+  _Range<double> _createPositionExtent(
+    ImmutableSeries<D> series,
+    _LineRendererElement<D> details,
+  ) {
+    final bounds = Offset.zero & size;
+
+    final domainAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
+
+    // Convert the domain extent into axis positions.
+    // Clamp start position to the beginning of the draw area if it is outside
+    // the domain viewport range.
+    final startPosition = domainAxis!.getLocation(details.domainExtent.start) ??
+        bounds.left.toDouble();
+
+    // Clamp end position to the end of the draw area if it is outside the
+    // domain viewport range.
+    final endPosition = domainAxis.getLocation(details.domainExtent.end) ??
+        bounds.right.toDouble();
+
+    return _Range<double>(startPosition, endPosition);
+  }
+
+  /// Builds a clip region bounding box within the component [drawBounds] for a
+  /// given domain range [extent].
+  Rect _getClipBoundsForExtent(_Range<double> extent, Offset offset) {
+    // In RTL mode, the domain range extent has start on the right side of the
+    // chart. Adjust the calculated positions to define a regular left-anchored
+    // [Rect]. Clamp both ends to be within the draw area.
+    final drawBounds = Offset.zero & size;
+
+    final left = chartState.isRTL
+        ? clampDouble(extent.end, drawBounds.left, drawBounds.right)
+        : clampDouble(extent.start, drawBounds.left, drawBounds.right);
+
+    final right = chartState.isRTL
+        ? clampDouble(extent.start, drawBounds.left, drawBounds.right)
+        : clampDouble(extent.end, drawBounds.left, drawBounds.right);
+
+    return Rect.fromLTWH(
+        left,
+        drawBounds.top - drawBoundTopExtension,
+        right - left,
+        drawBounds.height + drawBoundTopExtension + drawBoundBottomExtension);
+  }
+
+  /// Creates a tuple of lists of [_LineRendererElement]s,
+  /// [_AreaRendererElement]s, [_DatumPoint]s for a given style segment of a
+  /// series.
+  ///
+  /// The first element in the returned array is a list of line elements, broken
+  /// apart by null data.
+  ///
+  /// The second element in the returned array is a list of area elements,
+  /// broken apart by null data.
+  ///
+  /// The third element in the returned array is a list of all of the points for
+  /// the entire series. This is intended to be used as the [previousPointList]
+  /// for the next series.
+  ///
+  /// [series] the series that this line represents.
+  ///
+  /// [styleSegment] represents the rendering style for a subset of the series
+  /// data, bounded by its domainExtent.
+  ///
+  /// [previousPointList] contains the points for the line below this series in
+  /// the stack, if stacking is enabled. It forms the bottom edges for the area
+  /// skirt.
+  ///
+  /// [initializeFromZero] controls whether we generate elements with measure
+  /// values of 0, or using series data. This should be true when calculating
+  /// point positions to animate in from the measure axis.
+  List<Object> _createLineAndAreaElements(
+    ImmutableSeries<D> series,
+    _LineRendererElement<D> styleSegment,
+    List<_DatumPoint<D>>? previousPointList,
+    bool initializeFromZero,
+  ) {
+    final measureAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>)
+            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
+
+    final color = styleSegment.color;
+    final areaColor = styleSegment.areaColor;
+    final dashPattern = styleSegment.dashPattern;
+    final domainExtent = styleSegment.domainExtent;
+    final strokeWidth = styleSegment.strokeWidth;
+    final styleKey = styleSegment.styleKey;
+    final roundEndCaps = styleSegment.roundEndCaps;
+
+    // Get a list of all positioned points for this series.
+    final pointList = _createPointListForSeries(series, initializeFromZero);
+
+    // Break pointList up into sets of line and area segments, divided by null
+    // measure values in the series data.
+    final segmentsList = _createLineAndAreaSegmentsForSeries(
+        pointList, previousPointList, series, initializeFromZero);
+    final lineSegments = segmentsList[0];
+    final areaSegments = segmentsList[1];
+    final boundsSegment = segmentsList[2];
+
+    _currentKeys.add(styleKey);
+
+    final positionExtent = _createPositionExtent(series, styleSegment);
+
+    // Get the line elements we are going to to set up.
+    final lineElements = <_LineRendererElement<D>>[];
+    for (int index = 0; index < lineSegments.length; index += 1) {
+      final linePointList = lineSegments[index];
+
+      // Update the set of areas that still exist in the series data.
+      final lineStyleKey = '${styleKey}__line__$index';
+      _currentKeys.add(lineStyleKey);
+
+      lineElements.add(_LineRendererElement<D>(
+        points: linePointList,
+        color: color,
+        areaColor: areaColor,
+        dashPattern: dashPattern,
+        domainExtent: domainExtent,
+        measureAxisPosition: measureAxis.getLocation(0.0),
+        positionExtent: positionExtent,
+        strokeWidth: strokeWidth,
+        styleKey: lineStyleKey,
+        roundEndCaps: roundEndCaps,
+      ));
+    }
+
+    // Get the area elements we are going to set up.
+    final areaElements = <_AreaRendererElement<D>>[];
+    if (renderer.config.includeArea) {
+      for (int index = 0; index < areaSegments.length; index += 1) {
+        final areaPointList = areaSegments[index];
+
+        // Update the set of areas that still exist in the series data.
+        final areaStyleKey = '${styleKey}__area_$index';
+        _currentKeys.add(areaStyleKey);
+
+        areaElements.add(_AreaRendererElement<D>(
+          points: areaPointList,
+          color: color,
+          areaColor: areaColor,
+          domainExtent: domainExtent,
+          measureAxisPosition: measureAxis.getLocation(0.0)!,
+          positionExtent: positionExtent,
+          styleKey: areaStyleKey,
+        ));
+      }
+    }
+
+    // Create the bounds element
+    final boundsElements = <_AreaRendererElement<D>>[];
+    if (renderer._hasMeasureBounds) {
+      // Update the set of bounds that still exist in the series data.
+      for (int index = 0; index < boundsSegment.length; index += 1) {
+        final boundsPointList = boundsSegment[index];
+
+        final boundsStyleKey = '${styleKey}__bounds_$index';
+        _currentKeys.add(boundsStyleKey);
+
+        boundsElements.add(_AreaRendererElement<D>(
+          points: boundsPointList,
+          color: color,
+          areaColor: areaColor,
+          domainExtent: domainExtent,
+          measureAxisPosition: measureAxis.getLocation(0.0)!,
+          positionExtent: positionExtent,
+          styleKey: boundsStyleKey,
+        ));
+      }
+    }
+
+    return [lineElements, areaElements, pointList, boundsElements];
+  }
+
+  /// Builds a list of data points for the entire series.
+  ///
+  /// [series] the series that this line represents.
+  ///
+  /// [initializeFromZero] controls whether we generate elements with measure
+  /// values of 0, or using series data. This should be true when calculating
+  /// point positions to animate in from the measure axis.
+  List<_DatumPoint<D>> _createPointListForSeries(
+    ImmutableSeries<D> series,
+    bool initializeFromZero,
+  ) {
+    final domainAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
+    final domainFn = series.domainFn;
+    final measureAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>)
+            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
+    final measureFn = series.measureFn;
+    final measureOffsetFn = series.measureOffsetFn!;
+
+    final pointList = <_DatumPoint<D>>[];
+
+    // Generate [_DatumPoints]s for the series data.
+    for (int index = 0; index < series.data.length; index += 1) {
+      final Object? datum = series.data[index];
+
+      // TODO: Animate from the nearest lines in the stack.
+      num? measure = measureFn(index);
+      if (measure != null && initializeFromZero) {
+        measure = 0.0;
+      }
+
+      num? measureOffset = measureOffsetFn(index);
+
+      if (measureOffset != null && initializeFromZero) {
+        measureOffset = 0.0;
+      }
+
+      pointList.add(renderer._getPoint(
+        datum,
+        domainFn(index),
+        series,
+        domainAxis!,
+        measure,
+        measureOffset,
+        measureAxis,
+        index: index,
+      ));
+    }
+
+    return pointList;
+  }
+
+  /// Builds a list of line and area segments for a series.
+  ///
+  /// This method returns a list of two elements. The first is a list of line
+  /// segments, and the second is a list of area segments. Both sets of segments
+  /// are broken up by null measure values in the series data.
+  ///
+  /// [pointList] list of all points in the line.
+  ///
+  /// [previousPointList] list of all points in the line below this one in the
+  /// stack.
+  ///
+  /// [series] the series that this line represents.
+  List<List<List<_DatumPoint<D>>>> _createLineAndAreaSegmentsForSeries(
+      List<_DatumPoint<D>> pointList,
+      List<_DatumPoint<D>>? previousPointList,
+      ImmutableSeries<D> series,
+      bool initializeFromZero) {
+    final lineSegments = <List<_DatumPoint<D>>>[];
+    final areaSegments = <List<_DatumPoint<D>>>[];
+    final boundsSegments = <List<_DatumPoint<D>>>[];
+
+    int? startPointIndex;
+    int? endPointIndex;
+
+    // Only build bound segments for this series if it has bounds functions.
+    final seriesHasMeasureBounds = series.measureUpperBoundFn != null &&
+        series.measureLowerBoundFn != null;
+
+    for (int index = 0; index < pointList.length; index += 1) {
+      final point = pointList[index];
+
+      if (point.dy == null) {
+        if (startPointIndex == null) {
+          continue;
+        }
+        assert(endPointIndex != null);
+
+        lineSegments.add(
+            _createLineSegment(startPointIndex, endPointIndex!, pointList));
+
+        // Isolated data points are handled by the line painter. Do not add an
+        // area segment for them.
+        if (startPointIndex != endPointIndex) {
+          if (renderer.config.includeArea) {
+            areaSegments.add(_createAreaSegment(startPointIndex, endPointIndex,
+                pointList, previousPointList, series, initializeFromZero));
+          }
+          if (seriesHasMeasureBounds) {
+            boundsSegments.add(_createBoundsSegment(
+                pointList.sublist(startPointIndex, endPointIndex + 1),
+                series,
+                initializeFromZero));
+          }
+        }
+
+        startPointIndex = null;
+        endPointIndex = null;
+        continue;
+      }
+
+      startPointIndex ??= index;
+      endPointIndex = index;
+    }
+
+    // Create an area point list for the final segment. This will be the only
+    // segment if no null measure values were found in the series.
+    if (startPointIndex != null && endPointIndex != null) {
+      lineSegments
+          .add(_createLineSegment(startPointIndex, endPointIndex, pointList));
+
+      // Isolated data points are handled by the line painter. Do not add an
+      // area segment for them.
+      if (startPointIndex != endPointIndex) {
+        if (renderer.config.includeArea) {
+          areaSegments.add(_createAreaSegment(startPointIndex, endPointIndex,
+              pointList, previousPointList, series, initializeFromZero));
+        }
+
+        if (seriesHasMeasureBounds) {
+          boundsSegments.add(_createBoundsSegment(
+              pointList.sublist(startPointIndex, endPointIndex + 1),
+              series,
+              initializeFromZero));
+        }
+      }
+    }
+
+    return [lineSegments, areaSegments, boundsSegments];
+  }
+
+  /// Builds a list of data points for a line segment.
+  ///
+  /// For a line, this is effectively just a sub list of [pointList].
+  ///
+  /// [start] index of the first point in the segment.
+  ///
+  /// [end] index of the last point in the segment.
+  ///
+  /// [pointList] list of all points in the line.
+  List<_DatumPoint<D>> _createLineSegment(
+          int start, int end, List<_DatumPoint<D>> pointList) =>
+      pointList.sublist(start, end + 1);
+
+  /// Builds a list of data points for an area segment.
+  ///
+  /// The list of points will include a baseline at the domain axis if there was
+  /// no previous line in the stack. Otherwise, the bottom of the shape will
+  /// consist of the points from the previous series that line up with the
+  /// current series.
+  ///
+  /// [start] index of the first point in the segment.
+  ///
+  /// [end] index of the last point in the segment.
+  ///
+  /// [pointList] list of all points in the line.
+  ///
+  /// [previousPointList] list of all points in the line below this one in the
+  /// stack.
+  ///
+  /// [series] the series that this line represents.
+  List<_DatumPoint<D>> _createAreaSegment(
+      int start,
+      int end,
+      List<_DatumPoint<D>> pointList,
+      List<_DatumPoint<D>>? previousPointList,
+      ImmutableSeries<D> series,
+      bool initializeFromZero) {
+    final domainAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
+    final domainFn = series.domainFn;
+    final measureAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>)
+            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
+
+    final areaPointList = <_DatumPoint<D>>[];
+
+    if (!renderer.config.stacked || previousPointList == null) {
+      // Start area segments at the bottom of a stack by adding a bottom line
+      // segment along the measure axis.
+      areaPointList.add(renderer._getPoint(
+          null, domainFn(end), series, domainAxis!, 0.0, 0.0, measureAxis));
+
+      areaPointList.add(renderer._getPoint(
+          null, domainFn(start), series, domainAxis, 0.0, 0.0, measureAxis));
+    } else {
+      // Start subsequent area segments in a stack by adding the previous
+      // points in reverse order, so that we can get a properly closed
+      // polygon.
+      areaPointList.addAll(previousPointList.sublist(start, end + 1).reversed);
+    }
+
+    areaPointList.addAll(pointList.sublist(start, end + 1));
+
+    return areaPointList;
+  }
+
+  List<_DatumPoint<D>> _createBoundsSegment(List<_DatumPoint<D>> pointList,
+      ImmutableSeries<D> series, bool initializeFromZero) {
+    final measureAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>)
+            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
+    final areaPointList = <_DatumPoint<D>>[];
+
+    // Add all points for upper bounds.
+    areaPointList.addAll(
+      pointList.map(
+        (datumPoint) => _DatumPoint.from(
+          datumPoint,
+          datumPoint.dx,
+          initializeFromZero
+              ? datumPoint.dy
+              : measureAxis.getLocation(
+                  (series.measureUpperBoundFn!(datumPoint.index) ?? 0.0) +
+                      series.measureOffsetFn!(datumPoint.index)!,
+                ),
+        ),
+      ),
+    );
+
+    // Add all points for lower bounds, in reverse order.
+    areaPointList.addAll(
+      pointList.reversed.map(
+        (datumPoint) => _DatumPoint.from(
+          datumPoint,
+          datumPoint.dx,
+          initializeFromZero
+              ? datumPoint.dy
+              : measureAxis.getLocation(
+                  ((series.measureLowerBoundFn!(datumPoint.index) ?? 0.0) +
+                          series.measureOffsetFn!(datumPoint.index)!)
+                      .toDouble(),
+                ),
+        ),
+      ),
+    );
+
+    return areaPointList;
   }
 
   @override
@@ -413,7 +1074,7 @@ class LineRenderer<D, S extends BaseChart<D>>
 
           // Create the area elements.
           List<_AnimatedArea<D>>? animatingAreas;
-          if (config.includeArea) {
+          if (renderer.config.includeArea) {
             animatingAreas = <_AnimatedArea<D>>[];
 
             for (int index = 0; index < areaElementList.length; index += 1) {
@@ -427,7 +1088,7 @@ class LineRenderer<D, S extends BaseChart<D>>
           // Create the bound elements separately from area elements, because
           // it needs to be rendered on top of the area elements.
           List<_AnimatedArea<D>>? animatingBounds;
-          if (_hasMeasureBounds) {
+          if (renderer._hasMeasureBounds) {
             animatingBounds ??= <_AnimatedArea<D>>[];
 
             for (int index = 0; index < boundsElementList.length; index += 1) {
@@ -478,7 +1139,7 @@ class LineRenderer<D, S extends BaseChart<D>>
           animatingElements.lines[index].setNewTarget(lineElement);
         }
 
-        if (config.includeArea) {
+        if (renderer.config.includeArea) {
           for (int index = 0; index < areaElementList.length; index += 1) {
             final areaElement = areaElementList[index];
 
@@ -494,7 +1155,7 @@ class LineRenderer<D, S extends BaseChart<D>>
           }
         }
 
-        if (_hasMeasureBounds) {
+        if (renderer._hasMeasureBounds) {
           for (int index = 0; index < boundsElementList.length; index += 1) {
             final boundElement = boundsElementList[index];
 
@@ -546,416 +1207,6 @@ class LineRenderer<D, S extends BaseChart<D>>
     });
   }
 
-  /// Creates a tuple of lists of [_LineRendererElement]s,
-  /// [_AreaRendererElement]s, [_DatumPoint]s for a given style segment of a
-  /// series.
-  ///
-  /// The first element in the returned array is a list of line elements, broken
-  /// apart by null data.
-  ///
-  /// The second element in the returned array is a list of area elements,
-  /// broken apart by null data.
-  ///
-  /// The third element in the returned array is a list of all of the points for
-  /// the entire series. This is intended to be used as the [previousPointList]
-  /// for the next series.
-  ///
-  /// [series] the series that this line represents.
-  ///
-  /// [styleSegment] represents the rendering style for a subset of the series
-  /// data, bounded by its domainExtent.
-  ///
-  /// [previousPointList] contains the points for the line below this series in
-  /// the stack, if stacking is enabled. It forms the bottom edges for the area
-  /// skirt.
-  ///
-  /// [initializeFromZero] controls whether we generate elements with measure
-  /// values of 0, or using series data. This should be true when calculating
-  /// point positions to animate in from the measure axis.
-  List<Object> _createLineAndAreaElements(
-    ImmutableSeries<D> series,
-    _LineRendererElement<D> styleSegment,
-    List<_DatumPoint<D>>? previousPointList,
-    bool initializeFromZero,
-  ) {
-    final measureAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>)
-            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
-
-    final color = styleSegment.color;
-    final areaColor = styleSegment.areaColor;
-    final dashPattern = styleSegment.dashPattern;
-    final domainExtent = styleSegment.domainExtent;
-    final strokeWidth = styleSegment.strokeWidth;
-    final styleKey = styleSegment.styleKey;
-    final roundEndCaps = styleSegment.roundEndCaps;
-
-    // Get a list of all positioned points for this series.
-    final pointList = _createPointListForSeries(series, initializeFromZero);
-
-    // Break pointList up into sets of line and area segments, divided by null
-    // measure values in the series data.
-    final segmentsList = _createLineAndAreaSegmentsForSeries(
-        pointList, previousPointList, series, initializeFromZero);
-    final lineSegments = segmentsList[0];
-    final areaSegments = segmentsList[1];
-    final boundsSegment = segmentsList[2];
-
-    _currentKeys.add(styleKey);
-
-    final positionExtent = _createPositionExtent(series, styleSegment);
-
-    // Get the line elements we are going to to set up.
-    final lineElements = <_LineRendererElement<D>>[];
-    for (int index = 0; index < lineSegments.length; index += 1) {
-      final linePointList = lineSegments[index];
-
-      // Update the set of areas that still exist in the series data.
-      final lineStyleKey = '${styleKey}__line__$index';
-      _currentKeys.add(lineStyleKey);
-
-      lineElements.add(_LineRendererElement<D>(
-        points: linePointList,
-        color: color,
-        areaColor: areaColor,
-        dashPattern: dashPattern,
-        domainExtent: domainExtent,
-        measureAxisPosition: measureAxis.getLocation(0.0),
-        positionExtent: positionExtent,
-        strokeWidth: strokeWidth,
-        styleKey: lineStyleKey,
-        roundEndCaps: roundEndCaps,
-      ));
-    }
-
-    // Get the area elements we are going to set up.
-    final areaElements = <_AreaRendererElement<D>>[];
-    if (config.includeArea) {
-      for (int index = 0; index < areaSegments.length; index += 1) {
-        final areaPointList = areaSegments[index];
-
-        // Update the set of areas that still exist in the series data.
-        final areaStyleKey = '${styleKey}__area_$index';
-        _currentKeys.add(areaStyleKey);
-
-        areaElements.add(_AreaRendererElement<D>(
-          points: areaPointList,
-          color: color,
-          areaColor: areaColor,
-          domainExtent: domainExtent,
-          measureAxisPosition: measureAxis.getLocation(0.0)!,
-          positionExtent: positionExtent,
-          styleKey: areaStyleKey,
-        ));
-      }
-    }
-
-    // Create the bounds element
-    final boundsElements = <_AreaRendererElement<D>>[];
-    if (_hasMeasureBounds) {
-      // Update the set of bounds that still exist in the series data.
-      for (int index = 0; index < boundsSegment.length; index += 1) {
-        final boundsPointList = boundsSegment[index];
-
-        final boundsStyleKey = '${styleKey}__bounds_$index';
-        _currentKeys.add(boundsStyleKey);
-
-        boundsElements.add(_AreaRendererElement<D>(
-          points: boundsPointList,
-          color: color,
-          areaColor: areaColor,
-          domainExtent: domainExtent,
-          measureAxisPosition: measureAxis.getLocation(0.0)!,
-          positionExtent: positionExtent,
-          styleKey: boundsStyleKey,
-        ));
-      }
-    }
-
-    return [lineElements, areaElements, pointList, boundsElements];
-  }
-
-  /// Builds a list of data points for the entire series.
-  ///
-  /// [series] the series that this line represents.
-  ///
-  /// [initializeFromZero] controls whether we generate elements with measure
-  /// values of 0, or using series data. This should be true when calculating
-  /// point positions to animate in from the measure axis.
-  List<_DatumPoint<D>> _createPointListForSeries(
-    ImmutableSeries<D> series,
-    bool initializeFromZero,
-  ) {
-    final domainAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
-    final domainFn = series.domainFn;
-    final measureAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>)
-            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
-    final measureFn = series.measureFn;
-    final measureOffsetFn = series.measureOffsetFn!;
-
-    final pointList = <_DatumPoint<D>>[];
-
-    // Generate [_DatumPoints]s for the series data.
-    for (int index = 0; index < series.data.length; index += 1) {
-      final Object? datum = series.data[index];
-
-      // TODO: Animate from the nearest lines in the stack.
-      num? measure = measureFn(index);
-      if (measure != null && initializeFromZero) {
-        measure = 0.0;
-      }
-
-      num? measureOffset = measureOffsetFn(index);
-
-      if (measureOffset != null && initializeFromZero) {
-        measureOffset = 0.0;
-      }
-
-      pointList.add(_getPoint(
-        datum,
-        domainFn(index),
-        series,
-        domainAxis!,
-        measure,
-        measureOffset,
-        measureAxis,
-        index: index,
-      ));
-    }
-
-    return pointList;
-  }
-
-  /// Builds a list of line and area segments for a series.
-  ///
-  /// This method returns a list of two elements. The first is a list of line
-  /// segments, and the second is a list of area segments. Both sets of segments
-  /// are broken up by null measure values in the series data.
-  ///
-  /// [pointList] list of all points in the line.
-  ///
-  /// [previousPointList] list of all points in the line below this one in the
-  /// stack.
-  ///
-  /// [series] the series that this line represents.
-  List<List<List<_DatumPoint<D>>>> _createLineAndAreaSegmentsForSeries(
-      List<_DatumPoint<D>> pointList,
-      List<_DatumPoint<D>>? previousPointList,
-      ImmutableSeries<D> series,
-      bool initializeFromZero) {
-    final lineSegments = <List<_DatumPoint<D>>>[];
-    final areaSegments = <List<_DatumPoint<D>>>[];
-    final boundsSegments = <List<_DatumPoint<D>>>[];
-
-    int? startPointIndex;
-    int? endPointIndex;
-
-    // Only build bound segments for this series if it has bounds functions.
-    final seriesHasMeasureBounds = series.measureUpperBoundFn != null &&
-        series.measureLowerBoundFn != null;
-
-    for (int index = 0; index < pointList.length; index += 1) {
-      final point = pointList[index];
-
-      if (point.dy == null) {
-        if (startPointIndex == null) {
-          continue;
-        }
-        assert(endPointIndex != null);
-
-        lineSegments.add(
-            _createLineSegment(startPointIndex, endPointIndex!, pointList));
-
-        // Isolated data points are handled by the line painter. Do not add an
-        // area segment for them.
-        if (startPointIndex != endPointIndex) {
-          if (config.includeArea) {
-            areaSegments.add(_createAreaSegment(startPointIndex, endPointIndex,
-                pointList, previousPointList, series, initializeFromZero));
-          }
-          if (seriesHasMeasureBounds) {
-            boundsSegments.add(_createBoundsSegment(
-                pointList.sublist(startPointIndex, endPointIndex + 1),
-                series,
-                initializeFromZero));
-          }
-        }
-
-        startPointIndex = null;
-        endPointIndex = null;
-        continue;
-      }
-
-      startPointIndex ??= index;
-      endPointIndex = index;
-    }
-
-    // Create an area point list for the final segment. This will be the only
-    // segment if no null measure values were found in the series.
-    if (startPointIndex != null && endPointIndex != null) {
-      lineSegments
-          .add(_createLineSegment(startPointIndex, endPointIndex, pointList));
-
-      // Isolated data points are handled by the line painter. Do not add an
-      // area segment for them.
-      if (startPointIndex != endPointIndex) {
-        if (config.includeArea) {
-          areaSegments.add(_createAreaSegment(startPointIndex, endPointIndex,
-              pointList, previousPointList, series, initializeFromZero));
-        }
-
-        if (seriesHasMeasureBounds) {
-          boundsSegments.add(_createBoundsSegment(
-              pointList.sublist(startPointIndex, endPointIndex + 1),
-              series,
-              initializeFromZero));
-        }
-      }
-    }
-
-    return [lineSegments, areaSegments, boundsSegments];
-  }
-
-  /// Builds a list of data points for a line segment.
-  ///
-  /// For a line, this is effectively just a sub list of [pointList].
-  ///
-  /// [start] index of the first point in the segment.
-  ///
-  /// [end] index of the last point in the segment.
-  ///
-  /// [pointList] list of all points in the line.
-  List<_DatumPoint<D>> _createLineSegment(
-          int start, int end, List<_DatumPoint<D>> pointList) =>
-      pointList.sublist(start, end + 1);
-
-  /// Builds a list of data points for an area segment.
-  ///
-  /// The list of points will include a baseline at the domain axis if there was
-  /// no previous line in the stack. Otherwise, the bottom of the shape will
-  /// consist of the points from the previous series that line up with the
-  /// current series.
-  ///
-  /// [start] index of the first point in the segment.
-  ///
-  /// [end] index of the last point in the segment.
-  ///
-  /// [pointList] list of all points in the line.
-  ///
-  /// [previousPointList] list of all points in the line below this one in the
-  /// stack.
-  ///
-  /// [series] the series that this line represents.
-  List<_DatumPoint<D>> _createAreaSegment(
-      int start,
-      int end,
-      List<_DatumPoint<D>> pointList,
-      List<_DatumPoint<D>>? previousPointList,
-      ImmutableSeries<D> series,
-      bool initializeFromZero) {
-    final domainAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
-    final domainFn = series.domainFn;
-    final measureAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>)
-            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
-
-    final areaPointList = <_DatumPoint<D>>[];
-
-    if (!config.stacked || previousPointList == null) {
-      // Start area segments at the bottom of a stack by adding a bottom line
-      // segment along the measure axis.
-      areaPointList.add(_getPoint(
-          null, domainFn(end), series, domainAxis!, 0.0, 0.0, measureAxis));
-
-      areaPointList.add(_getPoint(
-          null, domainFn(start), series, domainAxis, 0.0, 0.0, measureAxis));
-    } else {
-      // Start subsequent area segments in a stack by adding the previous
-      // points in reverse order, so that we can get a properly closed
-      // polygon.
-      areaPointList.addAll(previousPointList.sublist(start, end + 1).reversed);
-    }
-
-    areaPointList.addAll(pointList.sublist(start, end + 1));
-
-    return areaPointList;
-  }
-
-  List<_DatumPoint<D>> _createBoundsSegment(List<_DatumPoint<D>> pointList,
-      ImmutableSeries<D> series, bool initializeFromZero) {
-    final measureAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>)
-            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
-    final areaPointList = <_DatumPoint<D>>[];
-
-    // Add all points for upper bounds.
-    areaPointList.addAll(
-      pointList.map(
-        (datumPoint) => _DatumPoint.from(
-          datumPoint,
-          datumPoint.dx,
-          initializeFromZero
-              ? datumPoint.dy
-              : measureAxis.getLocation(
-                  (series.measureUpperBoundFn!(datumPoint.index) ?? 0.0) +
-                      series.measureOffsetFn!(datumPoint.index)!,
-                ),
-        ),
-      ),
-    );
-
-    // Add all points for lower bounds, in reverse order.
-    areaPointList.addAll(
-      pointList.reversed.map(
-        (datumPoint) => _DatumPoint.from(
-          datumPoint,
-          datumPoint.dx,
-          initializeFromZero
-              ? datumPoint.dy
-              : measureAxis.getLocation(
-                  ((series.measureLowerBoundFn!(datumPoint.index) ?? 0.0) +
-                          series.measureOffsetFn!(datumPoint.index)!)
-                      .toDouble(),
-                ),
-        ),
-      ),
-    );
-
-    return areaPointList;
-  }
-
-  /// Converts the domain value extent for the series into axis positions,
-  /// clamped to the edges of the draw area.
-  ///
-  /// [series] the series that this line represents.
-  ///
-  /// [details] represents the element details for a line segment.
-  _Range<double> _createPositionExtent(
-    ImmutableSeries<D> series,
-    _LineRendererElement<D> details,
-  ) {
-    final bounds = Rect.fromLTWH(0.0, 0.0, size.width, size.height);
-
-    final domainAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
-
-    // Convert the domain extent into axis positions.
-    // Clamp start position to the beginning of the draw area if it is outside
-    // the domain viewport range.
-    final startPosition = domainAxis!.getLocation(details.domainExtent.start) ??
-        bounds.left.toDouble();
-
-    // Clamp end position to the end of the draw area if it is outside the
-    // domain viewport range.
-    final endPosition = domainAxis.getLocation(details.domainExtent.end) ??
-        bounds.right.toDouble();
-
-    return _Range<double>(startPosition, endPosition);
-  }
-
   @override
   void paint(PaintingContext context, Offset offset) {
     super.paint(context, offset);
@@ -979,7 +1230,7 @@ class LineRenderer<D, S extends BaseChart<D>>
     }
 
     _seriesLineMap.forEach((String key, List<_AnimatedElements<D>> elements) {
-      if (config.includeArea) {
+      if (renderer.config.includeArea) {
         elements
             .map<List<_AnimatedArea<D>>>(
                 (_AnimatedElements<D> animatingElement) =>
@@ -997,7 +1248,7 @@ class LineRenderer<D, S extends BaseChart<D>>
         });
       }
 
-      if (_hasMeasureBounds) {
+      if (renderer._hasMeasureBounds) {
         elements
             .map<List<_AnimatedArea<D>>>(
                 (_AnimatedElements<D> animatingElement) =>
@@ -1015,7 +1266,7 @@ class LineRenderer<D, S extends BaseChart<D>>
         });
       }
 
-      if (config.includeLine) {
+      if (renderer.config.includeLine) {
         elements
             .map<List<_AnimatedLine<D>>>(
                 (_AnimatedElements<D> animatingElement) =>
@@ -1036,232 +1287,10 @@ class LineRenderer<D, S extends BaseChart<D>>
       }
     });
   }
-
-  /// Builds a clip region bounding box within the component [drawBounds] for a
-  /// given domain range [extent].
-  Rect _getClipBoundsForExtent(_Range<double> extent, Offset offset) {
-    // In RTL mode, the domain range extent has start on the right side of the
-    // chart. Adjust the calculated positions to define a regular left-anchored
-    // [Rect]. Clamp both ends to be within the draw area.
-    final drawBounds = Offset.zero & size;
-
-    final left = chartState.isRTL
-        ? clampDouble(extent.end, drawBounds.left, drawBounds.right)
-        : clampDouble(extent.start, drawBounds.left, drawBounds.right);
-
-    final right = chartState.isRTL
-        ? clampDouble(extent.start, drawBounds.left, drawBounds.right)
-        : clampDouble(extent.end, drawBounds.left, drawBounds.right);
-
-    return Rect.fromLTWH(
-        left,
-        drawBounds.top - drawBoundTopExtension,
-        right - left,
-        drawBounds.height + drawBoundTopExtension + drawBoundBottomExtension);
-  }
-
-  _DatumPoint<D> _getPoint(
-    dynamic datum,
-    D? domainValue,
-    ImmutableSeries<D> series,
-    ImmutableAxis<D> domainAxis,
-    num? measureValue,
-    num? measureOffsetValue,
-    ImmutableAxis<num> measureAxis, {
-    int? index,
-  }) {
-    final domainPosition = domainAxis.getLocation(domainValue);
-
-    final measurePosition = measureValue != null && measureOffsetValue != null
-        ? measureAxis.getLocation(measureValue + measureOffsetValue)
-        : null;
-
-    return _DatumPoint<D>(
-        datum: datum,
-        domain: domainValue,
-        series: series,
-        dx: domainPosition,
-        dy: measurePosition,
-        index: index);
-  }
-
-  @override
-  List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset globalPosition,
-    bool byDomain,
-    Rect? boundsOverride, {
-    bool selectOverlappingPoints = false,
-    bool selectExactEventLocation = false,
-  }) {
-    final nearest = <DatumDetails<D>>[];
-
-    final chartPoint = globalToLocal(globalPosition);
-
-    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
-      return nearest;
-    }
-
-    bool isFirstSeriesAbovePoint = false;
-
-    final componentBounds =
-        Rect.fromLTWH(0.0, 0.0, size.width, size.height); // TODO
-
-    for (final seriesSegments in _seriesLineMap.values) {
-      _DatumPoint<D>? nearestPoint;
-      double nearestDomainDistance = 10000.0;
-      double nearestMeasureDistance = 10000.0;
-      double nearestRelativeDistance = 10000.0;
-
-      for (final segment in seriesSegments) {
-        if (segment.overlaySeries) {
-          continue;
-        }
-
-        for (final p in segment.allPoints) {
-          // Don't look at points not in the drawArea.
-          if (p.dx! < componentBounds.left || p.dx! > componentBounds.right) {
-            continue;
-          }
-
-          double measureDistance;
-          double relativeDistance;
-          double domainDistance;
-
-          if (p.dy != null) {
-            measureDistance = (p.dy! - chartPoint.dy).abs();
-            domainDistance = (p.dx! - chartPoint.dx).abs();
-            relativeDistance = Point(chartPoint.dx, chartPoint.dy).distanceTo(
-              Point(
-                p.toPoint().dx,
-                p.toPoint().dy,
-              ),
-            );
-          } else {
-            // Null measures have no real position, so make them the farthest
-            // away by real distance.
-            measureDistance = double.infinity;
-            domainDistance = double.infinity;
-            relativeDistance = byDomain ? domainDistance : double.infinity;
-          }
-
-          if (byDomain) {
-            if ((domainDistance < nearestDomainDistance) ||
-                ((domainDistance == nearestDomainDistance) &&
-                    (measureDistance < nearestMeasureDistance))) {
-              nearestPoint = p;
-              nearestDomainDistance = domainDistance;
-              nearestMeasureDistance = measureDistance;
-              nearestRelativeDistance = relativeDistance;
-            }
-          } else {
-            if (relativeDistance < nearestRelativeDistance) {
-              nearestPoint = p;
-              nearestDomainDistance = domainDistance;
-              nearestMeasureDistance = measureDistance;
-              nearestRelativeDistance = relativeDistance;
-            }
-          }
-        }
-
-        // For area charts, check if the current series is the first series
-        // above [chartPoint] or not. If it is, it means that [chartPoint] is
-        // inside the area skirt of the current series. In this case, set the
-        // measure distance to 0 so the current [nearestPoint] has the smallest
-        // measure distance among all.
-        if (config.includeArea &&
-            !isFirstSeriesAbovePoint &&
-            nearestPoint != null &&
-            _isPointBelowSeries(chartPoint, nearestPoint, segment.allPoints)) {
-          nearestMeasureDistance = 0;
-          isFirstSeriesAbovePoint = true;
-        }
-      }
-
-      // Found a point, add it to the list.
-      if (nearestPoint != null) {
-        nearest.add(DatumDetails<D>(
-            chartPosition: NullablePoint(nearestPoint.dx, nearestPoint.dy),
-            datum: nearestPoint.datum,
-            domain: nearestPoint.domain,
-            series: nearestPoint.series,
-            domainDistance: nearestDomainDistance,
-            measureDistance: nearestMeasureDistance,
-            relativeDistance: nearestRelativeDistance));
-      }
-    }
-
-    // Note: the details are already sorted by domain & measure distance in
-    // base chart.
-
-    return nearest;
-  }
-
-  /// Checks if [chartPoint] is below the series represented by
-  /// [allPointsForSeries] or not.
-  ///
-  /// [nearestPoint] is the point in [allPointsForSeries] that is closest to
-  /// [chartPoint].
-  bool _isPointBelowSeries(Offset chartPoint, _DatumPoint<D> nearestPoint,
-      List<_DatumPoint<D>> allPointsForSeries) {
-    _DatumPoint<D>? leftPoint;
-    _DatumPoint<D>? rightPoint;
-    final nearestPointIdx =
-        allPointsForSeries.indexWhere((p) => p == nearestPoint);
-    if (chartPoint.dx < nearestPoint.dx!) {
-      leftPoint =
-          nearestPointIdx > 0 ? allPointsForSeries[nearestPointIdx - 1] : null;
-      rightPoint = nearestPoint;
-    } else {
-      leftPoint = nearestPoint;
-      rightPoint = nearestPointIdx < allPointsForSeries.length - 1
-          ? allPointsForSeries[nearestPointIdx + 1]
-          : null;
-    }
-    double limit = chartPoint.dy;
-    if (leftPoint != null &&
-        leftPoint.dy != null &&
-        rightPoint != null &&
-        rightPoint.dy != null) {
-      final slope =
-          (rightPoint.dy! - leftPoint.dy!) / (rightPoint.dx! - leftPoint.dx!);
-      limit = (chartPoint.dx - leftPoint.dx!) * slope + leftPoint.dy!;
-    } else if (leftPoint != null && leftPoint.dy != null) {
-      limit = leftPoint.dy!;
-    } else if (rightPoint != null && rightPoint.dy != null) {
-      limit = rightPoint.dy!;
-    }
-
-    return chartPoint.dy >= limit;
-  }
-
-  @override
-  DatumDetails<D> addPositionToDetailsForSeriesDatum(
-      DatumDetails<D> details, SeriesDatum<D> seriesDatum) {
-    final series = details.series!;
-
-    final domainAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
-    final measureAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>)
-            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
-
-    final point = _getPoint(
-      seriesDatum.datum,
-      details.domain,
-      series,
-      domainAxis!,
-      details.measure,
-      details.measureOffset,
-      measureAxis,
-    );
-    final chartPosition = NullablePoint(point.dx, point.dy);
-
-    return DatumDetails.from(details, chartPosition: chartPosition);
-  }
 }
 
 class _DatumPoint<D> extends NullablePoint {
-  _DatumPoint({
+  const _DatumPoint({
     this.datum,
     this.domain,
     this.series,
@@ -1735,13 +1764,13 @@ class LineRendererTester<D, S extends BaseChart<D>> {
 
   final LineRenderer<D, S> renderer;
 
-  Iterable<String> get seriesKeys => renderer._seriesLineMap.keys;
+//  Iterable<String> get seriesKeys => renderer._seriesLineMap.keys;
 
-  void setSeriesKeys(List<String> keys) {
-    renderer._seriesLineMap.addEntries(keys.map((key) => MapEntry(key, [])));
-  }
+  // void setSeriesKeys(List<String> keys) {
+  //   renderer._seriesLineMap.addEntries(keys.map((key) => MapEntry(key, [])));
+  // }
 
-  void merge(List<ImmutableSeries<D>> series) {
-    renderer._mergeIntoSeriesMap(series);
-  }
+  // void merge(List<ImmutableSeries<D>> series) {
+  //   renderer._mergeIntoSeriesMap(series);
+  // }
 }

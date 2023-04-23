@@ -24,7 +24,7 @@ import '../../datum_details.dart' show DatumDetails;
 import '../../processed_series.dart' show ImmutableSeries;
 import '../../selection_model.dart' show SelectionModelType;
 import '../../series_datum.dart' show SeriesDatum;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 import 'selection_trigger.dart' show SelectionTrigger;
 
 /// Chart behavior that listens to the given eventTrigger and updates the
@@ -60,7 +60,7 @@ import 'selection_trigger.dart' show SelectionTrigger;
 /// Any previous SelectNearest behavior for that selection model will be
 /// removed.
 class SelectNearest<D> extends ChartBehavior<D> {
-  SelectNearest({
+  const SelectNearest({
     this.selectionModelType = SelectionModelType.info,
     this.selectionMode = SelectionMode.expandToDomain,
     this.selectAcrossAllSeriesRendererComponents = true,
@@ -102,12 +102,31 @@ class SelectNearest<D> extends ChartBehavior<D> {
   /// Wait time in milliseconds for when the next event can be called.
   final int? hoverEventDelay;
 
-  late BaseChartState<D, BaseChart<D>> _chartState;
+  @override
+  String get role => 'SelectNearest-$selectionModelType';
+
+  @override
+  SelectNearestState<D, S> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return SelectNearestState<D, S>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class SelectNearestState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, SelectNearest<D>> {
+  const SelectNearestState({
+    required super.behavior,
+    required super.chartState,
+  });
 
   bool _onSelect(Offset globalPosition, [double? ignored]) {
-    final details = _chartState.getNearestDatumDetailPerSeries(
+    final details = chartState.getNearestDatumDetailPerSeries(
       globalPosition,
-      selectAcrossAllSeriesRendererComponents,
+      behavior.selectAcrossAllSeriesRendererComponents,
     );
 
     final seriesList = <ImmutableSeries<D>>[];
@@ -116,15 +135,15 @@ class SelectNearest<D> extends ChartBehavior<D> {
     if (details.isNotEmpty) {
       details.sort((a, b) => a.domainDistance!.compareTo(b.domainDistance!));
 
-      if (maximumDomainDistance == null ||
-          details[0].domainDistance! <= maximumDomainDistance!) {
+      if (behavior.maximumDomainDistance == null ||
+          details[0].domainDistance! <= behavior.maximumDomainDistance!) {
         seriesDatumList = _extractSeriesFromNearestSelection(details);
 
         // Filter out points from overlay series.
         seriesDatumList
             .removeWhere((SeriesDatum<D> datum) => datum.series.overlaySeries);
 
-        if (selectClosestSeries && seriesList.isEmpty) {
+        if (behavior.selectClosestSeries && seriesList.isEmpty) {
           if (details.first.series!.overlaySeries) {
             // If the closest "details" was from an overlay series, grab the
             // closest remaining series instead. In this case, we need to sort a
@@ -146,14 +165,14 @@ class SelectNearest<D> extends ChartBehavior<D> {
       }
     }
 
-    return _chartState
-        .getSelectionModel(selectionModelType)
+    return chartState
+        .getSelectionModel(behavior.selectionModelType)
         .updateSelection(seriesDatumList, seriesList);
   }
 
   List<SeriesDatum<D>> _extractSeriesFromNearestSelection(
       List<DatumDetails<D>> details) {
-    return switch (selectionMode) {
+    return switch (behavior.selectionMode) {
       SelectionMode.expandToDomain => _expandToDomain(details.first),
       SelectionMode.selectOverlapping => details
           .map((datumDetails) =>
@@ -166,8 +185,8 @@ class SelectNearest<D> extends ChartBehavior<D> {
   }
 
   bool _onDeselectAll() {
-    _chartState
-        .getSelectionModel(selectionModelType)
+    chartState
+        .getSelectionModel(behavior.selectionModelType)
         .updateSelection(<SeriesDatum<D>>[], <ImmutableSeries<D>>[]);
     return false;
   }
@@ -179,7 +198,7 @@ class SelectNearest<D> extends ChartBehavior<D> {
     ];
     final nearestDomain = nearestDetails.domain;
 
-    for (final ImmutableSeries<D> series in _chartState.currentSeriesList) {
+    for (final ImmutableSeries<D> series in chartState.currentSeriesList) {
       final domainFn = series.domainFn;
       final domainLowerBoundFn = series.domainLowerBoundFn;
       final domainUpperBoundFn = series.domainUpperBoundFn;
@@ -235,8 +254,8 @@ class SelectNearest<D> extends ChartBehavior<D> {
     final Map<Type, GestureRecognizerFactory> gestures =
         <Type, GestureRecognizerFactory>{};
 
-    if (eventTrigger == SelectionTrigger.tapAndDrag ||
-        eventTrigger == SelectionTrigger.pressHold) {
+    if (behavior.eventTrigger == SelectionTrigger.tapAndDrag ||
+        behavior.eventTrigger == SelectionTrigger.pressHold) {
       gestures[PanGestureRecognizer] =
           GestureRecognizerFactoryWithHandlers<PanGestureRecognizer>(
         () => PanGestureRecognizer(debugOwner: this),
@@ -245,15 +264,15 @@ class SelectNearest<D> extends ChartBehavior<D> {
           instance.onUpdate = (details) => _onSelect(details.globalPosition);
           instance.onCancel = () => _onDeselectAll();
 
-          if (eventTrigger == SelectionTrigger.pressHold) {
+          if (behavior.eventTrigger == SelectionTrigger.pressHold) {
             instance.onEnd = (_) => _onDeselectAll();
           }
         },
       );
     }
 
-    if (eventTrigger == SelectionTrigger.tapAndDrag ||
-        eventTrigger == SelectionTrigger.tap) {
+    if (behavior.eventTrigger == SelectionTrigger.tapAndDrag ||
+        behavior.eventTrigger == SelectionTrigger.tap) {
       gestures[TapGestureRecognizer] =
           GestureRecognizerFactoryWithHandlers<TapGestureRecognizer>(
         () => TapGestureRecognizer(debugOwner: this),
@@ -263,8 +282,8 @@ class SelectNearest<D> extends ChartBehavior<D> {
       );
     }
 
-    if (eventTrigger == SelectionTrigger.longPressHold ||
-        eventTrigger == SelectionTrigger.pressHold) {
+    if (behavior.eventTrigger == SelectionTrigger.longPressHold ||
+        behavior.eventTrigger == SelectionTrigger.pressHold) {
       gestures[LongPressGestureRecognizer] =
           GestureRecognizerFactoryWithHandlers<LongPressGestureRecognizer>(
         () => LongPressGestureRecognizer(debugOwner: this),
@@ -284,26 +303,15 @@ class SelectNearest<D> extends ChartBehavior<D> {
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState;
-  }
-
-  @override
-  void dispose() {}
-
-  @override
-  String get role => 'SelectNearest-$selectionModelType';
-
-  @override
-  Widget buildBehavior(BuildContext context) {
+  Widget buildBehaviorWidget(BuildContext context) {
     return MouseRegion(
       cursor: SystemMouseCursors.click,
-      onHover: eventTrigger == SelectionTrigger.hover
-          ? (event) => hoverEventDelay == null
+      onHover: behavior.eventTrigger == SelectionTrigger.hover
+          ? (event) => behavior.hoverEventDelay == null
               ? _onSelect(event.position)
               : throttle<Offset, bool>(
                   _onSelect,
-                  delay: Duration(milliseconds: hoverEventDelay!),
+                  delay: Duration(milliseconds: behavior.hoverEventDelay!),
                   defaultReturn: false,
                 )(event.position)
           : null,

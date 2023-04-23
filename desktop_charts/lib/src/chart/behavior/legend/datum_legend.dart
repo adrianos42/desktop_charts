@@ -15,10 +15,14 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:desktop/desktop.dart';
 import 'package:flutter/widgets.dart';
+import '../../../symbol_renderer.dart';
 
+import '../../base_chart.dart';
 import '../../datum_details.dart' show MeasureFormatter;
 import '../../selection_model.dart' show SelectionModelType;
+import '../chart_behavior.dart' show ChartBehaviorState, BehaviorPosition;
 import 'legend.dart';
 import 'legend_entry_generator.dart';
 import 'per_datum_legend_entry_generator.dart';
@@ -33,25 +37,54 @@ import 'per_datum_legend_entry_generator.dart';
 ///
 /// TODO: Implement tap to hide individual data in the series.
 class DatumLegend<D> extends Legend<D> {
-  DatumLegend({
+  const DatumLegend({
     SelectionModelType? selectionModelType,
-    LegendEntryGenerator<D>? legendEntryGenerator,
-    MeasureFormatter? measureFormatter,
-    MeasureFormatter? secondaryMeasureFormatter,
-    bool? showMeasures,
-    LegendDefaultMeasure? legendDefaultMeasure,
+    LegendEntryGeneratorBuilder<D>? legendEntryGenerator,
+    this.measureFormatter,
+    this.secondaryMeasureFormatter,
+    this.showMeasures,
+    this.legendDefaultMeasure,
+    super.position,
+    super.insideJustification,
+    super.outsideJustification,
     TextStyle? entryTextStyle,
   }) : super(
           selectionModelType: selectionModelType ?? SelectionModelType.info,
-          legendEntryGenerator:
-              legendEntryGenerator ?? PerDatumLegendEntryGenerator(),
+          legendEntryGeneratorBuilder:
+              legendEntryGenerator ?? _perDatumLegendEntryGeneratorBuilder,
           entryTextStyle: entryTextStyle,
-        ) {
+        );
+
+  final MeasureFormatter? measureFormatter;
+  final MeasureFormatter? secondaryMeasureFormatter;
+  final bool? showMeasures;
+  final LegendDefaultMeasure? legendDefaultMeasure;
+
+  static LegendEntryGenerator<D> _perDatumLegendEntryGeneratorBuilder<D>() {
+    return PerDatumLegendEntryGenerator<D>();
+  }
+
+  @override
+  ChartBehaviorState<D, S, DatumLegend<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _DatumLegendState(behavior: this, chartState: chartState);
+  }
+}
+
+// class DatumLegendState<D> extends ChartBehaviorState {}
+
+class _DatumLegendState<D, S extends BaseChart<D>>
+    extends LegendState<D, S, DatumLegend<D>> {
+  _DatumLegendState({
+    required super.behavior,
+    required super.chartState,
+  }) {
     // Calling the setters will automatically use non-null default values.
-    this.showMeasures = showMeasures;
-    this.legendDefaultMeasure = legendDefaultMeasure;
-    this.measureFormatter = measureFormatter;
-    this.secondaryMeasureFormatter = secondaryMeasureFormatter;
+    showMeasures = behavior.showMeasures;
+    legendDefaultMeasure = behavior.legendDefaultMeasure;
+    measureFormatter = behavior.measureFormatter;
+    secondaryMeasureFormatter = behavior.secondaryMeasureFormatter;
   }
 
   /// Whether or not the series legend should show measures on datum selection.
@@ -79,7 +112,7 @@ class DatumLegend<D> extends Legend<D> {
   /// If [legendDefaultMeasure] is set to null, it is changed to the default of
   /// none.
   LegendDefaultMeasure get legendDefaultMeasure =>
-      legendEntryGenerator.legendDefaultMeasure;
+      throw ''; // legendEntryGenerator.legendDefaultMeasure;
 
   set legendDefaultMeasure(LegendDefaultMeasure? legendDefaultMeasure) {
     legendEntryGenerator.legendDefaultMeasure =
@@ -107,17 +140,66 @@ class DatumLegend<D> extends Legend<D> {
   }
 
   @override
-  void updateLegend() {
+  Widget buildBehaviorWidget(BuildContext context) {
+    final entryWidgets = (legendEntries ?? []).map((entry) {
+      //final isHidden = isSeriesHidden(entry.series.id);
 
-  }
+      return AnimatedBuilder(
+        animation: chartState.animationPosition,
+        builder: (context, child) {
+          //final textStyle = entry.;
 
-  @override
-  Widget buildBehavior(BuildContext context) {
-    return  Container(
-      width: 100.0,
-      height: 100.0,
-      color: Color(0xff00ff00),
-      child: SizedBox(),
+          final Color? foreground = entry.textStyle?.color;
+
+          SymbolRendererBuilder? symbolBuilder;
+
+          if (entry.symbolRenderer != null) {
+            symbolBuilder = entry.symbolRenderer! is SymbolRendererBuilder
+                ? entry.symbolRenderer! as SymbolRendererBuilder
+                : SymbolRendererCanvas(
+                    symbolRenderer: entry.symbolRenderer!,
+                    dashPattern: entry.dashPattern,
+                  );
+          }
+
+          return DefaultTextStyle(
+            style: (entry.textStyle ?? Theme.of(context).textTheme.body1)
+                .copyWith(color: foreground),
+            child: Padding(
+              padding: const EdgeInsets.only(bottom: 4.0),
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  if (symbolBuilder != null)
+                    Padding(
+                      padding: const EdgeInsets.only(right: 8.0),
+                      child: symbolBuilder.build(
+                        context,
+                        size: const Size(12.0, 12.0),
+                        color: entry.color,
+                      ),
+                    ),
+                  Text(entry.label),
+                  if (showMeasures)
+                    Padding(
+                      padding: const EdgeInsets.only(left: 8.0),
+                      child: Text(entry.formattedValue!),
+                    ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+    }).toList();
+
+    return Flex(
+      direction: behavior.position == BehaviorPosition.top ||
+              behavior.position == BehaviorPosition.bottom
+          ? Axis.horizontal
+          : Axis.vertical,
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: entryWidgets,
     );
   }
 }

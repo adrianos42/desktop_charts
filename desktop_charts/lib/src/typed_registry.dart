@@ -17,7 +17,6 @@
 
 import 'package:flutter/foundation.dart';
 
-@immutable
 class TypedRegistry {
   TypedRegistry();
 

@@ -1,28 +1,12 @@
 // Copyright (C) 2023 Adriano Souza (adriano.souza113@gmail.com)
 
-// Copyright 2018 the Charts project authors. Please see the AUTHORS file
-// for details.
-//
-// Licensed under the Apache License, Version 2.0 (the "License");
-// you may not use this file except in compliance with the License.
-// You may obtain a copy of the License at
-//
-// http://www.apache.org/licenses/LICENSE-2.0
-//
-// Unless required by applicable law or agreed to in writing, software
-// distributed under the License is distributed on an "AS IS" BASIS,
-// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-// See the License for the specific language governing permissions and
-// limitations under the License.
-
 import 'package:flutter/widgets.dart';
-
 import 'package:intl/intl.dart';
 
-import '../../base_chart.dart'
-    show BaseChartState, LifecycleListener, BaseChart;
+import '../../base_chart.dart' show LifecycleListener, BaseChart;
 import '../../processed_series.dart' show MutableSeries;
 import '../../selection_model.dart' show SelectionModel, SelectionModelType;
+import '../chart_behavior.dart' show ChartBehaviorState;
 import '../chart_behavior.dart'
     show
         BehaviorPosition,
@@ -39,27 +23,80 @@ import 'legend_entry_generator.dart';
 /// to specify customized content for legends using the native platform (ex. for
 /// Flutter, using widgets).
 abstract class Legend<D> extends ChartBehavior<D> {
-  Legend({
+  const Legend({
     BehaviorPosition position = BehaviorPosition.end,
+    OutsideJustification outsideJustification =
+        OutsideJustification.startDrawArea,
+    InsideJustification insideJustification = InsideJustification.topStart,
     required this.selectionModelType,
-    required this.legendEntryGenerator,
+    required this.legendEntryGeneratorBuilder,
     this.entryTextStyle,
-  }) : _position = position;
+  })  : _position = position,
+        _insideJustification = insideJustification,
+        _outsideJustification = outsideJustification;
 
   final SelectionModelType selectionModelType;
-  final legendState = LegendState<D>();
-  final LegendEntryGenerator<D> legendEntryGenerator;
+
+  final LegendEntryGeneratorBuilder<D> legendEntryGeneratorBuilder;
+
+  final TextStyle? entryTextStyle;
+
+  final BehaviorPosition _position;
+
+  final OutsideJustification _outsideJustification;
+
+  final InsideJustification _insideJustification;
+
+  @override
+  BehaviorPosition get position => _position;
+
+  @override
+  OutsideJustification get outsideJustification => _outsideJustification;
+
+  @override
+  InsideJustification get insideJustification => _insideJustification;
+
+  @override
+  String get role => 'legend-$selectionModelType';
+}
+
+/// Stores legend data used by native legend content builder.
+abstract class LegendState<D, S extends BaseChart<D>, B extends Legend<D>>
+    extends ChartBehaviorState<D, S, B> {
+  LegendState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    legendEntryGenerator = behavior.legendEntryGeneratorBuilder();
+
+    _lifecycleListener = LifecycleListener(
+      onPostprocess: _postProcess,
+      onPreprocess: _preProcess,
+      onData: onData,
+    );
+
+    chartState.addLifecycleListener(_lifecycleListener);
+
+    legendEntryGenerator.entryTextStyle = behavior.entryTextStyle;
+
+    // Calling the setter will automatically use a non-null default value.
+    showOverlaySeries = null;
+
+    chartState
+        .getSelectionModel(behavior.selectionModelType)
+        .addSelectionChangedListener(_selectionChanged);
+  }
 
   /// The title text to display before legend entries.
   late String title;
 
-  late BaseChartState<D, BaseChart<D>> _chartState;
   late LifecycleListener<D> _lifecycleListener;
 
-  final BehaviorPosition _position;
+  List<LegendEntry<D>>? _legendEntries;
+  SelectionModel<D>? _selectionModel;
 
-  @override
-  BehaviorPosition get position => _position;
+  List<LegendEntry<D>>? get legendEntries => _legendEntries;
+  SelectionModel<D>? get selectionModel => _selectionModel;
 
   LegendCellPadding? cellPadding;
 
@@ -68,7 +105,7 @@ abstract class Legend<D> extends ChartBehavior<D> {
   /// Text style of the legend title text.
   TextStyle? titleTextStyle;
 
-  final TextStyle? entryTextStyle;
+  late LegendEntryGenerator<D> legendEntryGenerator;
 
   /// Configures the behavior of the legend when the user taps/clicks on an
   /// entry. Defaults to no behavior.
@@ -78,8 +115,6 @@ abstract class Legend<D> extends ChartBehavior<D> {
   /// associated with that entry will be removed from the chart. Tapping on that
   /// entry a second time will make the data visible again.
   LegendTapHandling legendTapHandling = LegendTapHandling.hide;
-
-  late List<MutableSeries<D>> _currentSeriesList;
 
   /// List of series IDs in the order the series should appear in the legend.
   /// Series that are not specified in the ordering will be sorted
@@ -120,6 +155,8 @@ abstract class Legend<D> extends ChartBehavior<D> {
     legendEntryGenerator.showOverlaySeries = showOverlaySeries ?? false;
   }
 
+  late List<MutableSeries<D>> _currentSeriesList;
+
   /// Resets any hidden series data when data is drawn on the chart.
   @protected
   void onData(List<MutableSeries<D>> seriesList) {}
@@ -143,7 +180,8 @@ abstract class Legend<D> extends ChartBehavior<D> {
     // handled during onData. onData is prior to this behavior's postProcess
     // call, so the selection will have changed prior to the entries being
     // generated.
-    final selectionModel = chartState.getSelectionModel(selectionModelType);
+    final selectionModel =
+        chartState.getSelectionModel(behavior.selectionModelType);
 
     // Update entries if the selection model is different because post
     // process is called on each draw cycle, so this is called on each animation
@@ -151,7 +189,7 @@ abstract class Legend<D> extends ChartBehavior<D> {
     // rebuild if nothing has changed.
     //
     // Also update legend entries if the series list has changed.
-    if (legendState._selectionModel != selectionModel ||
+    if (_selectionModel != selectionModel ||
         _postProcessSeriesList != seriesList) {
       if (_customEntryOrder != null) {
         _currentSeriesList.sort((a, b) {
@@ -169,10 +207,10 @@ abstract class Legend<D> extends ChartBehavior<D> {
         });
       }
 
-      legendState._legendEntries =
+      _legendEntries =
           legendEntryGenerator.getLegendEntries(_currentSeriesList);
 
-      legendState._selectionModel = selectionModel;
+      _selectionModel = selectionModel;
       _postProcessSeriesList = seriesList;
       _updateLegendEntries(seriesList: seriesList);
     }
@@ -182,80 +220,30 @@ abstract class Legend<D> extends ChartBehavior<D> {
 
   /// Update the legend state with [selectionModel] and request legend update.
   void _selectionChanged(SelectionModel<D> selectionModel) {
-    legendState._selectionModel = selectionModel;
+    _selectionModel = selectionModel;
     _updateLegendEntries();
   }
 
   /// Internally update legend entries, before calling [updateLegend] that
   /// notifies the native platform.
   void _updateLegendEntries({List<MutableSeries<D>>? seriesList}) {
-    legendEntryGenerator.updateLegendEntries(
-        legendState._legendEntries!,
-        legendState._selectionModel!,
+    legendEntryGenerator.updateLegendEntries(_legendEntries!, _selectionModel!,
         seriesList ?? chartState.currentSeriesList);
-
-    updateLegend();
   }
 
-  /// Requires override to show in native platform
-  @protected
-  void updateLegend();
+  bool get isRtl => chartState.chartContainerIsRtl;
 
-  @protected
-  BaseChartState<D, BaseChart<D>> get chartState => _chartState;
-
-  @override
-  OutsideJustification get outsideJustification =>
-      OutsideJustification.startDrawArea;
-
-  @override
-  InsideJustification get insideJustification => InsideJustification.topStart;
-
-  @override
-  String get role => 'legend-$selectionModelType';
-
-  bool get isRtl => _chartState.chartContainerIsRtl;
-
-  bool get isAxisFlipped => _chartState.isRTL;
-
-  @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState;
-
-    _lifecycleListener = LifecycleListener(
-      onPostprocess: _postProcess,
-      onPreprocess: _preProcess,
-      onData: onData,
-    );
-
-    _chartState.addLifecycleListener(_lifecycleListener);
-
-    legendEntryGenerator.entryTextStyle = entryTextStyle;
-
-    // Calling the setter will automatically use a non-null default value.
-    showOverlaySeries = null;
-
-    _chartState
-        .getSelectionModel(selectionModelType)
-        .addSelectionChangedListener(_selectionChanged);
-  }
+  bool get isAxisFlipped => chartState.isRTL;
 
   @override
   void dispose() {
-    _chartState
-        .getSelectionModel(selectionModelType)
+    chartState
+        .getSelectionModel(behavior.selectionModelType)
         .removeSelectionChangedListener(_selectionChanged);
-    _chartState.removeLifecycleListener(_lifecycleListener);
+    chartState.removeLifecycleListener(_lifecycleListener);
+
+    super.dispose();
   }
-}
-
-/// Stores legend data used by native legend content builder.
-class LegendState<D> {
-  List<LegendEntry<D>>? _legendEntries;
-  SelectionModel<D>? _selectionModel;
-
-  List<LegendEntry<D>>? get legendEntries => _legendEntries;
-  SelectionModel<D>? get selectionModel => _selectionModel;
 }
 
 /// Stores legend cell padding, in percents or pixels.

@@ -54,6 +54,7 @@ class OrdinalScaleDomainInfo {
   String getDomainAtIndex(int index) {
     assert(index >= 0);
     assert(index < _index);
+
     return _domainList[index];
   }
 

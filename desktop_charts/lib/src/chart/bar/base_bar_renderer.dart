@@ -33,6 +33,7 @@ import '../cartesian/cartesian_renderer.dart' show BaseCartesianRenderer;
 import '../chart_canvas.dart' show FillPatternType;
 import '../datum_details.dart' show DatumDetails;
 import '../processed_series.dart' show ImmutableSeries, MutableSeries;
+import '../series_renderer.dart' show SeriesRendererRender;
 import 'base_bar_renderer_config.dart' show BaseBarRendererConfig;
 import 'base_bar_renderer_element.dart'
     show BaseAnimatedBar, BaseBarRendererElement;
@@ -82,7 +83,6 @@ abstract class BaseBarRenderer<
     required this.config,
     required super.rendererId,
     required super.chartState,
-    required super.seriesList,
   }) : super(symbolRenderer: config.symbolRenderer);
 
   // `config` can't be a `BaseBarRendererConfig<D>` because `BarLaneRenderer<D>`
@@ -123,7 +123,7 @@ abstract class BaseBarRenderer<
   ImmutableAxis<D>? _prevDomainAxis;
 
   @override
-  void preprocessSeries() {
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {
     // If the orientation of the chart changed, delete all data from the last
     // draw cycle. This allows us to start in a fresh state, so that we do not
     // get bad animations from the previously drawn data.
@@ -155,7 +155,7 @@ abstract class BaseBarRenderer<
 
     final orderedSeriesList = getOrderedSeriesList(seriesList);
 
-    orderedSeriesList.forEach((MutableSeries<D> series) {
+    for (final MutableSeries<D> series in orderedSeriesList) {
       final elements = <BaseBarRendererElement>[];
 
       final domainFn = series.domainFn;
@@ -268,7 +268,7 @@ abstract class BaseBarRenderer<
       if (config.grouped) {
         barGroupIndex += 1;
       }
-    });
+    }
 
     // Compute number of bar groups. This must be done after we have processed
     // all of the series once, so that we know how many categories we have.
@@ -352,8 +352,8 @@ abstract class BaseBarRenderer<
   E getBaseDetails(dynamic datum, int index);
 
   @override
-  void configureDomainAxes() {
-    super.configureDomainAxes();
+  void configureDomainAxes(List<MutableSeries<D>> seriesList) {
+    super.configureDomainAxes(seriesList);
 
     // Configure the domain axis to use a range band configuration.
     if (seriesList.isNotEmpty) {
@@ -368,167 +368,6 @@ abstract class BaseBarRenderer<
             RangeBandConfig.styleAssignedPercent(chartState.themeData));
       }
     }
-  }
-
-  @override
-  void update() {
-    super.update();
-
-    _currentKeys.clear();
-    _currentGroupsStackKeys.clear();
-
-    final orderedSeriesList = getOrderedSeriesList(seriesList);
-
-    for (final ImmutableSeries<D> series in orderedSeriesList) {
-      final domainAxis =
-          (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
-      final domainFn = series.domainFn;
-      final measureAxis =
-          (chartState as CartesianChartState<D, CartesianChart<D>>)
-              .getMeasureAxis(
-        axisId: series.getAttr(measureAxisIdKey),
-      );
-      final measureFn = series.measureFn;
-      final colorFn = series.colorFn;
-      final dashPatternFn = series.dashPatternFn;
-      final fillColorFn = series.fillColorFn;
-      final seriesStackKey = series.getAttr(stackKeyKey);
-      final barGroupCount = series.getAttr(barGroupCountKey);
-      final barGroupIndex = series.getAttr(barGroupIndexKey);
-      final previousBarGroupWeight = series.getAttr(previousBarGroupWeightKey);
-      final barGroupWeight = series.getAttr(barGroupWeightKey);
-      final allBarGroupWeights = series.getAttr(allBarGroupWeightsKey);
-      final measureAxisPosition = measureAxis.getLocation(0.0);
-
-      final elementsList = series.getAttr(barElementsKey);
-
-      // Save off domainAxis for getNearest.
-      _prevDomainAxis = domainAxis;
-
-      for (int barIndex = 0; barIndex < series.data.length; barIndex += 1) {
-        final Object? datum = series.data[barIndex];
-        final details = elementsList![barIndex];
-        final domainValue = domainFn(barIndex);
-
-        final measureValue = measureFn(barIndex);
-        final measureIsNull = measureValue == null;
-        final measureIsNegative = !measureIsNull && measureValue < 0;
-
-        // Each bar should be stored in barStackMap in a structure that mirrors
-        // the visual rendering of the bars. Thus, they should be grouped by
-        // domain value, series category (by way of the stack keys that were
-        // generated for each series in the pre-process step), and bar group
-        // index to account for all combinations of grouping and stacking.
-        final barStackMapKey = '$domainValue'
-            '__'
-            '$seriesStackKey'
-            '__'
-            '${measureIsNegative ? 'pos' : 'neg'}'
-            '__'
-            '$barGroupIndex';
-
-        final barKey = '$barStackMapKey${details.barStackIndex}';
-
-        final barStackList = _barStackMap.putIfAbsent(barStackMapKey, () => []);
-
-        // If we already have an AnimatingBarfor that index, use it.
-        B? animatingBar =
-            barStackList.firstWhereOrNull((B bar) => bar.key == barKey);
-
-        // If we don't have any existing bar element, create a bar and have
-        // it animate in from the domain axis.
-        // TODO: Animate bars in the middle of a stack from their
-        // nearest neighbors, instead of the measure axis.
-        if (animatingBar == null) {
-          // If the measure is null and there was no existing animating bar, it
-          // means we don't need to draw this bar at all.
-          if (!measureIsNull) {
-            animatingBar = makeAnimatedBar(
-              key: barKey,
-              series: series,
-              datum: datum,
-              barGroupIndex: barGroupIndex!,
-              previousBarGroupWeight: previousBarGroupWeight,
-              barGroupWeight: barGroupWeight,
-              allBarGroupWeights: allBarGroupWeights,
-              color: colorFn!(barIndex),
-              dashPattern: dashPatternFn!(barIndex),
-              details: details as E,
-              domainValue: domainFn(barIndex),
-              domainAxis: domainAxis!,
-              domainWidth: domainAxis.rangeBand.roundToDouble(),
-              fillColor: fillColorFn!(barIndex),
-              fillPattern: details.fillPattern,
-              measureValue: 0.0,
-              measureOffsetValue: 0.0,
-              measureAxisPosition: measureAxisPosition,
-              measureAxis: measureAxis,
-              numBarGroups: barGroupCount!,
-              strokeWidth: details.strokeWidth,
-              measureIsNull: measureIsNull,
-              measureIsNegative: measureIsNegative,
-            );
-
-            barStackList.add(animatingBar);
-          }
-        } else {
-          animatingBar
-            ..datum = datum
-            ..series = series
-            ..domainValue = domainValue;
-        }
-
-        if (animatingBar == null) {
-          continue;
-        }
-
-        // Update the set of bars that still exist in the series data.
-        _currentKeys.add(barKey);
-
-        // Store off stack keys for each bar group to help getNearest identify
-        // groups of stacks.
-        _currentGroupsStackKeys
-            .putIfAbsent(domainValue, () => <String>{})
-            .add(barStackMapKey);
-
-        // Get the barElement we are going to setup.
-        // Optimization to prevent allocation in non-animating case.
-        final BaseBarRendererElement barElement = makeBarRendererElement(
-          barGroupIndex: barGroupIndex!,
-          previousBarGroupWeight: previousBarGroupWeight,
-          barGroupWeight: barGroupWeight,
-          allBarGroupWeights: allBarGroupWeights,
-          color: colorFn!(barIndex),
-          dashPattern: dashPatternFn!(barIndex),
-          details: details as E,
-          domainValue: domainFn(barIndex),
-          domainAxis: domainAxis!,
-          domainWidth: domainAxis.rangeBand.roundToDouble(),
-          fillColor: fillColorFn!(barIndex),
-          fillPattern: details.fillPattern,
-          measureValue: measureValue,
-          measureOffsetValue: details.measureOffset!,
-          measureAxisPosition: measureAxisPosition,
-          measureAxis: measureAxis,
-          numBarGroups: barGroupCount!,
-          strokeWidth: details.strokeWidth,
-          measureIsNull: measureIsNull,
-          measureIsNegative: measureIsNegative,
-        );
-
-        animatingBar.setNewTarget(barElement as E);
-      }
-    }
-
-    // Animate out bars that don't exist anymore.
-    _barStackMap.forEach((String key, List<B> barStackList) {
-      for (int barIndex = 0; barIndex < barStackList.length; barIndex += 1) {
-        final bar = barStackList[barIndex];
-        if (!_currentKeys.contains(bar.key)) {
-          bar.animateOut();
-        }
-      }
-    });
   }
 
   /// Generates a [BaseAnimatedBar] to represent the previous and current state
@@ -586,18 +425,218 @@ abstract class BaseBarRenderer<
     bool? measureIsNegative,
   });
 
+  /// Gets the iterator for the series based grouped/stacked and orientation.
+  ///
+  /// For vertical stacked bars:
+  /// * If grouped, return the iterator that keeps the category order but
+  /// reverse the order of the series so the first series is on the top of the
+  /// stack.
+  /// * Otherwise, return iterator of the reversed list
+  ///
+  /// All other types, use the in order iterator.
+  @protected
+  Iterable<T> getOrderedSeriesList<T extends ImmutableSeries<D>>(
+      List<T> seriesList) {
+    return (renderingVertically && config.stacked)
+        ? config.grouped
+            ? _ReversedSeriesIterable(seriesList)
+            : seriesList.reversed
+        : seriesList;
+  }
+
+  bool get isRtl => chart.isRTL;
+
+  @protected
+  Rect? getBoundsForBar(E bar);
+}
+
+abstract class BaseBarRendererRender<
+    D,
+    E extends BaseBarRendererElement,
+    B extends BaseAnimatedBar<D, E>,
+    S extends BaseChart<D>,
+    R extends BaseBarRenderer<D, E, B, S>> extends SeriesRendererRender<D, S> {
+  BaseBarRendererRender({
+    required this.renderer,
+    required super.chartState,
+    required super.seriesList,
+  });
+
+  final R renderer;
+
+  @override
+  void update() {
+    super.update();
+
+    renderer._currentKeys.clear();
+    renderer._currentGroupsStackKeys.clear();
+
+    final orderedSeriesList = renderer.getOrderedSeriesList(seriesList);
+
+    for (final ImmutableSeries<D> series in orderedSeriesList) {
+      final domainAxis =
+          (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
+      final domainFn = series.domainFn;
+      final measureAxis =
+          (chartState as CartesianChartState<D, CartesianChart<D>>)
+              .getMeasureAxis(
+        axisId: series.getAttr(measureAxisIdKey),
+      );
+      final measureFn = series.measureFn;
+      final colorFn = series.colorFn;
+      final dashPatternFn = series.dashPatternFn;
+      final fillColorFn = series.fillColorFn;
+      final seriesStackKey = series.getAttr(stackKeyKey);
+      final barGroupCount = series.getAttr(barGroupCountKey);
+      final barGroupIndex = series.getAttr(barGroupIndexKey);
+      final previousBarGroupWeight = series.getAttr(previousBarGroupWeightKey);
+      final barGroupWeight = series.getAttr(barGroupWeightKey);
+      final allBarGroupWeights = series.getAttr(allBarGroupWeightsKey);
+      final measureAxisPosition = measureAxis.getLocation(0.0);
+
+      final elementsList = series.getAttr(barElementsKey);
+
+      // Save off domainAxis for getNearest.
+      renderer._prevDomainAxis = domainAxis;
+
+      for (int barIndex = 0; barIndex < series.data.length; barIndex += 1) {
+        final Object? datum = series.data[barIndex];
+        final details = elementsList![barIndex];
+        final domainValue = domainFn(barIndex);
+
+        final measureValue = measureFn(barIndex);
+        final measureIsNull = measureValue == null;
+        final measureIsNegative = !measureIsNull && measureValue < 0;
+
+        // Each bar should be stored in barStackMap in a structure that mirrors
+        // the visual rendering of the bars. Thus, they should be grouped by
+        // domain value, series category (by way of the stack keys that were
+        // generated for each series in the pre-process step), and bar group
+        // index to account for all combinations of grouping and stacking.
+        final barStackMapKey = '$domainValue'
+            '__'
+            '$seriesStackKey'
+            '__'
+            '${measureIsNegative ? 'pos' : 'neg'}'
+            '__'
+            '$barGroupIndex';
+
+        final barKey = '$barStackMapKey${details.barStackIndex}';
+
+        final barStackList = renderer._barStackMap.putIfAbsent(barStackMapKey, () => []);
+
+        // If we already have an AnimatingBarfor that index, use it.
+        B? animatingBar =
+            barStackList.firstWhereOrNull((B bar) => bar.key == barKey);
+
+        // If we don't have any existing bar element, create a bar and have
+        // it animate in from the domain axis.
+        // TODO: Animate bars in the middle of a stack from their
+        // nearest neighbors, instead of the measure axis.
+        if (animatingBar == null) {
+          // If the measure is null and there was no existing animating bar, it
+          // means we don't need to draw this bar at all.
+          if (!measureIsNull) {
+            animatingBar = renderer.makeAnimatedBar(
+              key: barKey,
+              series: series,
+              datum: datum,
+              barGroupIndex: barGroupIndex!,
+              previousBarGroupWeight: previousBarGroupWeight,
+              barGroupWeight: barGroupWeight,
+              allBarGroupWeights: allBarGroupWeights,
+              color: colorFn!(barIndex),
+              dashPattern: dashPatternFn!(barIndex),
+              details: details as E,
+              domainValue: domainFn(barIndex),
+              domainAxis: domainAxis!,
+              domainWidth: domainAxis.rangeBand.roundToDouble(),
+              fillColor: fillColorFn!(barIndex),
+              fillPattern: details.fillPattern,
+              measureValue: 0.0,
+              measureOffsetValue: 0.0,
+              measureAxisPosition: measureAxisPosition,
+              measureAxis: measureAxis,
+              numBarGroups: barGroupCount!,
+              strokeWidth: details.strokeWidth,
+              measureIsNull: measureIsNull,
+              measureIsNegative: measureIsNegative,
+            );
+
+            barStackList.add(animatingBar);
+          }
+        } else {
+          animatingBar
+            ..datum = datum
+            ..series = series
+            ..domainValue = domainValue;
+        }
+
+        if (animatingBar == null) {
+          continue;
+        }
+
+        // Update the set of bars that still exist in the series data.
+        renderer._currentKeys.add(barKey);
+
+        // Store off stack keys for each bar group to help getNearest identify
+        // groups of stacks.
+        renderer._currentGroupsStackKeys
+            .putIfAbsent(domainValue, () => <String>{})
+            .add(barStackMapKey);
+
+        // Get the barElement we are going to setup.
+        // Optimization to prevent allocation in non-animating case.
+        final BaseBarRendererElement barElement = renderer.makeBarRendererElement(
+          barGroupIndex: barGroupIndex!,
+          previousBarGroupWeight: previousBarGroupWeight,
+          barGroupWeight: barGroupWeight,
+          allBarGroupWeights: allBarGroupWeights,
+          color: colorFn!(barIndex),
+          dashPattern: dashPatternFn!(barIndex),
+          details: details as E,
+          domainValue: domainFn(barIndex),
+          domainAxis: domainAxis!,
+          domainWidth: domainAxis.rangeBand.roundToDouble(),
+          fillColor: fillColorFn!(barIndex),
+          fillPattern: details.fillPattern,
+          measureValue: measureValue,
+          measureOffsetValue: details.measureOffset!,
+          measureAxisPosition: measureAxisPosition,
+          measureAxis: measureAxis,
+          numBarGroups: barGroupCount!,
+          strokeWidth: details.strokeWidth,
+          measureIsNull: measureIsNull,
+          measureIsNegative: measureIsNegative,
+        );
+
+        animatingBar.setNewTarget(barElement as E);
+      }
+    }
+
+    // Animate out bars that don't exist anymore.
+    renderer._barStackMap.forEach((String key, List<B> barStackList) {
+      for (int barIndex = 0; barIndex < barStackList.length; barIndex += 1) {
+        final bar = barStackList[barIndex];
+        if (!renderer._currentKeys.contains(bar.key)) {
+          bar.animateOut();
+        }
+      }
+    });
+  }
+
   /// Paints the current bar data on the canvas.
   @override
   void paint(PaintingContext context, Offset offset) {
     super.paint(context, offset);
-    
+
     final animationPercent = chartState.animationPosition.value;
 
     // Clean up the bars that no longer exist.
     if (chartState.animationPosition.isCompleted) {
       final keysToRemove = HashSet<String>();
 
-      _barStackMap.forEach((String key, List<B> barStackList) {
+      renderer._barStackMap.forEach((String key, List<B> barStackList) {
         barStackList.retainWhere(
             (B bar) => !bar.animatingOut && !bar.targetBar!.measureIsNull!);
 
@@ -609,15 +648,15 @@ abstract class BaseBarRenderer<
       // When cleaning up the animation, also clean up the keys used to lookup
       // if a bar is selected.
       for (final key in keysToRemove) {
-        _barStackMap.remove(key);
-        _currentKeys.remove(key);
+        renderer._barStackMap.remove(key);
+        renderer._currentKeys.remove(key);
       }
-      _currentGroupsStackKeys.forEach((domain, keys) {
+      renderer._currentGroupsStackKeys.forEach((domain, keys) {
         keys.removeWhere(keysToRemove.contains);
       });
     }
 
-    _barStackMap.forEach((String stackKey, List<B> barStack) {
+    renderer._barStackMap.forEach((String stackKey, List<B> barStack) {
       // Turn this into a list so that the getCurrentBar isn't called more than
       // once for each animationPercent if the barElements are iterated more
       // than once.
@@ -655,24 +694,23 @@ abstract class BaseBarRenderer<
       return nearest;
     }
 
-    if (_prevDomainAxis is OrdinalAxis) {
-      final domainValue = _prevDomainAxis!.getDomain(
-        renderingVertically ? chartPoint.dx : chartPoint.dy,
+    if (renderer._prevDomainAxis is OrdinalAxis) {
+      final domainValue = renderer._prevDomainAxis!.getDomain(
+        renderer.renderingVertically ? chartPoint.dx : chartPoint.dy,
       );
 
       // If we have a domainValue for the event point, then find all segments
       // that match it.
       if (domainValue != null) {
-        if (renderingVertically) {
-          nearest =
-              _getVerticalDetailsForDomainValue(domainValue, chartPoint);
+        if (renderer.renderingVertically) {
+          nearest = _getVerticalDetailsForDomainValue(domainValue, chartPoint);
         } else {
           nearest =
               _getHorizontalDetailsForDomainValue(domainValue, chartPoint);
         }
       }
     } else {
-      if (renderingVertically) {
+      if (renderer.renderingVertically) {
         nearest = _getVerticalDetailsForDomainValue(null, chartPoint);
       } else {
         nearest = _getHorizontalDetailsForDomainValue(null, chartPoint);
@@ -711,9 +749,6 @@ abstract class BaseBarRenderer<
   }
 
   @protected
-  Rect? getBoundsForBar(E bar);
-
-  @protected
   List<BaseAnimatedBar<D, E>> _getSegmentsForDomainValue(
     D? domainValue, {
     bool Function(BaseAnimatedBar<D, E> bar)? where,
@@ -726,14 +761,14 @@ abstract class BaseBarRenderer<
     // In the case of null [domainValue] return all values to be compared, since
     // we can't use the optimized comparison for [OrdinalAxis].
     final stackKeys = (domainValue != null)
-        ? _currentGroupsStackKeys[domainValue]
-        : _currentGroupsStackKeys.values
+        ? renderer._currentGroupsStackKeys[domainValue]
+        : renderer._currentGroupsStackKeys.values
             .reduce((allKeys, keys) => allKeys..addAll(keys));
     stackKeys?.forEach((String stackKey) {
       if (where != null) {
-        matchingSegments.addAll(_barStackMap[stackKey]!.where(where));
+        matchingSegments.addAll(renderer._barStackMap[stackKey]!.where(where));
       } else {
-        matchingSegments.addAll(_barStackMap[stackKey]!);
+        matchingSegments.addAll(renderer._barStackMap[stackKey]!);
       }
     });
 
@@ -749,7 +784,7 @@ abstract class BaseBarRenderer<
     return List<DatumDetails<D>>.from(_getSegmentsForDomainValue(domainValue,
             where: (BaseAnimatedBar<D, E> bar) => !bar.series.overlaySeries)
         .map<DatumDetails<D>>((BaseAnimatedBar<D, E> bar) {
-      final barBounds = getBoundsForBar(bar.currentBar!)!;
+      final barBounds = renderer.getBoundsForBar(bar.currentBar!)!;
       final segmentDomainDistance = _getDistance(
         chartPoint.dx.toDouble(),
         barBounds.left,
@@ -791,7 +826,7 @@ abstract class BaseBarRenderer<
     return List<DatumDetails<D>>.from(_getSegmentsForDomainValue(domainValue,
             where: (BaseAnimatedBar<D, E> bar) => !bar.series.overlaySeries)
         .map<DatumDetails<D>>((BaseAnimatedBar<D, E> bar) {
-      final barBounds = getBoundsForBar(bar.currentBar!)!;
+      final barBounds = renderer.getBoundsForBar(bar.currentBar!)!;
       final segmentDomainDistance = _getDistance(
         chartPoint.dy.roundToDouble(),
         barBounds.top,
@@ -819,30 +854,9 @@ abstract class BaseBarRenderer<
     }
     return (point > max ? (point - max) : (min - point)).toDouble();
   }
-
-  /// Gets the iterator for the series based grouped/stacked and orientation.
-  ///
-  /// For vertical stacked bars:
-  /// * If grouped, return the iterator that keeps the category order but
-  /// reverse the order of the series so the first series is on the top of the
-  /// stack.
-  /// * Otherwise, return iterator of the reversed list
-  ///
-  /// All other types, use the in order iterator.
-  @protected
-  Iterable<T> getOrderedSeriesList<T extends ImmutableSeries<D>>(
-      List<T> seriesList) {
-    return (renderingVertically && config.stacked)
-        ? config.grouped
-            ? _ReversedSeriesIterable(seriesList)
-            : seriesList.reversed
-        : seriesList;
-  }
-
-  bool get isRtl => chart.isRTL;
 }
 
-/// Iterable wrapping the seriesList that returns the ReversedSeriesItertor.
+/// Iterable wrapping the seriesList that returns the ReversedSeriesIterator.
 class _ReversedSeriesIterable<S extends ImmutableSeries<Object?>>
     extends Iterable<S> {
   _ReversedSeriesIterable(this.seriesList);

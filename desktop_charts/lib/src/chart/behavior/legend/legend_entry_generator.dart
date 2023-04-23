@@ -22,6 +22,8 @@ import '../../processed_series.dart' show MutableSeries;
 import '../../selection_model.dart';
 import 'legend_entry.dart';
 
+typedef LegendEntryGeneratorBuilder<D> = LegendEntryGenerator<D> Function();
+
 /// A strategy for generating a list of [LegendEntry] based on the series drawn.
 ///
 /// [D] the domain class type for the datum.

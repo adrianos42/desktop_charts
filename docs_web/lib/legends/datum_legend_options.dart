@@ -83,33 +83,34 @@ class DatumLegendOptions extends StatelessWidget {
       // This example shows how to change the position and justification of
       // the legend, in addition to altering the max rows and padding.
       behaviors: [
-        // TODO charts.DatumLegend(
-        //   // Positions for "start" and "end" will be left and right respectively
-        //   // for widgets with a build context that has directionality ltr.
-        //   // For rtl, "start" and "end" will be right and left respectively.
-        //   // Since this example has directionality of ltr, the legend is
-        //   // positioned on the right side of the chart.
-        //   position: charts.BehaviorPosition.end,
-        //   // For a legend that is positioned on the left or right of the chart,
-        //   // setting the justification for [endDrawArea] is aligned to the
-        //   // bottom of the chart draw area.
-        //   outsideJustification: charts.OutsideJustification.endDrawArea,
-        //   // By default, if the position of the chart is on the left or right of
-        //   // the chart, [horizontalFirst] is set to false. This means that the
-        //   // legend entries will grow as rows first instead of a column.
-        //   horizontalFirst: false,
-        //   // By setting this value to 2, the legend entries will grow up to two
-        //   // rows before adding a column.
-        //   desiredMaxRows: 2,
-        //   // This defines the padding around each legend entry.
-        //   cellPadding: const EdgeInsets.only(right: 4.0, bottom: 4.0),
-        //   // Render the legend entry text with custom styles.
-        //   entryTextStyle: TextStyle(
-        //     color: charts.DesktopPalette.purple.shadeDefault,
-        //     fontFamily: 'Georgia',
-        //     fontSize: 11,
-        //   ),
-        // )
+        charts.DatumLegend(
+          // Positions for "start" and "end" will be left and right respectively
+          // for widgets with a build context that has directionality ltr.
+          // For rtl, "start" and "end" will be right and left respectively.
+          // Since this example has directionality of ltr, the legend is
+          // positioned on the right side of the chart.
+          position: charts.BehaviorPosition.end,
+          // For a legend that is positioned on the left or right of the chart,
+          // setting the justification for [endDrawArea] is aligned to the
+          // bottom of the chart draw area.
+          outsideJustification: charts.OutsideJustification.endDrawArea,
+          // By default, if the position of the chart is on the left or right of
+          // the chart, [horizontalFirst] is set to false. This means that the
+          // legend entries will grow as rows first instead of a column.
+          // TODO horizontalFirst: false,
+          // By setting this value to 2, the legend entries will grow up to two
+          // rows before adding a column.
+          // TODO desiredMaxRows: 2,
+          // This defines the padding around each legend entry.
+          // TODO cellPadding: const EdgeInsets.only(right: 4.0, bottom: 4.0),
+          // Render the legend entry text with custom styles.
+          entryTextStyle: TextStyle(
+            color: PrimaryColors.violet.primaryColor
+                .withBrightness(Theme.brightnessOf(context))[60],
+            fontFamily: 'Georgia',
+            fontSize: 16,
+          ),
+        )
       ],
     );
   }

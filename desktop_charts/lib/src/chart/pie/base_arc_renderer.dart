@@ -26,8 +26,9 @@ import '../base_chart.dart' show BaseChart;
 import '../canvas_shapes.dart' show CanvasPieSlice, CanvasPie;
 import '../chart_canvas.dart' show ChartCanvas;
 import '../datum_details.dart' show DatumDetails;
+import '../processed_series.dart' show MutableSeries;
 import '../series_datum.dart' show SeriesDatum;
-import '../series_renderer.dart' show BaseSeriesRenderer;
+import '../series_renderer.dart' show BaseSeriesRenderer, SeriesRendererRender;
 import 'arc_renderer_decorator.dart' show ArcRendererDecorator;
 import 'arc_renderer_element.dart'
     show ArcRendererElement, ArcRendererElements, AnimatedArcs, AnimatedArc;
@@ -42,7 +43,6 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
     required this.config,
     required super.rendererId,
     required super.chartState,
-    required super.seriesList,
   })  : _arcRendererDecorators = config.arcRendererDecorators,
         super(symbolRenderer: config.symbolRenderer);
 
@@ -51,7 +51,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
   final List<ArcRendererDecorator<D>> _arcRendererDecorators;
 
   @override
-  void configureSeries() {
+  void configureSeries(List<MutableSeries<D>> seriesList) {
     assignMissingColors(
       seriesList,
       emptyCategoryUsesSinglePalette: false,
@@ -129,12 +129,98 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
   }
 
   @override
+  DatumDetails<D> addPositionToDetailsForSeriesDatum(
+      DatumDetails<D> details, SeriesDatum<D> seriesDatum) {
+    final chartPosition =
+        _getChartPosition(details.series!.id, details.domain.toString());
+
+    return DatumDetails.from(details,
+        chartPosition: NullablePoint.from(chartPosition));
+  }
+}
+
+abstract class BaseArcRendererRender<D, S extends BaseChart<D>,
+    R extends BaseArcRenderer<D, S>> extends SeriesRendererRender<D, S> {
+  BaseArcRendererRender({
+    required this.renderer,
+    required super.chartState,
+    required super.seriesList,
+  });
+
+  final R renderer;
+
+  @override
+  List<DatumDetails<D>> getNearestDatumDetailPerSeries(
+    Offset globalPosition,
+    bool byDomain,
+    Rect? boundsOverride, {
+    bool selectOverlappingPoints = false,
+    bool selectExactEventLocation = false,
+  }) {
+    final nearest = <DatumDetails<D>>[];
+
+    final chartPoint = globalToLocal(globalPosition);
+
+    final arcLists = renderer.getArcLists();
+
+    for (final arcList in arcLists) {
+      if (arcList.series!.overlaySeries) {
+        return nearest;
+      }
+
+      final center = arcList.center!;
+      final innerRadius = arcList.innerRadius!;
+      final radius = arcList.radius!;
+
+      final distance = Point(center.dx, center.dy).distanceTo(
+        Point(chartPoint.dx, chartPoint.dy),
+      );
+
+      // Calculate the angle of [chartPoint] from the center of the arcs.
+      double chartPointAngle = atan2(
+        chartPoint.dy - center.dy,
+        chartPoint.dx - center.dx,
+      );
+
+      // atan2 returns NaN if we are at the exact center of the circle.
+      if (chartPointAngle.isNaN) {
+        chartPointAngle = renderer.config.startAngle;
+      }
+
+      // atan2 returns an angle in the range -PI..PI, from the positive x-axis.
+      // Our arcs start at the positive y-axis, in the range -PI/2..3PI/2. Thus,
+      // if angle is in the -x, +y section of the circle, we need to adjust the
+      // angle into our range.
+      if (chartPointAngle < renderer.config.startAngle && chartPointAngle < 0) {
+        chartPointAngle = 2 * pi + chartPointAngle;
+      }
+
+      for (final arc in arcList.arcs) {
+        if (innerRadius <= distance &&
+            distance <= radius &&
+            arc.currentArcStartAngle! <= chartPointAngle &&
+            chartPointAngle <= arc.currentArcEndAngle!) {
+          nearest.add(DatumDetails<D>(
+            series: arcList.series,
+            datum: arc.datum,
+            domain: arc.domain,
+            domainDistance: 0.0,
+            measureDistance: 0.0,
+          ));
+        }
+      }
+    }
+
+    return nearest;
+  }
+
+  @override
   void paint(PaintingContext context, Offset offset) {
     super.paint(context, offset);
 
-    final animationPercent = chartState.animationPosition.value; // TODO
+    final animationPercent = chartState.animationPosition.value;
 
-    final arcLists = getArcLists();
+    final arcLists = renderer.getArcLists();
     final arcsToElements = <AnimatedArcs<D>, ArcRendererElements<D>>{};
 
     for (final arcList in arcLists) {
@@ -143,7 +229,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
         center: arcList.center!,
         innerRadius: arcList.innerRadius!,
         radius: arcList.radius!,
-        startAngle: config.startAngle,
+        startAngle: renderer.config.startAngle,
         stroke: arcList.stroke,
         strokeWidth: arcList.strokeWidth,
       );
@@ -155,7 +241,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
 
     // Decorate the arcs with decorators that should appear below the main
     // series data.
-    _arcRendererDecorators
+    renderer._arcRendererDecorators
         .where((decorator) => !decorator.renderAbove)
         .forEach((decorator) {
       decorator.decorate(
@@ -166,7 +252,7 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
         offset,
         drawBounds: bounds,
         animationPercent: animationPercent,
-        rtl: isRtl,
+        rtl: renderer.isRtl,
       );
     });
 
@@ -196,14 +282,14 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
           arcList.innerRadius!,
           stroke: arcList.stroke,
           strokeWidth: arcList.strokeWidth ?? 0.0,
-          arcLength: config.arcLength,
+          arcLength: renderer.config.arcLength,
         ),
       );
     }
 
     // Decorate the arcs with decorators that should appear above the main
     // series data. This is the typical place for labels.
-    _arcRendererDecorators
+    renderer._arcRendererDecorators
         .where((decorator) => decorator.renderAbove)
         .forEach((decorator) {
       decorator.decorate(
@@ -214,87 +300,8 @@ abstract class BaseArcRenderer<D, S extends BaseChart<D>>
         offset,
         drawBounds: bounds,
         animationPercent: animationPercent,
-        rtl: isRtl,
+        rtl: renderer.isRtl,
       );
     });
-  }
-
-  @override
-  List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset globalPosition,
-    bool byDomain,
-    Rect? boundsOverride, {
-    bool selectOverlappingPoints = false,
-    bool selectExactEventLocation = false,
-  }) {
-    final nearest = <DatumDetails<D>>[];
-
-    final chartPoint = globalToLocal(globalPosition);
-
-    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
-      return nearest;
-    }
-
-    final arcLists = getArcLists();
-
-    for (final arcList in arcLists) {
-      if (arcList.series!.overlaySeries) {
-        return nearest;
-      }
-
-      final center = arcList.center!;
-      final innerRadius = arcList.innerRadius!;
-      final radius = arcList.radius!;
-
-      final distance = Point(center.dx, center.dy).distanceTo(
-        Point(chartPoint.dx, chartPoint.dy),
-      );
-
-      // Calculate the angle of [chartPoint] from the center of the arcs.
-      double chartPointAngle = atan2(
-        chartPoint.dy - center.dy,
-        chartPoint.dx - center.dx,
-      );
-
-      // atan2 returns NaN if we are at the exact center of the circle.
-      if (chartPointAngle.isNaN) {
-        chartPointAngle = config.startAngle;
-      }
-
-      // atan2 returns an angle in the range -PI..PI, from the positive x-axis.
-      // Our arcs start at the positive y-axis, in the range -PI/2..3PI/2. Thus,
-      // if angle is in the -x, +y section of the circle, we need to adjust the
-      // angle into our range.
-      if (chartPointAngle < config.startAngle && chartPointAngle < 0) {
-        chartPointAngle = 2 * pi + chartPointAngle;
-      }
-
-      for (final arc in arcList.arcs) {
-        if (innerRadius <= distance &&
-            distance <= radius &&
-            arc.currentArcStartAngle! <= chartPointAngle &&
-            chartPointAngle <= arc.currentArcEndAngle!) {
-          nearest.add(DatumDetails<D>(
-            series: arcList.series,
-            datum: arc.datum,
-            domain: arc.domain,
-            domainDistance: 0.0,
-            measureDistance: 0.0,
-          ));
-        }
-      }
-    }
-
-    return nearest;
-  }
-
-  @override
-  DatumDetails<D> addPositionToDetailsForSeriesDatum(
-      DatumDetails<D> details, SeriesDatum<D> seriesDatum) {
-    final chartPosition =
-        _getChartPosition(details.series!.id, details.domain.toString());
-
-    return DatumDetails.from(details,
-        chartPosition: NullablePoint.from(chartPosition));
   }
 }

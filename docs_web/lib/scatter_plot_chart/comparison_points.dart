@@ -122,8 +122,8 @@ class ComparisonPointsScatterPlotChart extends StatelessWidget {
     return charts.ScatterPlotChart(
       seriesList,
       animate: animate,
-      defaultRenderer: charts.PointRendererConfig(
-        pointRendererDecorators: const [
+      defaultRenderer: const charts.PointRendererConfig(
+        pointRendererDecorators: [
           charts.ComparisonPointsDecorator(
               symbolRenderer: charts.CylinderSymbolRenderer())
         ],

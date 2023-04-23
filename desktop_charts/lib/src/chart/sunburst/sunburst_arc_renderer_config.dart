@@ -83,22 +83,22 @@ class SunburstArcRendererConfig<D> extends BaseArcRendererConfig<D> {
   /// data.
   final int maxDisplayLevel;
 
-  @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
-    required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
-    String? rendererId,
-  }) {
-    return _SunburstRenderObjectWidget(
-      chartState: chartState,
-      config: this,
-      key: key,
-      seriesList: seriesList,
-      rendererId: rendererId,
-    );
-  }
+  // @override
+  // Widget build<S extends BaseChart<D>>(
+  //   BuildContext context, {
+  //   required Key key,
+  //   required BaseChartState<D, S> chartState,
+  //   required List<MutableSeries<D>> seriesList,
+  //   String? rendererId,
+  // }) {
+  //   return _SunburstRenderObjectWidget(
+  //     chartState: chartState,
+  //     config: this,
+  //     key: key,
+  //     seriesList: seriesList,
+  //     rendererId: rendererId,
+  //   );
+  // }
 }
 
 /// Strategies for assigning color to the arcs if colorFn is not provided for
@@ -111,23 +111,23 @@ enum SunburstColorStrategy {
   newShadePerLevel,
 }
 
-class _SunburstRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, SunburstArcRenderer<D, S>,
-        SunburstArcRendererConfig<D>> {
-  const _SunburstRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
+// class _SunburstRenderObjectWidget<D, S extends BaseChart<D>>
+//     extends BaseSeriesRenderObjectWidget<D, S, SunburstArcRenderer<D, S>,
+//         SunburstArcRendererConfig<D>> {
+//   const _SunburstRenderObjectWidget({
+//     required super.chartState,
+//     required super.config,
+//     required super.key,
+//     required super.rendererId,
+//     required super.seriesList,
+//   });
 
-  @override
-  SunburstArcRenderer<D, S> createRenderObject(BuildContext context) =>
-      SunburstArcRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
-      );
-}
+//   @override
+//   SunburstArcRenderer<D, S> createRenderObject(BuildContext context) =>
+//       SunburstArcRenderer<D, S>(
+//         rendererId: rendererId,
+//         config: config,
+//         chartState: chartState,
+//         seriesList: seriesList,
+//       );
+// }

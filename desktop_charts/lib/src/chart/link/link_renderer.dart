@@ -22,6 +22,7 @@ import '../../math.dart' show NullablePoint;
 import '../base_chart.dart' show BaseChart;
 import '../chart_canvas.dart';
 import '../datum_details.dart';
+import '../processed_series.dart' show MutableSeries;
 import '../series_datum.dart';
 import '../series_renderer.dart' show BaseSeriesRenderer;
 import 'link_renderer_config.dart';
@@ -34,7 +35,6 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
     String? rendererId,
     LinkRendererConfig<D>? config,
     required super.chartState,
-    required super.seriesList,
   })  : config = config ?? LinkRendererConfig(),
         super(
           rendererId: rendererId ?? defaultRendererID,
@@ -52,7 +52,7 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
   final _seriesLinkMap = <String, List<LinkRendererElement>>{};
 
   @override
-  void preprocessSeries() {
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {
     for (final series in seriesList) {
       final elements = <LinkRendererElement>[];
       for (int linkIndex = 0; linkIndex < series.data.length; linkIndex += 1) {
@@ -67,8 +67,8 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
   }
 
   @override
-  void update() {
-    super.update();
+  void update(List<MutableSeries<D>> seriesList) {
+    super.update(seriesList);
 
     for (final series in seriesList) {
       final elementsList = series.getAttr(linkElementsKey);
@@ -77,8 +77,8 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
   }
 
   @override
-  void paint(PaintingContext context, Offset offset) {
-    super.paint(context, offset);
+  void draw(PaintingContext context, Offset offset) {
+    // super.draw(context, offset);
 
     /// Paint the renderer elements on the canvas using drawLink.
     _seriesLinkMap.forEach((k, v) => _drawAllLinks(v, context.canvas));

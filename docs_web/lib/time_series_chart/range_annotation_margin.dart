@@ -80,6 +80,8 @@ class TimeSeriesRangeAnnotationMarginChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final colorScheme = Theme.of(context).colorScheme;
+
     return charts.TimeSeriesChart(seriesList,
         animate: animate,
 
@@ -101,7 +103,7 @@ class TimeSeriesRangeAnnotationMarginChart extends StatelessWidget {
               startLabel: 'D1 Start',
               endLabel: 'D1 End',
               labelAnchor: charts.AnnotationLabelAnchor.end,
-              color: charts.DesktopPalette.gray,
+              color: colorScheme.background[4],
               // Override the default vertical direction for domain labels.
               labelDirection: charts.AnnotationLabelDirection.horizontal,
             ),
@@ -112,7 +114,7 @@ class TimeSeriesRangeAnnotationMarginChart extends StatelessWidget {
               startLabel: 'M1 Start',
               endLabel: 'M1 End',
               labelAnchor: charts.AnnotationLabelAnchor.end,
-              color: charts.DesktopPalette.gray.lighter,
+              color: colorScheme.background[8],
             ),
             charts.RangeAnnotationSegment(
               35,
@@ -121,7 +123,7 @@ class TimeSeriesRangeAnnotationMarginChart extends StatelessWidget {
               startLabel: 'M2 Start',
               endLabel: 'M2 End',
               labelAnchor: charts.AnnotationLabelAnchor.start,
-              color: charts.DesktopPalette.gray.lighter.lighter,
+              color: colorScheme.background[12],
             ),
           ], defaultLabelPosition: charts.AnnotationLabelPosition.margin),
         ]);

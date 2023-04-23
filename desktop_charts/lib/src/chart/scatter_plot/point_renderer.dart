@@ -30,8 +30,10 @@ import '../cartesian/cartesian_chart.dart';
 import '../cartesian/cartesian_renderer.dart' show BaseCartesianRenderer;
 import '../chart_canvas.dart' show getAnimatedColor;
 import '../datum_details.dart' show DatumDetails;
-import '../processed_series.dart' show ImmutableSeries;
+import '../processed_series.dart' show MutableSeries, ImmutableSeries;
 import '../series_datum.dart' show SeriesDatum;
+import '../series_renderer.dart'
+    show BaseSeriesRenderObjectWidget, SeriesRendererRender;
 import 'comparison_points_decorator.dart' show ComparisonPointsDecorator;
 import 'point_renderer_config.dart' show PointRendererConfig;
 import 'point_renderer_decorator.dart' show PointRendererDecorator;
@@ -68,7 +70,6 @@ class PointRenderer<D, S extends BaseChart<D>>
     String? rendererId,
     PointRendererConfig<D>? config,
     required super.chartState,
-    required super.seriesList,
   })  : config = config ?? PointRendererConfig<D>(),
         pointRendererDecorators = config?.pointRendererDecorators ?? [],
         super(
@@ -81,28 +82,13 @@ class PointRenderer<D, S extends BaseChart<D>>
 
   final List<PointRendererDecorator<D>> pointRendererDecorators;
 
-  /// Store a map of series drawn on the chart, mapped by series name.
-  ///
-  /// [Map] is used to render the series on the canvas in the same
-  /// order as the data was given to the chart.
-  @protected
-  // ignore: prefer_collection_literals, https://github.com/dart-lang/linter/issues/1649
-  var seriesPointMap = Map<String, List<AnimatedPoint<D>>>();
-
-  // Store a list of lines that exist in the series data.
-  //
-  // This list will be used to remove any [_AnimatedPoint] that were rendered in
-  // previous draw cycles, but no longer have a corresponding datum in the new
-  // data.
-  final _currentKeys = <String>[];
-
   @override
-  void configureSeries() {
-    // TODO assignMissingColors(seriesList, emptyCategoryUsesSinglePalette: false);
+  void configureSeries(List<MutableSeries<D>> seriesList) {
+    assignMissingColors(seriesList, emptyCategoryUsesSinglePalette: false);
   }
 
   @override
-  void preprocessSeries() {
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {
     for (final series in seriesList) {
       final elements = <PointRendererElement<D>>[];
 
@@ -199,245 +185,6 @@ class PointRenderer<D, S extends BaseChart<D>>
     }
   }
 
-  @override
-  void update() {
-    super.update();
-
-    _currentKeys.clear();
-
-    // Build a list of sorted series IDs as we iterate through the list, used
-    // later for sorting.
-    final sortedSeriesIds = <String>[];
-
-    for (final series in seriesList) {
-      sortedSeriesIds.add(series.id);
-
-      final domainAxis =
-          (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
-      final domainFn = series.domainFn;
-      final domainLowerBoundFn = series.domainLowerBoundFn;
-      final domainUpperBoundFn = series.domainUpperBoundFn;
-      final measureAxis =
-          (chartState as CartesianChartState<D, CartesianChart<D>>)
-              .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
-      final measureFn = series.measureFn;
-      final measureLowerBoundFn = series.measureLowerBoundFn;
-      final measureUpperBoundFn = series.measureUpperBoundFn;
-      final measureOffsetFn = series.measureOffsetFn;
-      final seriesKey = series.id;
-      final keyFn = series.keyFn!;
-
-      final pointList = seriesPointMap.putIfAbsent(seriesKey, () => []);
-
-      final elementsList = series.getAttr(pointElementsKey);
-
-      for (int index = 0; index < series.data.length; index += 1) {
-        final Object? datum = series.data[index];
-        final details = elementsList![index];
-
-        final domainValue = domainFn(index);
-        final domainLowerBoundValue = domainLowerBoundFn?.call(index);
-        final domainUpperBoundValue = domainUpperBoundFn?.call(index);
-
-        final measureValue = measureFn(index);
-        final measureLowerBoundValue = measureLowerBoundFn?.call(index);
-        final measureUpperBoundValue = measureUpperBoundFn?.call(index);
-        final measureOffsetValue = measureOffsetFn!(index);
-
-        // Create a point using the final location.
-        final point = getPoint(
-          datum,
-          domainValue,
-          domainLowerBoundValue,
-          domainUpperBoundValue,
-          series,
-          domainAxis!,
-          measureValue,
-          measureLowerBoundValue,
-          measureUpperBoundValue,
-          measureOffsetValue,
-          measureAxis,
-        );
-
-        final pointKey = keyFn(index);
-
-        // If we already have an AnimatingPoint for that index, use it.
-        AnimatedPoint<D>? animatingPoint =
-            pointList.firstWhereOrNull((point) => point.key == pointKey);
-
-        // If we don't have any existing arc element, create a arc and
-        // have it animate in from the position of the previous arc's end
-        // angle. If there were no previous arcs, then animate everything in
-        // from 0.
-        if (animatingPoint == null) {
-          // Create a point and have it animate in from axis.
-          final point = getPoint(
-              datum,
-              domainValue,
-              domainLowerBoundValue,
-              domainUpperBoundValue,
-              series,
-              domainAxis,
-              0.0,
-              0.0,
-              0.0,
-              0.0,
-              measureAxis);
-
-          animatingPoint = AnimatedPoint<D>(
-              key: pointKey, overlaySeries: series.overlaySeries)
-            ..setNewTarget(PointRendererElement<D>(
-              index: details.index,
-              color: details.color,
-              fillColor: details.fillColor,
-              measureAxisPosition: measureAxis.getLocation(0.0),
-              point: point,
-              radius: details.radius,
-              boundsLineRadius: details.boundsLineRadius,
-              strokeWidth: details.strokeWidth,
-              symbolRendererId: details.symbolRendererId,
-            ));
-
-          pointList.add(animatingPoint);
-        }
-
-        // Update the set of arcs that still exist in the series data.
-        _currentKeys.add(pointKey);
-
-        // Get the pointElement we are going to setup.
-        final pointElement = PointRendererElement<D>(
-          index: index,
-          color: details.color,
-          fillColor: details.fillColor,
-          measureAxisPosition: measureAxis.getLocation(0.0),
-          point: point,
-          radius: details.radius,
-          boundsLineRadius: details.boundsLineRadius,
-          strokeWidth: details.strokeWidth,
-          symbolRendererId: details.symbolRendererId,
-        );
-
-        animatingPoint.setNewTarget(pointElement);
-      }
-    }
-
-    // Sort the renderer elements to be in the same order as the series list.
-    // They may get disordered between chart draw cycles if a behavior adds or
-    // removes series from the list (e.g. click to hide on legends).
-    seriesPointMap = {for (final k in sortedSeriesIds) k: seriesPointMap[k]!};
-
-    // Animate out points that don't exist anymore.
-    seriesPointMap.forEach((String key, List<AnimatedPoint<D>> points) {
-      for (final point in points) {
-        if (_currentKeys.contains(point.key) != true) {
-          point.animateOut();
-        }
-      }
-    });
-  }
-
-  @override
-  void paint(
-    PaintingContext context,
-    Offset offset,
-  ) {
-    super.paint(context, offset);
-
-    final animationPercent = chartState.animationPosition.value;
-    final bounds = Offset.zero & size;
-
-    // Clean up the points that no longer exist.
-    if (chartState.animationPosition.isCompleted) {
-      final keysToRemove = <String>[];
-
-      seriesPointMap.forEach((String key, List<AnimatedPoint<D>> points) {
-        points.removeWhere((AnimatedPoint<D> point) => point.animatingOut);
-
-        if (points.isEmpty) {
-          keysToRemove.add(key);
-        }
-      });
-
-      keysToRemove.forEach(seriesPointMap.remove);
-    }
-
-    seriesPointMap.forEach((String key, List<AnimatedPoint<D>> points) {
-      points
-          .map<PointRendererElement<D>>((AnimatedPoint<D> animatingPoint) =>
-              animatingPoint.getCurrentPoint(animationPercent))
-          .forEach((point) {
-        // Decorate the points with decorators that should appear below the main
-        // series data.
-        pointRendererDecorators
-            .where((decorator) => !decorator.renderAbove)
-            .forEach((decorator) {
-          decorator.decorate(
-            point,
-            context.canvas,
-            offset,
-            drawBounds: bounds,
-            animationPercent: animationPercent,
-            rtl: isRtl,
-          );
-        });
-
-        // Skip points whose center lies outside the draw bounds. Those that lie
-        // near the edge will be allowed to render partially outside. This
-        // prevents harshly clipping off half of the shape.
-        if (point.point!.dy != null &&
-            bounds.contains(point.point!.toPoint())) {
-          final bounds = Rect.fromLTWH(
-            point.point!.dx! - point.radius,
-            point.point!.dy! - point.radius,
-            point.radius * 2.0,
-            point.radius * 2.0,
-          );
-
-          if (point.symbolRendererId == defaultSymbolRendererId) {
-            symbolRenderer!.draw(
-              context.canvas,
-              offset,
-              bounds,
-              fillColor: point.fillColor,
-              strokeColor: point.color,
-              strokeWidth: point.strokeWidth,
-            );
-          } else {
-            final id = point.symbolRendererId;
-            if (!config.customSymbolRenderers!.containsKey(id)) {
-              throw ArgumentError('Invalid custom symbol renderer id "$id"');
-            }
-
-            final customRenderer = config.customSymbolRenderers![id]!;
-            customRenderer.draw(
-              context.canvas,
-              offset,
-              bounds,
-              fillColor: point.fillColor,
-              strokeColor: point.color,
-              strokeWidth: point.strokeWidth,
-            );
-          }
-        }
-
-        // Decorate the points with decorators that should appear above the main
-        // series data. This is the typical place for labels.
-        pointRendererDecorators
-            .where((decorator) => decorator.renderAbove)
-            .forEach((decorator) {
-          decorator.decorate(
-            point,
-            context.canvas,
-            offset,
-            drawBounds: bounds,
-            animationPercent: animationPercent,
-            rtl: isRtl,
-          );
-        });
-      });
-    });
-  }
-
   bool get isRtl => chartState.isRTL;
 
   @protected
@@ -492,105 +239,136 @@ class PointRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  List<DatumDetails<D>> getNearestDatumDetailPerSeries(
-    Offset globalPosition,
-    bool byDomain,
-    Rect? boundsOverride, {
-    bool selectOverlappingPoints = false,
-    bool selectExactEventLocation = false,
-  }) {
-    final nearest = <DatumDetails<D>>[];
-    final inside = <DatumDetails<D>>[];
+  DatumDetails<D> addPositionToDetailsForSeriesDatum(
+      DatumDetails<D> details, SeriesDatum<D> seriesDatum) {
+    final series = details.series!;
 
-    final chartPoint = globalToLocal(globalPosition);
+    final domainAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
+    final measureAxis =
+        (chartState as CartesianChartState<D, CartesianChart<D>>)
+            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
 
-    if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
-      return nearest;
+    final point = getPoint(
+      seriesDatum.datum,
+      details.domain,
+      details.domainLowerBound,
+      details.domainUpperBound,
+      series,
+      domainAxis!,
+      details.measure,
+      details.measureLowerBound,
+      details.measureUpperBound,
+      details.measureOffset,
+      measureAxis,
+    );
+
+    final symbolRendererFn = series.getAttr(pointSymbolRendererFnKey);
+
+    // Get the ID of the [SymbolRenderer] for this point. An ID may be
+    // specified on the datum, or on the series. If neither is specified,
+    // fall back to the default.
+    String? symbolRendererId;
+    if (symbolRendererFn != null) {
+      symbolRendererId = symbolRendererFn(details.index);
     }
+    symbolRendererId ??= series.getAttr(pointSymbolRendererIdKey);
+    symbolRendererId ??= defaultSymbolRendererId;
 
-    for (final points in seriesPointMap.values) {
-      PointRendererElement<D>? nearestPoint;
-
-      _Distances nearestDistances = const _Distances(
-        domainDistance: _maxInitialDistance,
-        measureDistance: _maxInitialDistance,
-        relativeDistance: _maxInitialDistance,
-      );
-
-      for (final point in points) {
-        if (point.overlaySeries) {
-          break;
-        }
-
-        final p = point._currentPoint!.point!;
-
-        final componentBounds =
-            Rect.fromLTWH(0.0, 0.0, size.width, size.height); // TODO
-
-        // Don't look at points not in the drawArea.
-        if (p.dx! < componentBounds.left || p.dx! > componentBounds.right) {
-          break;
-        }
-
-        final distances = _getDatumDistance(point, chartPoint);
-
-        if (selectOverlappingPoints) {
-          if (distances.insidePoint!) {
-            inside.add(_createDatumDetails(point._currentPoint!, distances));
-          }
-        }
-
-        // If any point was added to the inside list on previous iterations,
-        // we don't need to go through calculating nearest points because we
-        // only return inside list as a result in that case.
-        if (inside.isEmpty) {
-          // Do not consider the points outside event location when
-          // selectExactEventLocation flag is set.
-          if (!selectExactEventLocation || distances.insidePoint!) {
-            if (byDomain) {
-              if ((distances.domainDistance <
-                      nearestDistances.domainDistance) ||
-                  (distances.domainDistance ==
-                          nearestDistances.domainDistance &&
-                      distances.measureDistance <
-                          nearestDistances.measureDistance)) {
-                nearestPoint = point._currentPoint;
-                nearestDistances = distances;
-              }
-            } else {
-              if (distances.relativeDistance <
-                  nearestDistances.relativeDistance) {
-                nearestPoint = point._currentPoint;
-                nearestDistances = distances;
-              }
-            }
-          }
-        }
+    // Now that we have the ID, get the configured [SymbolRenderer].
+    SymbolRenderer? nearestSymbolRenderer;
+    if (symbolRendererId == defaultSymbolRendererId) {
+      nearestSymbolRenderer = symbolRenderer;
+    } else {
+      final id = symbolRendererId;
+      if (!config.customSymbolRenderers!.containsKey(id)) {
+        throw ArgumentError('Invalid custom symbol renderer id "$id"');
       }
 
-      // Found a point, add it to the list.
-      if (nearestPoint != null) {
-        nearest.add(_createDatumDetails(nearestPoint, nearestDistances));
-      }
+      nearestSymbolRenderer = config.customSymbolRenderers![id];
     }
 
-    // Note: the details are already sorted by domain & measure distance in
-    // base chart. If asking for all overlapping points, return the list of
-    // inside points - only if there was overlap.
-    return (selectOverlappingPoints && inside.isNotEmpty) ? inside : nearest;
+    return DatumDetails.from(
+      details,
+      chartPosition: NullablePoint(point.dx, point.dy),
+      chartPositionLower: NullablePoint(point.xLower, point.yLower),
+      chartPositionUpper: NullablePoint(point.xUpper, point.yUpper),
+      symbolRenderer: nearestSymbolRenderer,
+    );
   }
+
+  @override
+  Widget build(
+    BuildContext context, {
+    required List<ImmutableSeries<D>> seriesList,
+    required Key key,
+  }) {
+    return _PointRender<D, S>(
+      key: key,
+      seriesList: seriesList,
+      renderer: this,
+    );
+  }
+}
+
+class _PointRender<D, S extends BaseChart<D>>
+    extends BaseSeriesRenderObjectWidget<D, S,
+        PointRendererRender<D, S, PointRenderer<D, S>>> {
+  const _PointRender({
+    required this.renderer,
+    required super.seriesList,
+    required super.key,
+  });
+
+  final PointRenderer<D, S> renderer;
+
+  @override
+  PointRendererRender<D, S, PointRenderer<D, S>> createRenderObject(
+      BuildContext context) {
+    return PointRendererRender<D, S, PointRenderer<D, S>>(
+      chartState: renderer.chartState,
+      renderer: renderer,
+      seriesList: seriesList,
+    );
+  }
+}
+
+class PointRendererRender<D, S extends BaseChart<D>,
+    R extends PointRenderer<D, S>> extends SeriesRendererRender<D, S> {
+  PointRendererRender({
+    required super.chartState,
+    required super.seriesList,
+    required this.renderer,
+  });
+
+  final R renderer;
+
+  /// Store a map of series drawn on the chart, mapped by series name.
+  ///
+  /// [Map] is used to render the series on the canvas in the same
+  /// order as the data was given to the chart.
+  @protected
+  // ignore: prefer_collection_literals, https://github.com/dart-lang/linter/issues/1649
+  Map<String, List<AnimatedPoint<D>>> seriesPointMap = {};
+
+  // Store a list of lines that exist in the series data.
+  //
+  // This list will be used to remove any [_AnimatedPoint] that were rendered in
+  // previous draw cycles, but no longer have a corresponding datum in the new
+  // data.
+  final _currentKeys = <String>[];
 
   DatumDetails<D> _createDatumDetails(
       PointRendererElement<D> point, _Distances distances) {
     SymbolRenderer? pointSymbolRenderer;
     if (point.symbolRendererId == defaultSymbolRendererId) {
-      pointSymbolRenderer = symbolRenderer;
+      pointSymbolRenderer = renderer.symbolRenderer;
     } else {
       final id = point.symbolRendererId;
-      if (!config.customSymbolRenderers!.containsKey(id)) {
+      if (!renderer.config.customSymbolRenderers!.containsKey(id)) {
         throw ArgumentError('Invalid custom symbol renderer id "$id"');
       }
-      pointSymbolRenderer = config.customSymbolRenderers![id];
+      pointSymbolRenderer = renderer.config.customSymbolRenderers![id];
     }
     return DatumDetails<D>(
       datum: point.point!.datum,
@@ -659,62 +437,330 @@ class PointRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  DatumDetails<D> addPositionToDetailsForSeriesDatum(
-      DatumDetails<D> details, SeriesDatum<D> seriesDatum) {
-    final series = details.series!;
+  void update() {
+    super.update();
 
-    final domainAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
-    final measureAxis =
-        (chartState as CartesianChartState<D, CartesianChart<D>>)
-            .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
+    _currentKeys.clear();
 
-    final point = getPoint(
-      seriesDatum.datum,
-      details.domain,
-      details.domainLowerBound,
-      details.domainUpperBound,
-      series,
-      domainAxis!,
-      details.measure,
-      details.measureLowerBound,
-      details.measureUpperBound,
-      details.measureOffset,
-      measureAxis,
-    );
+    // Build a list of sorted series IDs as we iterate through the list, used
+    // later for sorting.
+    final sortedSeriesIds = <String>[];
 
-    final symbolRendererFn = series.getAttr(pointSymbolRendererFnKey);
+    for (final series in seriesList) {
+      sortedSeriesIds.add(series.id);
 
-    // Get the ID of the [SymbolRenderer] for this point. An ID may be
-    // specified on the datum, or on the series. If neither is specified,
-    // fall back to the default.
-    String? symbolRendererId;
-    if (symbolRendererFn != null) {
-      symbolRendererId = symbolRendererFn(details.index);
+      final domainAxis =
+          (chartState as CartesianChartState<D, CartesianChart<D>>).domainAxis;
+      final domainFn = series.domainFn;
+      final domainLowerBoundFn = series.domainLowerBoundFn;
+      final domainUpperBoundFn = series.domainUpperBoundFn;
+      final measureAxis =
+          (chartState as CartesianChartState<D, CartesianChart<D>>)
+              .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
+      final measureFn = series.measureFn;
+      final measureLowerBoundFn = series.measureLowerBoundFn;
+      final measureUpperBoundFn = series.measureUpperBoundFn;
+      final measureOffsetFn = series.measureOffsetFn;
+      final seriesKey = series.id;
+      final keyFn = series.keyFn!;
+
+      final pointList = seriesPointMap.putIfAbsent(seriesKey, () => []);
+
+      final elementsList = series.getAttr(pointElementsKey);
+
+      for (int index = 0; index < series.data.length; index += 1) {
+        final Object? datum = series.data[index];
+        final details = elementsList![index];
+
+        final domainValue = domainFn(index);
+        final domainLowerBoundValue = domainLowerBoundFn?.call(index);
+        final domainUpperBoundValue = domainUpperBoundFn?.call(index);
+
+        final measureValue = measureFn(index);
+        final measureLowerBoundValue = measureLowerBoundFn?.call(index);
+        final measureUpperBoundValue = measureUpperBoundFn?.call(index);
+        final measureOffsetValue = measureOffsetFn!(index);
+
+        // Create a point using the final location.
+        final point = renderer.getPoint(
+          datum,
+          domainValue,
+          domainLowerBoundValue,
+          domainUpperBoundValue,
+          series,
+          domainAxis!,
+          measureValue,
+          measureLowerBoundValue,
+          measureUpperBoundValue,
+          measureOffsetValue,
+          measureAxis,
+        );
+
+        final pointKey = keyFn(index);
+
+        // If we already have an AnimatingPoint for that index, use it.
+        AnimatedPoint<D>? animatingPoint =
+            pointList.firstWhereOrNull((point) => point.key == pointKey);
+
+        // If we don't have any existing arc element, create a arc and
+        // have it animate in from the position of the previous arc's end
+        // angle. If there were no previous arcs, then animate everything in
+        // from 0.
+        if (animatingPoint == null) {
+          // Create a point and have it animate in from axis.
+          final point = renderer.getPoint(
+            datum,
+            domainValue,
+            domainLowerBoundValue,
+            domainUpperBoundValue,
+            series,
+            domainAxis,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            measureAxis,
+          );
+
+          animatingPoint = AnimatedPoint<D>(
+              key: pointKey, overlaySeries: series.overlaySeries)
+            ..setNewTarget(PointRendererElement<D>(
+              index: details.index,
+              color: details.color,
+              fillColor: details.fillColor,
+              measureAxisPosition: measureAxis.getLocation(0.0),
+              point: point,
+              radius: details.radius,
+              boundsLineRadius: details.boundsLineRadius,
+              strokeWidth: details.strokeWidth,
+              symbolRendererId: details.symbolRendererId,
+            ));
+
+          pointList.add(animatingPoint);
+        }
+
+        // Update the set of arcs that still exist in the series data.
+        _currentKeys.add(pointKey);
+
+        // Get the pointElement we are going to setup.
+        final pointElement = PointRendererElement<D>(
+          index: index,
+          color: details.color,
+          fillColor: details.fillColor,
+          measureAxisPosition: measureAxis.getLocation(0.0),
+          point: point,
+          radius: details.radius,
+          boundsLineRadius: details.boundsLineRadius,
+          strokeWidth: details.strokeWidth,
+          symbolRendererId: details.symbolRendererId,
+        );
+
+        animatingPoint.setNewTarget(pointElement);
+      }
     }
-    symbolRendererId ??= series.getAttr(pointSymbolRendererIdKey);
-    symbolRendererId ??= defaultSymbolRendererId;
 
-    // Now that we have the ID, get the configured [SymbolRenderer].
-    SymbolRenderer? nearestSymbolRenderer;
-    if (symbolRendererId == defaultSymbolRendererId) {
-      nearestSymbolRenderer = symbolRenderer;
-    } else {
-      final id = symbolRendererId;
-      if (!config.customSymbolRenderers!.containsKey(id)) {
-        throw ArgumentError('Invalid custom symbol renderer id "$id"');
+    // Sort the renderer elements to be in the same order as the series list.
+    // They may get disordered between chart draw cycles if a behavior adds or
+    // removes series from the list (e.g. click to hide on legends).
+    seriesPointMap = {for (final k in sortedSeriesIds) k: seriesPointMap[k]!};
+
+    // Animate out points that don't exist anymore.
+    seriesPointMap.forEach((String key, List<AnimatedPoint<D>> points) {
+      for (final point in points) {
+        if (_currentKeys.contains(point.key) != true) {
+          point.animateOut();
+        }
+      }
+    });
+  }
+
+  @override
+  List<DatumDetails<D>> getNearestDatumDetailPerSeries(
+    Offset globalPosition,
+    bool byDomain,
+    Rect? boundsOverride, {
+    bool selectOverlappingPoints = false,
+    bool selectExactEventLocation = false,
+  }) {
+    final nearest = <DatumDetails<D>>[];
+    final inside = <DatumDetails<D>>[];
+
+    final chartPoint = globalToLocal(globalPosition);
+
+    // if (!isPointWithinBounds(chartPoint, Offset.zero & size)) {
+    //   return nearest;
+    // }
+
+    for (final points in seriesPointMap.values) {
+      PointRendererElement<D>? nearestPoint;
+
+      _Distances nearestDistances = const _Distances(
+        domainDistance: _maxInitialDistance,
+        measureDistance: _maxInitialDistance,
+        relativeDistance: _maxInitialDistance,
+      );
+
+      for (final point in points) {
+        if (point.overlaySeries) {
+          break;
+        }
+
+        // final p = point._currentPoint!.point!;
+        // final componentBounds = Offset.zero & size;
+
+        // Don't look at points not in the drawArea.
+        // if (p.dx! < componentBounds.left || p.dx! > componentBounds.right) {
+        //   break;
+        // }
+
+        final distances = _getDatumDistance(point, chartPoint);
+
+        if (selectOverlappingPoints) {
+          if (distances.insidePoint!) {
+            inside.add(_createDatumDetails(point._currentPoint!, distances));
+          }
+        }
+
+        // If any point was added to the inside list on previous iterations,
+        // we don't need to go through calculating nearest points because we
+        // only return inside list as a result in that case.
+        if (inside.isEmpty) {
+          // Do not consider the points outside event location when
+          // selectExactEventLocation flag is set.
+          if (!selectExactEventLocation || distances.insidePoint!) {
+            if (byDomain) {
+              if ((distances.domainDistance <
+                      nearestDistances.domainDistance) ||
+                  (distances.domainDistance ==
+                          nearestDistances.domainDistance &&
+                      distances.measureDistance <
+                          nearestDistances.measureDistance)) {
+                nearestPoint = point._currentPoint;
+                nearestDistances = distances;
+              }
+            } else {
+              if (distances.relativeDistance <
+                  nearestDistances.relativeDistance) {
+                nearestPoint = point._currentPoint;
+                nearestDistances = distances;
+              }
+            }
+          }
+        }
       }
 
-      nearestSymbolRenderer = config.customSymbolRenderers![id];
+      // Found a point, add it to the list.
+      if (nearestPoint != null) {
+        nearest.add(_createDatumDetails(nearestPoint, nearestDistances));
+      }
     }
 
-    return DatumDetails.from(
-      details,
-      chartPosition: NullablePoint(point.dx, point.dy),
-      chartPositionLower: NullablePoint(point.xLower, point.yLower),
-      chartPositionUpper: NullablePoint(point.xUpper, point.yUpper),
-      symbolRenderer: nearestSymbolRenderer,
-    );
+    // Note: the details are already sorted by domain & measure distance in
+    // base chart. If asking for all overlapping points, return the list of
+    // inside points - only if there was overlap.
+    return (selectOverlappingPoints && inside.isNotEmpty) ? inside : nearest;
+  }
+
+  @override
+  void paint(
+    PaintingContext context,
+    Offset offset,
+  ) {
+    super.paint(context, offset);
+
+    final animationPercent = chartState.animationPosition.value;
+    final bounds = Offset.zero & size;
+
+    // Clean up the points that no longer exist.
+    if (chartState.animationPosition.isCompleted) {
+      final keysToRemove = <String>[];
+
+      seriesPointMap.forEach((String key, List<AnimatedPoint<D>> points) {
+        points.removeWhere((AnimatedPoint<D> point) => point.animatingOut);
+
+        if (points.isEmpty) {
+          keysToRemove.add(key);
+        }
+      });
+
+      keysToRemove.forEach(seriesPointMap.remove);
+    }
+
+    seriesPointMap.forEach((String key, List<AnimatedPoint<D>> points) {
+      points
+          .map<PointRendererElement<D>>((AnimatedPoint<D> animatingPoint) =>
+              animatingPoint.getCurrentPoint(animationPercent))
+          .forEach((point) {
+        // Decorate the points with decorators that should appear below the main
+        // series data.
+        renderer.pointRendererDecorators
+            .where((decorator) => !decorator.renderAbove)
+            .forEach((decorator) {
+          decorator.decorate(
+            point,
+            context.canvas,
+            offset,
+            drawBounds: bounds,
+            animationPercent: animationPercent,
+            rtl: renderer.isRtl,
+          );
+        });
+
+        // Skip points whose center lies outside the draw bounds. Those that lie
+        // near the edge will be allowed to render partially outside. This
+        // prevents harshly clipping off half of the shape.
+        if (point.point!.dy != null &&
+            bounds.contains(point.point!.toPoint())) {
+          final bounds = Rect.fromLTWH(
+            point.point!.dx! - point.radius,
+            point.point!.dy! - point.radius,
+            point.radius * 2.0,
+            point.radius * 2.0,
+          );
+
+          if (point.symbolRendererId == defaultSymbolRendererId) {
+            renderer.symbolRenderer!.draw(
+              context.canvas,
+              offset,
+              bounds,
+              fillColor: point.fillColor,
+              strokeColor: point.color,
+              strokeWidth: point.strokeWidth,
+            );
+          } else {
+            final id = point.symbolRendererId;
+            if (!renderer.config.customSymbolRenderers!.containsKey(id)) {
+              throw ArgumentError('Invalid custom symbol renderer id "$id"');
+            }
+
+            final customRenderer = renderer.config.customSymbolRenderers![id]!;
+            customRenderer.draw(
+              context.canvas,
+              offset,
+              bounds,
+              fillColor: point.fillColor,
+              strokeColor: point.color,
+              strokeWidth: point.strokeWidth,
+            );
+          }
+        }
+
+        // Decorate the points with decorators that should appear above the main
+        // series data. This is the typical place for labels.
+        renderer.pointRendererDecorators
+            .where((decorator) => decorator.renderAbove)
+            .forEach((decorator) {
+          decorator.decorate(
+            point,
+            context.canvas,
+            offset,
+            drawBounds: bounds,
+            animationPercent: animationPercent,
+            rtl: renderer.isRtl,
+          );
+        });
+      });
+    });
   }
 }
 

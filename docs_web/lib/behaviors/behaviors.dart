@@ -37,9 +37,9 @@ class _BehaviorsPageState extends State<BehaviorsPage> {
   Widget build(BuildContext context) {
     // return Defaults(header: 'Behaviors', items: [
     //   ItemTitle(
-    //     title: 'Initial hint animation ',
-    //     subtitle: 'Animate into final viewport',
-    //     body: (context) => InitialHintAnimation.withRandomData(),
+    //     title: 'Line Chart with Chart Titles',
+    //     subtitle: 'Line chart with four chart titles',
+    //     body: (context) => ChartTitleLine.withRandomData(),
     //   ),
     // ]);
 

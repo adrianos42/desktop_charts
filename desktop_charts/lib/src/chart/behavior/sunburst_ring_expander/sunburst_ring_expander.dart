@@ -19,8 +19,7 @@ import 'package:flutter/widgets.dart';
 
 import '../../base_chart.dart' show BaseChartState, BaseChart;
 import '../../selection_model.dart' show SelectionModel, SelectionModelType;
-import '../../sunburst/sunburst_chart.dart' show SunburstChartState;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 
 /// Expands the initially displayed outer ring to show subset of data in one
 /// final ring.
@@ -29,36 +28,44 @@ class SunburstRingExpander<D> extends ChartBehavior<D> {
 
   final SelectionModelType selectionModelType;
 
-  late SunburstChartState<D> _chartState;
+  //late SunburstChartState<D> _chartState;
 
   void _selectionChanged(SelectionModel<D> selectionModel) {
     if (selectionModel.selectedDatum.isNotEmpty) {
-      _chartState.expandNode(selectionModel.selectedDatum.first.datum);
-      _chartState.redraw(skipLayout: true, skipAnimation: true);
+      // _chartState.expandNode(selectionModel.selectedDatum.first.datum);
+      // _chartState.redraw(skipLayout: true, skipAnimation: true);
     }
   }
 
   @override
   void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState as SunburstChartState<D>;
+    // _chartState = chartState as SunburstChartState<D>;
 
-    _chartState
-        .getSelectionModel(selectionModelType)
-        .addSelectionChangedListener(_selectionChanged);
+    // _chartState
+    //     .getSelectionModel(selectionModelType)
+    //     .addSelectionChangedListener(_selectionChanged);
   }
 
   @override
   void dispose() {
-    _chartState
-        .getSelectionModel(selectionModelType)
-        .addSelectionUpdatedListener(_selectionChanged);
+    // _chartState
+    //     .getSelectionModel(selectionModelType)
+    //     .addSelectionUpdatedListener(_selectionChanged);
   }
 
   @override
-  Widget buildBehavior(BuildContext context) {
+  Widget buildBehavior2(BuildContext context) {
     return const SizedBox();
   }
 
   @override
   String get role => 'sunburstRingExpander-$selectionModelType';
+
+  @override
+  ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    // TODO: implement build
+    throw UnimplementedError();
+  }
 }

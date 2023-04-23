@@ -25,7 +25,7 @@ import '../series_renderer_config.dart';
 import 'sankey_renderer.dart';
 
 /// Configuration for a [SankeyRenderer].
-class SankeyRendererConfig<D> implements SeriesRendererConfig<D> {
+class SankeyRendererConfig<D> extends SeriesRendererConfig<D> {
   SankeyRendererConfig({
     this.customRendererId,
     this.layoutPaintOrder = LayoutViewPaintOrder.sankey,
@@ -38,47 +38,44 @@ class SankeyRendererConfig<D> implements SeriesRendererConfig<D> {
   @override
   final SymbolRenderer symbolRenderer;
 
-  @override
-  final RendererAttributes rendererAttributes = RendererAttributes();
-
   /// The order to paint this renderer on the canvas.
   final int layoutPaintOrder;
 
-  @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
-    required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
-    String? rendererId,
-  }) {
-    return _SankeyRenderObjectWidget(
-      chartState: chartState,
-      config: this,
-      key: key,
-      rendererId: rendererId,
-      seriesList: seriesList,
-    );
-  }
+  // @override
+  // Widget build<S extends BaseChart<D>>(
+  //   BuildContext context, {
+  //   required Key key,
+  //   required BaseChartState<D, S> chartState,
+  //   required List<MutableSeries<D>> seriesList,
+  //   String? rendererId,
+  // }) {
+  //   return _SankeyRenderObjectWidget(
+  //     chartState: chartState,
+  //     config: this,
+  //     key: key,
+  //     rendererId: rendererId,
+  //     seriesList: seriesList,
+  //   );
+  // }
 }
 
-class _SankeyRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, SankeyRenderer<D, S>,
-        SankeyRendererConfig<D>> {
-  const _SankeyRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
+// class _SankeyRenderObjectWidget<D, S extends BaseChart<D>>
+//     extends BaseSeriesRenderObjectWidget<D, S, SankeyRenderer<D, S>,
+//         SankeyRendererConfig<D>> {
+//   const _SankeyRenderObjectWidget({
+//     required super.chartState,
+//     required super.config,
+//     required super.key,
+//     required super.rendererId,
+//     required super.seriesList,
+//   });
 
-  @override
-  SankeyRenderer<D, S> createRenderObject(BuildContext context) =>
-      SankeyRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
-      );
-}
+//   @override
+//   SankeyRenderer<D, S> createRenderObject(BuildContext context) =>
+//       SankeyRenderer<D, S>(
+//         rendererId: rendererId,
+//         config: config,
+//         chartState: chartState,
+//         seriesList: seriesList,
+//       );
+// }

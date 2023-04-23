@@ -15,20 +15,18 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'package:collection/collection.dart' show ListEquality;
 import 'package:flutter/widgets.dart';
 
 import '../../symbol_renderer.dart';
 import '../base_chart.dart' show BaseChart, BaseChartState;
-import '../layout/layout_view.dart' show LayoutViewPaintOrder;
-import '../processed_series.dart' show MutableSeries;
-import '../series_renderer_config.dart'
-    show RendererAttributes, SeriesRendererConfig, BaseSeriesRenderObjectWidget;
+import '../series_renderer_config.dart' show SeriesRendererConfig;
 import 'line_renderer.dart' show LineRenderer;
 
 /// Configuration for a line renderer.
 @immutable
-class LineRendererConfig<D> implements SeriesRendererConfig<D> {
-  LineRendererConfig({
+class LineRendererConfig<D> extends SeriesRendererConfig<D> {
+  const LineRendererConfig({
     this.customRendererId,
     this.radius = 3.5,
     this.stacked = false,
@@ -37,7 +35,6 @@ class LineRendererConfig<D> implements SeriesRendererConfig<D> {
     this.includeLine = true,
     this.includePoints = false,
     this.includeArea = false,
-    this.layoutPaintOrder = LayoutViewPaintOrder.line,
     this.areaOpacity = 0.1,
     this.roundEndCaps = false,
     SymbolRenderer? symbolRenderer,
@@ -48,9 +45,6 @@ class LineRendererConfig<D> implements SeriesRendererConfig<D> {
 
   @override
   final SymbolRenderer symbolRenderer;
-
-  @override
-  final RendererAttributes rendererAttributes = RendererAttributes();
 
   /// Radius of points on the line, if [includePoints] is enabled.
   final double radius;
@@ -85,9 +79,6 @@ class LineRendererConfig<D> implements SeriesRendererConfig<D> {
   /// domain axis.
   final bool includeArea;
 
-  /// The order to paint this renderer on the canvas.
-  final int layoutPaintOrder;
-
   /// Configures the opacity of the area skirt on the chart.
   final double areaOpacity;
 
@@ -95,40 +86,47 @@ class LineRendererConfig<D> implements SeriesRendererConfig<D> {
   final bool roundEndCaps;
 
   @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
+  LineRenderer<D, S> build<S extends BaseChart<D>>({
     required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
     String? rendererId,
   }) {
-    return _LineRenderObjectWidget(
+    return LineRenderer(
       chartState: chartState,
-      config: this,
-      key: key,
       rendererId: rendererId,
-      seriesList: seriesList,
+      config: this,
     );
   }
-}
-
-class _LineRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, LineRenderer<D, S>,
-        LineRendererConfig<D>> {
-  const _LineRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
 
   @override
-  LineRenderer<D, S> createRenderObject(BuildContext context) =>
-      LineRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
+  bool operator ==(covariant LineRendererConfig<D> other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other.customRendererId == customRendererId &&
+        other.symbolRenderer == symbolRenderer &&
+        other.radius == radius &&
+        other.stacked == stacked &&
+        other.strokeWidth == strokeWidth &&
+        const ListEquality<int>().equals(other.dashPattern, dashPattern) &&
+        other.includeLine == includeLine &&
+        other.includePoints == includePoints &&
+        other.includeArea == includeArea &&
+        other.areaOpacity == areaOpacity &&
+        other.roundEndCaps == roundEndCaps;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        customRendererId,
+        symbolRenderer,
+        radius,
+        stacked,
+        strokeWidth,
+        dashPattern,
+        includeLine,
+        includePoints,
+        includeArea,
+        areaOpacity,
+        roundEndCaps,
       );
 }

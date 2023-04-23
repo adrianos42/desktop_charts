@@ -26,12 +26,14 @@ import '../cartesian/cartesian_chart.dart'
     show CartesianChart, CartesianChartState;
 import '../chart_canvas.dart' show ChartCanvas, FillPatternType;
 import '../datum_details.dart' show DatumDetails;
-import '../processed_series.dart' show ImmutableSeries;
+import '../processed_series.dart' show ImmutableSeries, MutableSeries;
 import '../series_datum.dart' show SeriesDatum;
 import 'bar_target_line_renderer_config.dart' show BarTargetLineRendererConfig;
+import '../series_renderer.dart';
 import 'base_bar_renderer.dart'
     show
         BaseBarRenderer,
+        BaseBarRendererRender,
         allBarGroupWeightsKey,
         barGroupWeightKey,
         barGroupCountKey,
@@ -50,7 +52,6 @@ class BarTargetLineRenderer<D, S extends BaseChart<D>> extends BaseBarRenderer<
     BarTargetLineRendererConfig<D>? config,
     String? rendererId,
     required super.chartState,
-    required super.seriesList,
   })  : _barGroupInnerPadding = config?.barGroupInnerPadding ?? 0.0,
         super(
           config: config ?? BarTargetLineRendererConfig<D>(),
@@ -64,7 +65,7 @@ class BarTargetLineRenderer<D, S extends BaseChart<D>> extends BaseBarRenderer<
   Color get _color => chartState.themeData.foreground;
 
   @override
-  void configureSeries() {
+  void configureSeries(List<MutableSeries<D>> seriesList) {
     for (final series in seriesList) {
       series.colorFn ??= (_) => _color;
       series.fillColorFn ??= (_) => _color;
@@ -241,28 +242,6 @@ class BarTargetLineRenderer<D, S extends BaseChart<D>> extends BaseBarRenderer<
       );
   }
 
-  @override
-  void paintBar(
-    Canvas canvas,
-    Offset offset,
-    Iterable<BarTargetLineRendererElement> barElements,
-  ) {
-    final bounds = Offset.zero & size;
-
-    for (final bar in barElements) {
-      // TODO: Combine common line attributes into
-      // lineStyle or similar.
-      canvas.drawChartLine(
-        offset,
-        clipBounds: bounds,
-        points: bar.points,
-        stroke: bar.color!,
-        strokeWidth: bar.strokeWidth,
-        dashPattern: bar.dashPattern,
-      );
-    }
-  }
-
   /// Generates a set of points that describe a bar target line.
   List<Offset> _getTargetLinePoints(
     D? domainValue,
@@ -379,6 +358,72 @@ class BarTargetLineRenderer<D, S extends BaseChart<D>> extends BaseBarRenderer<
       right = max(right, point.dx);
     }
     return Rect.fromLTRB(left, top, right, bottom);
+  }
+
+  @override
+  Widget build(
+    BuildContext context, {
+    required Key key,
+    required List<ImmutableSeries<D>> seriesList,
+  }) {
+    return _BarTargetLineRender<D, S>(
+      key: key,
+      seriesList: seriesList,
+      renderer: this,
+    );
+  }
+}
+
+class _BarTargetLineRender<D, S extends BaseChart<D>>
+    extends BaseSeriesRenderObjectWidget<D, S,
+        BarTargetLineRendererRender<D, S>> {
+  const _BarTargetLineRender({
+    required this.renderer,
+    required super.key,
+    required super.seriesList,
+  });
+
+  final BarTargetLineRenderer<D, S> renderer;
+
+  @override
+  BarTargetLineRendererRender<D, S> createRenderObject(BuildContext context) {
+    return BarTargetLineRendererRender<D, S>(
+      chartState: renderer.chartState,
+      renderer: renderer,
+      seriesList: seriesList,
+    );
+  }
+}
+
+class BarTargetLineRendererRender<D, S extends BaseChart<D>>
+    extends BaseBarRendererRender<D, BarTargetLineRendererElement,
+        AnimatedBarTargetLine<D>, S, BarTargetLineRenderer<D, S>> {
+  BarTargetLineRendererRender({
+    required super.renderer,
+    required super.chartState,
+    required super.seriesList,
+  });
+
+  @override
+  void paintBar(
+    Canvas canvas,
+    Offset offset,
+    Iterable<BarTargetLineRendererElement> barElements,
+  ) {
+    final bounds = Offset.zero & size;
+
+    for (final bar in barElements) {
+      // TODO: Combine common line attributes into
+      // lineStyle or similar.
+      canvas.drawChartLine(
+        offset,
+        clipBounds: bounds,
+        points: bar.points,
+        stroke: bar.color!,
+        strokeWidth: bar.strokeWidth,
+        dashPattern: bar.dashPattern,
+      );
+    }
   }
 }
 

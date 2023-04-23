@@ -82,31 +82,31 @@ class ChartTitleLine extends StatelessWidget {
       // margin. The top title has a sub-title, and is aligned to the left edge
       // of the chart. The other titles are aligned with the middle of the draw
       // area.
-      behaviors: [
+      behaviors: const [
         charts.ChartTitle(
           'Top title text',
-          subTitle: 'Top sub-title text',
-          behaviorPosition: charts.BehaviorPosition.top,
+          subtitle: 'Top sub-title text',
+          position: charts.BehaviorPosition.top,
           titleOutsideJustification: charts.OutsideJustification.start,
           // Set a larger inner padding than the default (10) to avoid
           // rendering the text too close to the top measure axis tick label.
           // The top tick label may extend upwards into the top margin region
           // if it is located at the top of the draw area.
-          innerPadding: 18,
+          innerPadding: 16,
         ),
         charts.ChartTitle(
           'Bottom title text',
-          behaviorPosition: charts.BehaviorPosition.bottom,
+          position: charts.BehaviorPosition.bottom,
           titleOutsideJustification: charts.OutsideJustification.middleDrawArea,
         ),
         charts.ChartTitle(
           'Start title',
-          behaviorPosition: charts.BehaviorPosition.start,
+          position: charts.BehaviorPosition.start,
           titleOutsideJustification: charts.OutsideJustification.middleDrawArea,
         ),
         charts.ChartTitle(
           'End title',
-          behaviorPosition: charts.BehaviorPosition.end,
+          position: charts.BehaviorPosition.end,
           titleOutsideJustification: charts.OutsideJustification.middleDrawArea,
         ),
       ],

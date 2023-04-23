@@ -17,17 +17,19 @@
 
 import 'dart:math' show pi;
 
+import 'package:collection/collection.dart' show ListEquality;
 import 'package:flutter/widgets.dart';
 
 import '../base_chart.dart' show BaseChart, BaseChartState;
-import '../processed_series.dart' show MutableSeries;
-import '../series_renderer_config.dart';
+import '../series_renderer.dart';
 import 'arc_renderer.dart' show ArcRenderer;
+import 'arc_renderer_decorator.dart' show ArcRendererDecorator;
 import 'base_arc_renderer_config.dart' show BaseArcRendererConfig;
 
 /// Configuration for an [ArcRenderer].
+@immutable
 class ArcRendererConfig<D> extends BaseArcRendererConfig<D> {
-  ArcRendererConfig({
+  const ArcRendererConfig({
     super.symbolRenderer,
     super.customRendererId,
     super.arcLength = 2 * pi,
@@ -40,40 +42,44 @@ class ArcRendererConfig<D> extends BaseArcRendererConfig<D> {
   });
 
   @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
+  SeriesRenderer<D, S> build<S extends BaseChart<D>>({
     required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
     String? rendererId,
   }) {
-    return _ArcRenderObjectWidget(
+    return ArcRenderer<D, S>(
       chartState: chartState,
       rendererId: rendererId,
-      seriesList: seriesList,
       config: this,
-      key: key,
     );
   }
-}
-
-class _ArcRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, ArcRenderer<D, S>,
-        ArcRendererConfig<D>> {
-  const _ArcRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
 
   @override
-  ArcRenderer<D, S> createRenderObject(BuildContext context) =>
-      ArcRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
+  bool operator ==(covariant ArcRendererConfig<D> other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other.customRendererId == customRendererId &&
+        ListEquality<ArcRendererDecorator<D>>()
+            .equals(other.arcRendererDecorators, arcRendererDecorators) &&
+        other.symbolRenderer == symbolRenderer &&
+        other.arcLength == arcLength &&
+        other.arcRatio == arcRatio &&
+        other.arcWidth == arcWidth &&
+        other.minHoleWidthForCenterContent == minHoleWidthForCenterContent &&
+        other.startAngle == startAngle &&
+        other.strokeWidth == strokeWidth;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        customRendererId,
+        arcRendererDecorators,
+        symbolRenderer,
+        arcLength,
+        arcRatio,
+        arcWidth,
+        minHoleWidthForCenterContent,
+        startAngle,
+        strokeWidth,
       );
 }

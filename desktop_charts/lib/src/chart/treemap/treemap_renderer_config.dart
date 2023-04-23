@@ -23,6 +23,7 @@ import '../base_chart.dart' show BaseChart, BaseChartState;
 import '../layout/layout_view.dart';
 import '../processed_series.dart' show MutableSeries;
 import '../series_renderer_config.dart';
+import '../series_renderer.dart';
 import 'base_treemap_renderer.dart';
 import 'dice_treemap_renderer.dart';
 import 'slice_dice_treemap_renderer.dart';
@@ -60,9 +61,6 @@ class TreeMapRendererConfig<D> implements SeriesRendererConfig<D> {
   @override
   final SymbolRenderer symbolRenderer;
 
-  @override
-  final rendererAttributes = RendererAttributes();
-
   /// Tiling algorithm, which is the way to divide a region into sub-regions of
   /// specified areas, in the treemap.
   final TreeMapTileType tileType;
@@ -86,43 +84,41 @@ class TreeMapRendererConfig<D> implements SeriesRendererConfig<D> {
   final TreeMapLabelDecorator<D>? labelDecorator;
 
   @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
+  SeriesRenderer<D, S> build<S extends BaseChart<D>>({
     required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
     String? rendererId,
   }) {
-    return switch (tileType) {
-      TreeMapTileType.dice => _DiceTreeMapRenderObjectWidget<D, S>(
-          config: this,
-          rendererId: rendererId ?? customRendererId,
-          chartState: chartState,
-          seriesList: seriesList,
-          key: key,
-        ),
-      TreeMapTileType.slice => _SliceTreeMapRenderObjectWidget<D, S>(
-          config: this,
-          rendererId: rendererId ?? customRendererId,
-          chartState: chartState,
-          seriesList: seriesList,
-          key: key,
-        ),
-      TreeMapTileType.sliceDice => _SliceDiceMapRenderObjectWidget<D, S>(
-          config: this,
-          rendererId: customRendererId,
-          chartState: chartState,
-          seriesList: seriesList,
-          key: key,
-        ),
-      _ => _SquarifiedTreeMapRenderObjectWidget<D, S>(
-          config: this,
-          rendererId: customRendererId,
-          chartState: chartState,
-          seriesList: seriesList,
-          key: key,
-        )
-    };
+    throw '';
+    // return switch (tileType) {
+    //   TreeMapTileType.dice => _DiceTreeMapRenderObjectWidget<D, S>(
+    //       config: this,
+    //       rendererId: rendererId ?? customRendererId,
+    //       chartState: chartState,
+    //       seriesList: seriesList,
+    //       key: key,
+    //     ),
+    //   TreeMapTileType.slice => _SliceTreeMapRenderObjectWidget<D, S>(
+    //       config: this,
+    //       rendererId: rendererId ?? customRendererId,
+    //       chartState: chartState,
+    //       seriesList: seriesList,
+    //       key: key,
+    //     ),
+    //   TreeMapTileType.sliceDice => _SliceDiceMapRenderObjectWidget<D, S>(
+    //       config: this,
+    //       rendererId: customRendererId,
+    //       chartState: chartState,
+    //       seriesList: seriesList,
+    //       key: key,
+    //     ),
+    //   _ => _SquarifiedTreeMapRenderObjectWidget<D, S>(
+    //       config: this,
+    //       rendererId: customRendererId,
+    //       chartState: chartState,
+    //       seriesList: seriesList,
+    //       key: key,
+    //     )
+    // };
   }
 }
 
@@ -136,86 +132,86 @@ class TreeMapRendererConfig<D> implements SeriesRendererConfig<D> {
 /// one as close as possible.
 enum TreeMapTileType { dice, slice, sliceDice, squarified }
 
-class _DiceTreeMapRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, DiceTreeMapRenderer<D, S>,
-        TreeMapRendererConfig<D>> {
-  const _DiceTreeMapRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
+// class _DiceTreeMapRenderObjectWidget<D, S extends BaseChart<D>>
+//     extends BaseSeriesRenderObjectWidget<D, S, DiceTreeMapRenderer<D, S>,
+//         TreeMapRendererConfig<D>> {
+//   const _DiceTreeMapRenderObjectWidget({
+//     required super.chartState,
+//     required super.config,
+//     required super.key,
+//     required super.rendererId,
+//     required super.seriesList,
+//   });
 
-  @override
-  DiceTreeMapRenderer<D, S> createRenderObject(BuildContext context) =>
-      DiceTreeMapRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
-      );
-}
+//   @override
+//   DiceTreeMapRenderer<D, S> createRenderObject(BuildContext context) =>
+//       DiceTreeMapRenderer<D, S>(
+//         rendererId: rendererId,
+//         config: config,
+//         chartState: chartState,
+//         seriesList: seriesList,
+//       );
+// }
 
-class _SliceTreeMapRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, SliceTreeMapRenderer<D, S>,
-        TreeMapRendererConfig<D>> {
-  const _SliceTreeMapRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
+// class _SliceTreeMapRenderObjectWidget<D, S extends BaseChart<D>>
+//     extends BaseSeriesRenderObjectWidget<D, S, SliceTreeMapRenderer<D, S>,
+//         TreeMapRendererConfig<D>> {
+//   const _SliceTreeMapRenderObjectWidget({
+//     required super.chartState,
+//     required super.config,
+//     required super.key,
+//     required super.rendererId,
+//     required super.seriesList,
+//   });
 
-  @override
-  SliceTreeMapRenderer<D, S> createRenderObject(BuildContext context) =>
-      SliceTreeMapRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
-      );
-}
+//   @override
+//   SliceTreeMapRenderer<D, S> createRenderObject(BuildContext context) =>
+//       SliceTreeMapRenderer<D, S>(
+//         rendererId: rendererId,
+//         config: config,
+//         chartState: chartState,
+//         seriesList: seriesList,
+//       );
+// }
 
-class _SliceDiceMapRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, SliceDiceTreeMapRenderer<D, S>,
-        TreeMapRendererConfig<D>> {
-  const _SliceDiceMapRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
+// class _SliceDiceMapRenderObjectWidget<D, S extends BaseChart<D>>
+//     extends BaseSeriesRenderObjectWidget<D, S, SliceDiceTreeMapRenderer<D, S>,
+//         TreeMapRendererConfig<D>> {
+//   const _SliceDiceMapRenderObjectWidget({
+//     required super.chartState,
+//     required super.config,
+//     required super.key,
+//     required super.rendererId,
+//     required super.seriesList,
+//   });
 
-  @override
-  SliceDiceTreeMapRenderer<D, S> createRenderObject(BuildContext context) =>
-      SliceDiceTreeMapRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
-      );
-}
+//   @override
+//   SliceDiceTreeMapRenderer<D, S> createRenderObject(BuildContext context) =>
+//       SliceDiceTreeMapRenderer<D, S>(
+//         rendererId: rendererId,
+//         config: config,
+//         chartState: chartState,
+//         seriesList: seriesList,
+//       );
+// }
 
-class _SquarifiedTreeMapRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, SquarifiedTreeMapRenderer<D, S>,
-        TreeMapRendererConfig<D>> {
-  const _SquarifiedTreeMapRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.rendererId,
-    required super.seriesList,
-  });
+// class _SquarifiedTreeMapRenderObjectWidget<D, S extends BaseChart<D>>
+//     extends BaseSeriesRenderObjectWidget<D, S, SquarifiedTreeMapRenderer<D, S>,
+//         TreeMapRendererConfig<D>> {
+//   const _SquarifiedTreeMapRenderObjectWidget({
+//     required super.chartState,
+//     required super.config,
+//     required super.key,
+//     required super.rendererId,
+//     required super.seriesList,
+//   });
 
-  @override
-  SquarifiedTreeMapRenderer<D, S> createRenderObject(BuildContext context) =>
-      SquarifiedTreeMapRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
-      );
-}
+//   @override
+//   SquarifiedTreeMapRenderer<D, S> createRenderObject(BuildContext context) =>
+//       SquarifiedTreeMapRenderer<D, S>(
+//         rendererId: rendererId,
+//         config: config,
+//         chartState: chartState,
+//         seriesList: seriesList,
+//       );
+// }

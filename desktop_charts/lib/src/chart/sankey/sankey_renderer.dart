@@ -22,6 +22,7 @@ import '../base_chart.dart' show BaseChart;
 import '../datum_details.dart';
 import '../series_datum.dart';
 import '../series_renderer.dart';
+import '../processed_series.dart' show MutableSeries;
 import 'sankey_renderer_config.dart';
 
 /// Sankey Renderer for the Sankey Chart using Graph data structure
@@ -31,7 +32,6 @@ class SankeyRenderer<D, S extends BaseChart<D>>
     String? rendererId,
     SankeyRendererConfig<D>? config,
     required super.chartState,
-    required super.seriesList,
   })  : config = config ?? SankeyRendererConfig(),
         super(
           rendererId: rendererId ?? defaultRendererID,
@@ -45,23 +45,23 @@ class SankeyRenderer<D, S extends BaseChart<D>>
   final SankeyRendererConfig<D> config;
 
   @override
-  void preprocessSeries() {
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {
     // TODO Populate renderer elements.
   }
 
   @override
-  void update() {
-    super.update();
+  void update(List<MutableSeries<D>> seriesList) {
+    super.update(seriesList);
     
     // TODO Calculate node and link renderer element positions.
   }
 
   @override
-  void paint(
+  void draw(
     PaintingContext context,
     Offset offset,
   ) {
-    super.paint(context, offset);
+    //super.draw(context, offset);
 
     // TODO Paint the renderer elements on the canvas.
   }

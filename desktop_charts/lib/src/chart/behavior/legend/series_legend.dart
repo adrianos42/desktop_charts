@@ -18,14 +18,14 @@
 import 'package:desktop/desktop.dart';
 import 'package:flutter/rendering.dart';
 
+import '../../base_chart.dart';
 import '../../datum_details.dart' show MeasureFormatter;
 import '../../processed_series.dart' show MutableSeries;
 import '../../selection_model.dart' show SelectionModelType;
-import '../../../symbol_renderer.dart' show SymbolRenderer;
 import 'legend.dart';
 import 'legend_entry_generator.dart';
 import 'per_series_legend_entry_generator.dart';
-import '../chart_behavior.dart' show BehaviorPosition;
+import '../chart_behavior.dart' show BehaviorPosition, ChartBehaviorState;
 import '../../../symbol_renderer.dart';
 
 // TODO: Allows for hovering over a series in legend to highlight
@@ -35,39 +35,64 @@ import '../../../symbol_renderer.dart';
 ///
 /// By default this behavior creates a legend entry per series.
 class SeriesLegend<D> extends Legend<D> {
-  SeriesLegend({
+  const SeriesLegend({
     SelectionModelType? selectionModelType,
-    LegendEntryGenerator<D>? legendEntryGenerator,
-    MeasureFormatter? measureFormatter,
-    MeasureFormatter? secondaryMeasureFormatter,
-    bool? showMeasures,
-    LegendDefaultMeasure? legendDefaultMeasure,
+    LegendEntryGeneratorBuilder<D>? legendEntryGenerator,
+    this.measureFormatter,
+    this.secondaryMeasureFormatter,
+    this.legendDefaultMeasure,
     TextStyle? entryTextStyle,
     super.position,
+    super.insideJustification,
+    super.outsideJustification,
+    this.defaultHiddenSeries,
+    this.showMeasures = false,
   }) : super(
           selectionModelType: selectionModelType ?? SelectionModelType.info,
-          legendEntryGenerator:
-              legendEntryGenerator ?? PerSeriesLegendEntryGenerator(),
+          legendEntryGeneratorBuilder:
+              legendEntryGenerator ?? _perSeriesLegendEntryGeneratorBuilder<D>,
           entryTextStyle: entryTextStyle,
-        ) {
-    // Calling the setters will automatically use non-null default values.
-    this.showMeasures = showMeasures;
-    this.legendDefaultMeasure = legendDefaultMeasure;
-    this.measureFormatter = measureFormatter;
-    this.secondaryMeasureFormatter = secondaryMeasureFormatter;
+        );
+
+  static LegendEntryGenerator<D> _perSeriesLegendEntryGeneratorBuilder<D>() {
+    return PerSeriesLegendEntryGenerator<D>();
+  }
+
+  final bool showMeasures;
+  final MeasureFormatter? measureFormatter;
+  final MeasureFormatter? secondaryMeasureFormatter;
+  final LegendDefaultMeasure? legendDefaultMeasure;
+  final List<String>? defaultHiddenSeries;
+
+  @override
+  ChartBehaviorState<D, S, SeriesLegend<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _SeriesLegendState(behavior: this, chartState: chartState);
+  }
+}
+
+class _SeriesLegendState<D, S extends BaseChart<D>>
+    extends LegendState<D, S, SeriesLegend<D>> {
+  _SeriesLegendState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    showMeasures = behavior.showMeasures;
+    defaultHiddenSeries = behavior.defaultHiddenSeries;
+    legendDefaultMeasure = behavior.legendDefaultMeasure;
+    measureFormatter = behavior.measureFormatter;
+    secondaryMeasureFormatter = behavior.secondaryMeasureFormatter;
   }
 
   /// List of currently hidden series, by ID.
   final _hiddenSeriesList = <String>{};
 
-  /// List of series IDs that should be hidden by default.
-  List<String>? _defaultHiddenSeries;
-
-  /// List of series IDs that should not be hideable.
+  /// List of series IDs that should not be hidden.
   List<String>? _alwaysVisibleSeries;
 
-  /// Whether or not the series legend should show measures on datum selection.
-  late bool _showMeasures;
+  /// List of series IDs that should be hidden by default.
+  List<String>? _defaultHiddenSeries;
 
   /// Sets a list of series IDs that should be hidden by default on first chart
   /// draw.
@@ -98,6 +123,9 @@ class SeriesLegend<D> extends Legend<D> {
 
   /// Gets a list of series IDs that should always be visible.
   List<String>? get alwaysVisibleSeries => _alwaysVisibleSeries;
+
+  /// Whether or not the series legend should show measures on datum selection.
+  late bool _showMeasures;
 
   /// Whether or not the legend should show measures.
   ///
@@ -199,13 +227,8 @@ class SeriesLegend<D> extends Legend<D> {
   }
 
   @override
-  void updateLegend() {
-    chartState.requestPaint();
-  }
-
-  @override
-  Widget buildBehavior(BuildContext context) {
-    final entryWidgets = (legendState.legendEntries ?? []).map((entry) {
+  Widget buildBehaviorWidget(BuildContext context) {
+    final entryWidgets = (legendEntries ?? []).map((entry) {
       final isHidden = isSeriesHidden(entry.series.id);
 
       return AnimatedBuilder(
@@ -213,8 +236,7 @@ class SeriesLegend<D> extends Legend<D> {
         builder: (context, child) {
           //final textStyle = entry.;
 
-          final Color foreground =
-              entry.textStyle?.color ?? ButtonTheme.of(context).color!;
+          final Color? foreground = entry.textStyle?.color;
 
           SymbolRendererBuilder? symbolBuilder;
 
@@ -243,21 +265,18 @@ class SeriesLegend<D> extends Legend<D> {
                         showSeries(seriesId);
                       }
 
-                      chartState.redraw(
-                          skipLayout: true, skipAnimation: false);
+                      chartState.redraw(skipAnimation: false);
                     }
                   }
                 : null,
-            body: Text(
-              entry.label,
-              style: entry.textStyle,
-            ),
+            body: Text(entry.label),
             leading: symbolBuilder?.build(
               context,
               size: const Size(12.0, 12.0),
               color: entry.color,
               enabled: !isHidden,
             ),
+            trailing: showMeasures ? Text(entry.formattedValue!) : null,
             theme: ButtonThemeData(
               textStyle: entry.textStyle,
               color: foreground,
@@ -268,48 +287,12 @@ class SeriesLegend<D> extends Legend<D> {
     }).toList();
 
     return Flex(
-      direction: position == BehaviorPosition.top ||
-              position == BehaviorPosition.bottom
+      direction: behavior.position == BehaviorPosition.top ||
+              behavior.position == BehaviorPosition.bottom
           ? Axis.horizontal
           : Axis.vertical,
       crossAxisAlignment: CrossAxisAlignment.start,
       children: entryWidgets,
     );
-  }
-}
-
-@immutable
-class _SymbolRenderer extends SingleChildRenderObjectWidget {
-  _SymbolRenderer({
-    required this.symbolRenderer,
-  });
-
-  final SymbolRenderer symbolRenderer;
-
-  @override
-  SymbolRendererRender createRenderObject(BuildContext context) {
-    return SymbolRendererRender(
-      symbolRenderer: symbolRenderer,
-    );
-  }
-
-  @override
-  void updateRenderObject(
-      BuildContext context, covariant SymbolRendererRender renderObject) {}
-}
-
-class SymbolRendererRender extends RenderBox {
-  SymbolRendererRender({required this.symbolRenderer});
-
-  final SymbolRenderer symbolRenderer;
-
-  @override
-  void performLayout() {
-    size = constraints.biggest;
-  }
-
-  @override
-  void paint(PaintingContext context, Offset offset) {
-    symbolRenderer.draw(context.canvas, offset, Offset.zero & size);
   }
 }

@@ -31,7 +31,7 @@ import '../../cartesian/cartesian_chart.dart'
 import '../../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
 import '../../processed_series.dart' show ImmutableSeries;
 import '../../selection_model.dart' show SelectionModel, SelectionModelType;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 
 /// Chart behavior that monitors the specified [SelectionModel] and renders a
 /// dot for selected data.
@@ -108,61 +108,59 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
   /// Renderer used to draw the highlighted points.
   final SymbolRenderer symbolRenderer;
 
-  covariant late CartesianChartState<D, CartesianChart<D>> _chartState;
-
   final GlobalKey _linePointKey = GlobalKey();
 
   Map<String, _AnimatedPoint<D>> get _seriesPointMap =>
       (_linePointKey.currentContext!.findRenderObject()!
-              as _LinePointLayoutRender<D>)
+              as _LinePointRender<D>)
           ._seriesPointMap;
-
-  void _selectionChanged(SelectionModel<D> selectionModel) {
-    _chartState.redraw(skipLayout: true, skipAnimation: true);
-  }
-
-  @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState as CartesianChartState<D, CartesianChart<D>>;
-
-    assert(_chartState.isVertical);
-
-    _chartState
-        .getSelectionModel(selectionModelType)
-        .addSelectionChangedListener(_selectionChanged);
-  }
-
-  @override
-  void dispose() {
-    _chartState
-        .getSelectionModel(selectionModelType)
-        .removeSelectionChangedListener(_selectionChanged);
-  }
 
   @override
   String get role => 'LinePointHighlighter-$selectionModelType';
 
   @override
-  Widget buildBehavior(BuildContext context) {
-    return _LinePointLayoutRenderObjectWidget<D, CartesianChart<D>>(
-      chartState: _chartState,
-      showHorizontalFollowLine: showHorizontalFollowLine,
-      showVerticalFollowLine: showVerticalFollowLine,
-      dashPattern: dashPattern,
-      drawFollowLinesAcrossChart: drawFollowLinesAcrossChart,
-      symbolRenderer: symbolRenderer,
-      defaultRadius: defaultRadius,
-      radiusPadding: radiusPadding,
-      selectionModelType: selectionModelType,
-      key: _linePointKey,
+  ChartBehaviorState<D, S, LinePointHighlighter<D>>
+      build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _LinePointHighlighterState<D, S>(
+      behavior: this,
+      chartState: chartState,
+      linePointKey: _linePointKey,
     );
   }
 }
 
-class _LinePointLayoutRenderObjectWidget<D, S extends CartesianChart<D>>
+class _LinePointHighlighterState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, LinePointHighlighter<D>> {
+  _LinePointHighlighterState({
+    required super.behavior,
+    required super.chartState,
+    required this.linePointKey,
+  });
+
+  final GlobalKey linePointKey;
+
+  @override
+  Widget buildBehaviorWidget(BuildContext context) {
+    return _LinePointRenderObjectWidget(
+      key: linePointKey,
+      chartState: chartState as CartesianChartState<D, CartesianChart<D>>,
+      dashPattern: behavior.dashPattern,
+      defaultRadius: behavior.defaultRadius,
+      drawFollowLinesAcrossChart: behavior.drawFollowLinesAcrossChart,
+      radiusPadding: behavior.radiusPadding,
+      selectionModelType: behavior.selectionModelType,
+      showHorizontalFollowLine: behavior.showHorizontalFollowLine,
+      showVerticalFollowLine: behavior.showVerticalFollowLine,
+      symbolRenderer: behavior.symbolRenderer,
+    );
+  }
+}
+
+class _LinePointRenderObjectWidget<D, S extends CartesianChart<D>>
     extends LeafRenderObjectWidget {
-  const _LinePointLayoutRenderObjectWidget({
-    required this.chartState,
+  const _LinePointRenderObjectWidget({
     required this.dashPattern,
     required this.drawFollowLinesAcrossChart,
     required this.showHorizontalFollowLine,
@@ -171,10 +169,11 @@ class _LinePointLayoutRenderObjectWidget<D, S extends CartesianChart<D>>
     required this.defaultRadius,
     required this.radiusPadding,
     required this.selectionModelType,
+    required this.chartState,
     required super.key,
   });
 
-  final CartesianChartState<D, S> chartState;
+  final CartesianChartState<D, CartesianChart<D>> chartState;
   final LinePointHighlighterFollowLineType showHorizontalFollowLine;
   final LinePointHighlighterFollowLineType showVerticalFollowLine;
   final SymbolRenderer symbolRenderer;
@@ -185,8 +184,8 @@ class _LinePointLayoutRenderObjectWidget<D, S extends CartesianChart<D>>
   final double radiusPadding;
 
   @override
-  _LinePointLayoutRender<D> createRenderObject(BuildContext context) =>
-      _LinePointLayoutRender<D>(
+  _LinePointRender<D> createRenderObject(BuildContext context) =>
+      _LinePointRender<D>(
         chartState: chartState,
         dashPattern: dashPattern,
         drawFollowLinesAcrossChart: drawFollowLinesAcrossChart,
@@ -200,7 +199,7 @@ class _LinePointLayoutRenderObjectWidget<D, S extends CartesianChart<D>>
 
   @override
   void updateRenderObject(
-      BuildContext context, _LinePointLayoutRender<D> renderObject) {
+      BuildContext context, _LinePointRender<D> renderObject) {
     renderObject
       ..dashPattern = dashPattern
       ..drawFollowLinesAcrossChart = drawFollowLinesAcrossChart
@@ -213,8 +212,8 @@ class _LinePointLayoutRenderObjectWidget<D, S extends CartesianChart<D>>
   }
 }
 
-class _LinePointLayoutRender<D> extends RenderBox {
-  _LinePointLayoutRender({
+class _LinePointRender<D> extends RenderBox {
+  _LinePointRender({
     required this.chartState,
     required LinePointHighlighterFollowLineType showHorizontalFollowLine,
     required LinePointHighlighterFollowLineType showVerticalFollowLine,
@@ -233,14 +232,16 @@ class _LinePointLayoutRender<D> extends RenderBox {
         _defaultRadius = defaultRadius,
         _radiusPadding = radiusPadding;
 
+  final CartesianChartState<D, CartesianChart<D>> chartState;
+  //behavior.chartState as CartesianChartState<D, CartesianChart<D>>;
+
   LinePointHighlighterFollowLineType _showHorizontalFollowLine;
   LinePointHighlighterFollowLineType get showHorizontalFollowLine =>
       _showHorizontalFollowLine;
   set showHorizontalFollowLine(LinePointHighlighterFollowLineType value) {
     if (value != _showHorizontalFollowLine) {
       _showHorizontalFollowLine = value;
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     }
   }
 
@@ -250,8 +251,7 @@ class _LinePointLayoutRender<D> extends RenderBox {
   set showVerticalFollowLine(LinePointHighlighterFollowLineType value) {
     if (value != _showVerticalFollowLine) {
       _showVerticalFollowLine = value;
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     }
   }
 
@@ -260,8 +260,7 @@ class _LinePointLayoutRender<D> extends RenderBox {
   set dashPattern(List<int>? value) {
     if (value != _dashPattern) {
       _dashPattern = value;
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     }
   }
 
@@ -270,8 +269,7 @@ class _LinePointLayoutRender<D> extends RenderBox {
   set symbolRenderer(SymbolRenderer value) {
     if (value != _symbolRenderer) {
       _symbolRenderer = value;
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     }
   }
 
@@ -280,8 +278,7 @@ class _LinePointLayoutRender<D> extends RenderBox {
   set drawFollowLinesAcrossChart(bool value) {
     if (value != _drawFollowLinesAcrossChart) {
       _drawFollowLinesAcrossChart = value;
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     }
   }
 
@@ -290,8 +287,7 @@ class _LinePointLayoutRender<D> extends RenderBox {
   set selectionModelType(SelectionModelType value) {
     if (value != _selectionModelType) {
       _selectionModelType = value;
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     }
   }
 
@@ -300,8 +296,7 @@ class _LinePointLayoutRender<D> extends RenderBox {
   set defaultRadius(double value) {
     if (value != _defaultRadius) {
       _defaultRadius = value;
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     }
   }
 
@@ -310,8 +305,7 @@ class _LinePointLayoutRender<D> extends RenderBox {
   set radiusPadding(double value) {
     if (value != _radiusPadding) {
       _radiusPadding = value;
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     }
   }
 
@@ -327,8 +321,6 @@ class _LinePointLayoutRender<D> extends RenderBox {
   /// [Map] is used to render the series on the canvas in the same
   /// order as the data was given to the chart.
   Map<String, _AnimatedPoint<D>> _seriesPointMap = {};
-
-  final CartesianChartState<D, CartesianChart<D>> chartState;
 
   void update() {
     _currentKeys.clear();
@@ -427,14 +419,28 @@ class _LinePointLayoutRender<D> extends RenderBox {
 
   late LifecycleListener<D> _lifecycleListener;
 
+  void _selectionChanged(SelectionModel<D> selectionModel) {
+    chartState.redraw(skipAnimation: true);
+  }
+
+  bool _needsUpdate = true;
+  void _markNeedsUpdate() {
+    _needsUpdate = true;
+    markNeedsPaint();
+  }
+
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
+
+    chartState
+        .getSelectionModel(selectionModelType)
+        .addSelectionChangedListener(_selectionChanged);
+
     chartState.animationPosition.addListener(markNeedsPaint);
 
     _lifecycleListener = LifecycleListener<D>(onAxisConfigured: () {
-      update();
-      markNeedsPaint();
+      _markNeedsUpdate();
     });
 
     chartState.addLifecycleListener(_lifecycleListener);
@@ -449,11 +455,17 @@ class _LinePointLayoutRender<D> extends RenderBox {
 
   @override
   void performLayout() {
+    _markNeedsUpdate();
     size = constraints.biggest;
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    if (_needsUpdate) {
+      update();
+      _needsUpdate = false;
+    }
+    
     final animationPercent = chartState.animationPosition.value;
 
     // Clean up the lines that no longer exist.

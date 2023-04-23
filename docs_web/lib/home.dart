@@ -15,7 +15,7 @@ import 'scatter_plot_chart/scatter_plot_chart.dart' as scatter_plot;
 import 'sunburst_chart/sunburst_chart.dart' as sunburst;
 import 'time_series_chart/time_series_chart.dart' as time_series;
 
-const String _version = '0.0.1-dev.5';
+const String _version = '0.0.1-dev.7';
 
 ///
 class DocHome extends StatefulWidget {

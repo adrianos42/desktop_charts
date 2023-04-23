@@ -29,7 +29,6 @@ abstract class BaseCartesianRenderer<D, S extends BaseChart<D>>
   BaseCartesianRenderer({
     required super.chartState,
     required super.rendererId,
-    required super.seriesList,
     super.symbolRenderer,
   });
 
@@ -41,15 +40,7 @@ abstract class BaseCartesianRenderer<D, S extends BaseChart<D>>
   bool get renderingVertically => chart.widget.isVertical;
 
   @override
-  void configure() {
-    super.configure();
-
-    configureDomainAxes();
-    configureMeasureAxes();
-  }
-
-  @override
-  void configureDomainAxes() {
+  void configureDomainAxes(List<MutableSeries<D>> seriesList) {
     for (final series in seriesList) {
       if (series.data.isEmpty) {
         break;
@@ -98,7 +89,7 @@ abstract class BaseCartesianRenderer<D, S extends BaseChart<D>>
   }
 
   @override
-  void configureMeasureAxes() {
+  void configureMeasureAxes(List<MutableSeries<D>> seriesList) {
     for (final series in seriesList) {
       if (series.data.isEmpty) {
         break;

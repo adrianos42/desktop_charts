@@ -212,7 +212,7 @@ class ShapesScatterPlotChart extends StatelessWidget {
         // Configure the point renderer to have a map of custom symbol
         // renderers.
         defaultRenderer:
-            charts.PointRendererConfig<num>(customSymbolRenderers: const {
+            const charts.PointRendererConfig<num>(customSymbolRenderers: {
           'circle': charts.CircleSymbolRenderer(),
           'rect': charts.RectSymbolRenderer(),
         }));

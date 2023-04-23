@@ -91,7 +91,7 @@ class ScatterPlotAnimationZoomChart extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return charts.ScatterPlotChart(seriesList, animate: animate, behaviors: [
-      // TODO charts.PanAndZoomBehavior(),
+      charts.PanAndZoomBehavior(),
     ]);
   }
 

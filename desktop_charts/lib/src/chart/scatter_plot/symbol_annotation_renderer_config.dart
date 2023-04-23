@@ -15,12 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:flutter/widgets.dart';
-
 import '../../symbol_renderer.dart';
-import '../base_chart.dart' show BaseChart, BaseChartState;
-import '../processed_series.dart' show MutableSeries;
-import '../series_renderer_config.dart' show BaseSeriesRenderObjectWidget;
+import '../base_chart.dart';
 import 'comparison_points_decorator.dart' show ComparisonPointsDecorator;
 import 'point_renderer_config.dart' show PointRendererConfig;
 import 'point_renderer_decorator.dart' show PointRendererDecorator;
@@ -73,40 +69,49 @@ class SymbolAnnotationRendererConfig<D> extends PointRendererConfig<D> {
   final double verticalSymbolTopPadding;
 
   @override
-  Widget build<S extends BaseChart<D>>(
-    BuildContext context, {
-    required Key key,
+  SymbolAnnotationRenderer<D, S> build<S extends BaseChart<D>>({
     required BaseChartState<D, S> chartState,
-    required List<MutableSeries<D>> seriesList,
     String? rendererId,
   }) {
-    return _SymbolAnnotationRenderObjectWidget(
+    return SymbolAnnotationRenderer(
       chartState: chartState,
-      config: this,
-      key: key,
-      seriesList: seriesList,
       rendererId: rendererId,
+      config: this,
     );
   }
-}
-
-class _SymbolAnnotationRenderObjectWidget<D, S extends BaseChart<D>>
-    extends BaseSeriesRenderObjectWidget<D, S, SymbolAnnotationRenderer<D, S>,
-        SymbolAnnotationRendererConfig<D>> {
-  const _SymbolAnnotationRenderObjectWidget({
-    required super.chartState,
-    required super.config,
-    required super.key,
-    required super.seriesList,
-    required super.rendererId,
-  });
 
   @override
-  SymbolAnnotationRenderer<D, S> createRenderObject(BuildContext context) =>
-      SymbolAnnotationRenderer<D, S>(
-        rendererId: rendererId,
-        config: config,
-        chartState: chartState,
-        seriesList: seriesList,
+  bool operator ==(covariant SymbolAnnotationRendererConfig<D> other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other.showBottomSeparatorLine == showBottomSeparatorLine &&
+        other.showSeparatorLines == showSeparatorLines &&
+        other.verticalSymbolBottomPadding == verticalSymbolBottomPadding &&
+        other.verticalSymbolTopPadding == verticalSymbolTopPadding &&
+        other.customRendererId == customRendererId &&
+        other.layoutPaintOrder == layoutPaintOrder &&
+        other.pointRendererDecorators == pointRendererDecorators &&
+        other.symbolRenderer == symbolRenderer &&
+        other.customSymbolRenderers == customSymbolRenderers &&
+        other.radius == radius &&
+        other.strokeWidth == strokeWidth &&
+        other.boundsLineRadius == boundsLineRadius;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        showBottomSeparatorLine,
+        showSeparatorLines,
+        verticalSymbolBottomPadding,
+        verticalSymbolTopPadding,
+        customRendererId,
+        layoutPaintOrder,
+        pointRendererDecorators,
+        symbolRenderer,
+        customSymbolRenderers,
+        radius,
+        strokeWidth,
+        boundsLineRadius,
       );
 }

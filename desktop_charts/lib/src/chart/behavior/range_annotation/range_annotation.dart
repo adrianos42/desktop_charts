@@ -17,8 +17,8 @@
 
 import 'dart:math' show pi;
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
 import '../../../text_element.dart' show MaxWidthStrategy, TextElement;
 import '../../../theme.dart';
@@ -29,7 +29,9 @@ import '../../cartesian/cartesian_chart.dart'
     show CartesianChartState, CartesianChart;
 import '../../chart_canvas.dart' show ChartCanvas, getAnimatedColor;
 import '../../processed_series.dart' show MutableSeries;
-import '../chart_behavior.dart' show ChartBehavior, BehaviorPosition;
+import '../chart_behavior.dart'
+    show ChartBehavior, BehaviorPosition, ChartBehaviorState;
+import '../../../theme.dart' show ChartsTheme;
 
 const _defaultStrokeWidth = 2.0;
 
@@ -47,22 +49,17 @@ class RangeAnnotation<D> extends ChartBehavior<D> {
     AnnotationLabelAnchor? defaultLabelAnchor,
     AnnotationLabelDirection? defaultLabelDirection,
     AnnotationLabelPosition? defaultLabelPosition,
-    TextStyle? defaultLabelStyleSpec,
+    this.defaultLabelStyleSpec,
+    this.defaultColor,
     bool? extendAxis,
     double? labelPadding,
     double? defaultStrokeWidth,
-  })  : defaultColor = const ChartsThemeData.fallbackw().rangeAnnotationColor,
-        defaultLabelAnchor = defaultLabelAnchor ?? _defaultLabelAnchor,
+  })  : defaultLabelAnchor = defaultLabelAnchor ?? _defaultLabelAnchor,
         defaultLabelDirection = defaultLabelDirection ?? _defaultLabelDirection,
         defaultLabelPosition = defaultLabelPosition ?? _defaultLabelPosition,
-        defaultLabelStyleSpec = defaultLabelStyleSpec ??
-            TextStyle(
-              fontSize: 12.0,
-              color: const ChartsThemeData.fallbackw().foreground,
-            ),
         extendAxis = extendAxis ?? true,
         labelPadding = labelPadding ?? _defaultLabelPadding,
-        defaultStrokeWidth = defaultStrokeWidth ?? _defaultStrokeWidth {}
+        defaultStrokeWidth = defaultStrokeWidth ?? _defaultStrokeWidth;
 
   static const _defaultLabelAnchor = AnnotationLabelAnchor.end;
   static const _defaultLabelDirection = AnnotationLabelDirection.auto;
@@ -73,7 +70,7 @@ class RangeAnnotation<D> extends ChartBehavior<D> {
   final List<AnnotationSegment<Object>> annotations;
 
   /// Default color for annotations.
-  final Color defaultColor;
+  final Color? defaultColor;
 
   /// Configures where to anchor annotation label text.
   final AnnotationLabelAnchor defaultLabelAnchor;
@@ -85,7 +82,7 @@ class RangeAnnotation<D> extends ChartBehavior<D> {
   final AnnotationLabelPosition defaultLabelPosition;
 
   /// Configures the style of label text.
-  final TextStyle defaultLabelStyleSpec;
+  final TextStyle? defaultLabelStyleSpec;
 
   /// Configures the stroke width for line annotations.
   final double defaultStrokeWidth;
@@ -97,50 +94,108 @@ class RangeAnnotation<D> extends ChartBehavior<D> {
   /// Space before and after label text.
   final double labelPadding;
 
-  late CartesianChartState<D, CartesianChart<D>> _chartState;
-
   Map<String, _AnimatedAnnotation<D>> get _annotationMap =>
       throw 'Not implemented';
-
-  @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
-      throw ArgumentError(
-          'RangeAnnotation can only be attached to a CartesianChart<D>');
-    }
-
-    _chartState = chartState as CartesianChartState<D, CartesianChart<D>>;
-  }
-
-  @override
-  void dispose() {}
 
   /// Sub-classes can override this method to control label visibility.
   @protected
   bool shouldShowLabels(AnnotationSegment<Object> annotation) => true;
 
   @override
-  Widget buildBehavior(BuildContext context) {
-    return _RangeAnnotationLayoutRenderObjectWidget<D, CartesianChart<D>>(
-      chartState: _chartState,
-      annotations: annotations,
-      defaultColor: defaultColor,
-      defaultLabelAnchor: defaultLabelAnchor,
-      defaultLabelDirection: defaultLabelDirection,
-      defaultLabelPosition: defaultLabelPosition,
-      defaultLabelStyleSpec: defaultLabelStyleSpec,
-      defaultStrokeWidth: defaultStrokeWidth,
-      extendAxis: extendAxis,
-      labelPadding: labelPadding,
-      rangeAnnotation: this,
-    );
-  }
-
-  @override
   BehaviorPosition get position => BehaviorPosition.insideBelowAxis;
 
   @override
   String get role => 'RangeAnnotation';
+
+  @override
+  ChartBehaviorState<D, S, RangeAnnotation<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _RangeAnnotationState<D, S>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class _RangeAnnotationState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, RangeAnnotation<D>> {
+  _RangeAnnotationState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
+      throw ArgumentError(
+          'RangeAnnotation can only be attached to a CartesianChart<D>');
+    }
+
+    _lifecycleListener = LifecycleListener<D>(
+      onPostprocess: (List<MutableSeries<D>> series) {
+        updateAxisRange(series);
+      },
+    );
+
+    chartState.addLifecycleListener(_lifecycleListener);
+  }
+
+  late LifecycleListener<D> _lifecycleListener;
+  CartesianChartState<D, CartesianChart<D>> get _chartState =>
+      chartState as CartesianChartState<D, CartesianChart<D>>;
+
+  void updateAxisRange(List<MutableSeries<D>> seriesList) {
+    // Extend the axis range if enabled.
+    if (behavior.extendAxis) {
+      for (final annotation in behavior.annotations) {
+        // Either an Axis<D> and Axis<double>.
+        CartesianAxis<Object?> axis;
+
+        switch (annotation.axisType) {
+          case RangeAnnotationAxisType.domain:
+            axis = _chartState.domainAxis!;
+            break;
+
+          case RangeAnnotationAxisType.measure:
+            // We expect an empty axisId to get us the primary measure axis.
+            axis = _chartState.getMeasureAxis(axisId: annotation.axisId);
+            break;
+        }
+
+        if (annotation is RangeAnnotationSegment<Object>) {
+          axis.addDomainValue(annotation.startValue);
+          axis.addDomainValue(annotation.endValue);
+        } else if (annotation is LineAnnotationSegment<Object>) {
+          axis.addDomainValue(annotation.value);
+        }
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    chartState.removeLifecycleListener(_lifecycleListener);
+
+    super.dispose();
+  }
+
+  @override
+  Widget buildBehaviorWidget(BuildContext context) {
+    final themeData = ChartsTheme.of(context);
+
+    return _RangeAnnotationLayoutRenderObjectWidget<D, CartesianChart<D>>(
+      chartState: chartState as CartesianChartState<D, CartesianChart<D>>,
+      annotations: behavior.annotations,
+      defaultColor: behavior.defaultColor ?? themeData.rangeAnnotationColor,
+      defaultLabelAnchor: behavior.defaultLabelAnchor,
+      defaultLabelDirection: behavior.defaultLabelDirection,
+      defaultLabelPosition: behavior.defaultLabelPosition,
+      defaultLabelStyleSpec:
+          behavior.defaultLabelStyleSpec ?? themeData.labelStyle,
+      defaultStrokeWidth: behavior.defaultStrokeWidth,
+      extendAxis: behavior.extendAxis,
+      labelPadding: behavior.labelPadding,
+      rangeAnnotation: behavior,
+    );
+  }
 }
 
 class _RangeAnnotationLayoutRenderObjectWidget<D, S extends CartesianChart<D>>
@@ -258,34 +313,6 @@ class _RangeAnnotationLayoutRender<D> extends RenderBox {
   // rendered in previous draw cycles, but no longer have a corresponding datum
   // in the data.
   final _currentKeys = <String>[];
-
-  void updateAxisRange(List<MutableSeries<D>> seriesList) {
-    // Extend the axis range if enabled.
-    if (extendAxis) {
-      for (final annotation in _annotations) {
-        // Either an Axis<D> and Axis<double>.
-        CartesianAxis<Object?> axis;
-
-        switch (annotation.axisType) {
-          case RangeAnnotationAxisType.domain:
-            axis = chartState.domainAxis!;
-            break;
-
-          case RangeAnnotationAxisType.measure:
-            // We expect an empty axisId to get us the primary measure axis.
-            axis = chartState.getMeasureAxis(axisId: annotation.axisId);
-            break;
-        }
-
-        if (annotation is RangeAnnotationSegment<Object>) {
-          axis.addDomainValue(annotation.startValue);
-          axis.addDomainValue(annotation.endValue);
-        } else if (annotation is LineAnnotationSegment<Object>) {
-          axis.addDomainValue(annotation.value);
-        }
-      }
-    }
-  }
 
   void update() {
     _currentKeys.clear();
@@ -441,19 +468,20 @@ class _RangeAnnotationLayoutRender<D> extends RenderBox {
 
   late LifecycleListener<D> _lifecycleListener;
 
+  bool _needsUpdate = true;
+  void _markNeedsUpdate() {
+    _needsUpdate = true;
+    markNeedsPaint();
+  }
+
   @override
   void attach(PipelineOwner owner) {
     super.attach(owner);
     chartState.animationPosition.addListener(markNeedsPaint);
 
     _lifecycleListener = LifecycleListener<D>(
-      onPostprocess: (List<MutableSeries<D>> series) {
-        updateAxisRange(series);
-        markNeedsPaint();
-      },
       onAxisConfigured: () {
-        update();
-        markNeedsPaint();
+        _markNeedsUpdate();
       },
     );
 
@@ -469,11 +497,17 @@ class _RangeAnnotationLayoutRender<D> extends RenderBox {
 
   @override
   void performLayout() {
+    _markNeedsUpdate();
     size = constraints.biggest;
   }
 
   @override
   void paint(PaintingContext context, Offset offset) {
+    if (_needsUpdate) {
+      update();
+      _needsUpdate = false;
+    }
+
     final animationPercent = chartState.animationPosition.value;
 
     // Clean up the annotations that no longer exist.

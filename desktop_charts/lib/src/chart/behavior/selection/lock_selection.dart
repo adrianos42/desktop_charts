@@ -19,10 +19,10 @@ import 'package:flutter/widgets.dart';
 
 import '../../base_chart.dart' show BaseChartState, BaseChart;
 import '../../selection_model.dart' show SelectionModelType;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 import 'selection_trigger.dart' show SelectionTrigger;
 
-/// Chart behavior that listens to tap event trigges and locks the specified
+/// Chart behavior that listens to tap event triggers and locks the specified
 /// [SelectionModel]. This is used to prevent further updates to the selection
 /// model, until it is unlocked again.
 ///
@@ -34,28 +34,40 @@ import 'selection_trigger.dart' show SelectionTrigger;
 /// Any previous LockSelection behavior for that selection model will be
 /// removed.
 class LockSelection<D> extends ChartBehavior<D> {
-  LockSelection({this.selectionModelType = SelectionModelType.info}) {
-    // Setup the appropriate gesture listening.
-    switch (eventTrigger) {
-      case SelectionTrigger.tap:
-        //  _listener = GestureListener(onTapTest: _onTapTest, onTap: _onSelect);
-        break;
-      default:
-        throw ArgumentError('LockSelection does not support the event '
-            'trigger "$eventTrigger"');
-    }
-  }
+  const LockSelection({
+    this.selectionModelType = SelectionModelType.info,
+  });
 
   /// Type of selection model that should be updated by input events.
   final SelectionModelType selectionModelType;
 
   /// Type of input event that should trigger selection.
-  final SelectionTrigger eventTrigger = SelectionTrigger.tap;
+  SelectionTrigger get eventTrigger => SelectionTrigger.tap;
 
-  late BaseChartState<D, BaseChart<D>> _chartState;
+  @override
+  String get role => 'LockSelection-$selectionModelType';
+
+  @override
+  ChartBehaviorState<D, S, LockSelection<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _LockSelectionState<D, S>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class _LockSelectionState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, LockSelection<D>> {
+  const _LockSelectionState({
+    required super.behavior,
+    required super.chartState,
+  });
 
   bool _onSelect(Offset chartPoint) {
-    final selectionModel = _chartState.getSelectionModel(selectionModelType);
+    final selectionModel =
+        chartState.getSelectionModel(behavior.selectionModelType);
 
     // Do not lock the selection model if there is no selection. Locking nothing
     // would result in a very confusing user interface as the user tries to
@@ -68,7 +80,7 @@ class LockSelection<D> extends ChartBehavior<D> {
     selectionModel.locked = !selectionModel.locked;
 
     // If the model was just unlocked, clear the selection to dismiss any stale
-    // behavior elements. A hovercard/etc. will appear after the user
+    // behavior elements. A hover card/etc. will appear after the user
     // triggers a gesture.
     if (!selectionModel.locked) {
       selectionModel.clearSelection();
@@ -78,18 +90,16 @@ class LockSelection<D> extends ChartBehavior<D> {
   }
 
   @override
-  void dispose() {}
-
-  @override
-  String get role => 'LockSelection-$selectionModelType';
-
-  @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState;
-  }
-
-  @override
-  Widget buildBehavior(BuildContext context) {
-    return const SizedBox();
+  Widget buildBehaviorWidget(BuildContext context) {
+    // Setup the appropriate gesture listening.
+    switch (behavior.eventTrigger) {
+      case SelectionTrigger.tap:
+        return GestureDetector(
+          onTapUp: (event) => _onSelect(event.globalPosition),
+        );
+      default:
+        throw ArgumentError('LockSelection does not support the event '
+            'trigger "${behavior.eventTrigger}"');
+    }
   }
 }

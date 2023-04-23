@@ -18,14 +18,13 @@
 import 'dart:math' show max, pi;
 
 import 'package:collection/collection.dart' show IterableExtension;
-import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../data/series.dart' show AttributeKey;
 import '../base_chart.dart';
-import '../processed_series.dart' show MutableSeries;
+import '../processed_series.dart' show MutableSeries, ImmutableSeries;
+import '../series_renderer.dart' show BaseSeriesRenderObjectWidget;
 import 'arc_renderer_config.dart' show ArcRendererConfig;
-import 'arc_renderer_decorator.dart' show ArcRendererDecorator;
 import 'arc_renderer_element.dart'
     show ArcRendererElement, AnimatedArcs, AnimatedArc;
 import 'base_arc_renderer.dart';
@@ -38,14 +37,10 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
     String? rendererId,
     ArcRendererConfig<D>? config,
     required super.chartState,
-    required super.seriesList,
   }) : super(
-          config: config ?? ArcRendererConfig(),
+          config: config ?? const ArcRendererConfig(),
           rendererId: rendererId ?? 'line',
         );
-
-  List<ArcRendererDecorator<D>> get _arcRendererDecorators =>
-      config.arcRendererDecorators;
 
   /// Store a map of series drawn on the chart, mapped by series name.
   ///
@@ -53,13 +48,6 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
   /// order as the data was given to the chart.
   // ignore: prefer_collection_literals, https://github.com/dart-lang/linter/issues/1649
   final _seriesArcMap = <String, AnimatedArcs<D>>{};
-
-  // Store a list of arcs that exist in the series data.
-  //
-  // This list will be used to remove any [AnimatedArc] that were rendered in
-  // previous draw cycles, but no longer have a corresponding datum in the new
-  // data.
-  final _currentKeys = <String>[];
 
   // Rect? get componentBounds =>
   //     Rect(0.0, 0.0, size.width, size.height);
@@ -72,7 +60,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
   Color get noDataColor => chartState.themeData.noDataColor;
 
   @override
-  void preprocessSeries() {
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {
     for (final series in seriesList) {
       final elements = <ArcRendererElement<D>>[];
 
@@ -145,6 +133,108 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
     }
   }
 
+  /// Assigns colors to series that are missing their colorFn.
+  @override
+  void assignMissingColors(
+    Iterable<MutableSeries<D>> seriesList, {
+    required bool emptyCategoryUsesSinglePalette,
+  }) {
+    int maxMissing = 0;
+
+    for (final series in seriesList) {
+      if (series.colorFn == null) {
+        maxMissing = max(maxMissing, series.data.length);
+      }
+    }
+
+    if (maxMissing > 0) {
+      final colorPalettes = chartState.themeData.getOrderedPalettes(1);
+      final colorPalette = colorPalettes[0].makeShades(maxMissing);
+
+      for (final series in seriesList) {
+        series.colorFn ??= (index) => colorPalette[index!];
+      }
+    }
+  }
+
+  @override
+  List<AnimatedArcs<D>> getArcLists({String? seriesId}) {
+    if (seriesId == null) {
+      return _seriesArcMap.values.toList();
+    }
+    final arcList = _seriesArcMap[seriesId];
+
+    if (arcList == null) {
+      return [];
+    }
+
+    return [arcList];
+  }
+
+  @override
+  Widget build(
+    BuildContext context, {
+    required List<ImmutableSeries<D>> seriesList,
+    required Key key,
+  }) {
+    return _ArcRender<D, S>(
+      key: key,
+      seriesList: seriesList,
+      renderer: this,
+    );
+  }
+}
+
+class _ArcRender<D, S extends BaseChart<D>>
+    extends BaseSeriesRenderObjectWidget<D, S,
+        ArcRendererRender<D, S, ArcRenderer<D, S>>> {
+  const _ArcRender({
+    required this.renderer,
+    required super.seriesList,
+    required super.key,
+  });
+
+  final ArcRenderer<D, S> renderer;
+
+  @override
+  ArcRendererRender<D, S, ArcRenderer<D, S>> createRenderObject(
+      BuildContext context) {
+    return ArcRendererRender<D, S, ArcRenderer<D, S>>(
+      chartState: renderer.chartState,
+      renderer: renderer,
+      seriesList: seriesList,
+    );
+  }
+}
+
+class ArcRendererRender<D, S extends BaseChart<D>, R extends ArcRenderer<D, S>>
+    extends BaseArcRendererRender<D, S, R> {
+  ArcRendererRender({
+    required super.renderer,
+    required super.chartState,
+    required super.seriesList,
+  });
+
+  // Store a list of arcs that exist in the series data.
+  //
+  // This list will be used to remove any [AnimatedArc] that were rendered in
+  // previous draw cycles, but no longer have a corresponding datum in the new
+  // data.
+  final _currentKeys = <String>[];
+
+  /// Calculates the size of the inner pie radius given the outer radius.
+  double _calculateInnerRadius(double radius) {
+    // arcRatio trumps arcWidth. If neither is defined, then inner radius is 0.
+    if (renderer.config.arcRatio != null) {
+      return max(radius - radius * renderer.config.arcRatio!, 0.0)
+          .roundToDouble();
+    } else if (renderer.config.arcWidth != null) {
+      return max(radius - renderer.config.arcWidth!, 0.0).roundToDouble();
+    } else {
+      return 0.0;
+    }
+  }
+
   @override
   void update() {
     super.update();
@@ -160,8 +250,8 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
         ? (bounds.height / 2.0).roundToDouble()
         : (bounds.width / 2.0).roundToDouble();
 
-    if (config.arcRatio != null &&
-        (config.arcRatio! < 0 || config.arcRatio! > 1)) {
+    if (renderer.config.arcRatio != null &&
+        (renderer.config.arcRatio! < 0 || renderer.config.arcRatio! > 1)) {
       throw ArgumentError('arcRatio must be between 0 and 1');
     }
 
@@ -172,7 +262,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
       final arcListKey = series.id;
 
       final arcList =
-          _seriesArcMap.putIfAbsent(arcListKey, () => AnimatedArcs());
+          renderer._seriesArcMap.putIfAbsent(arcListKey, () => AnimatedArcs());
 
       final elementsList =
           series.getAttr(arcElementsKey) as List<ArcRendererElement<D>>?;
@@ -192,7 +282,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
         arcList.radius = radius;
         arcList.innerRadius = innerRadius;
         arcList.series = series;
-        arcList.stroke = noDataColor;
+        arcList.stroke = renderer.noDataColor;
         arcList.strokeWidth = 0.0;
 
         // If we don't have any existing arc element, create a arc. Unlike
@@ -211,7 +301,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
         // Get the arcElement we are going to setup.
         // Optimization to prevent allocation in non-animating case.
         final arcElement = ArcRendererElement<D>(
-          color: noDataColor,
+          color: renderer.noDataColor,
           startAngle: details.startAngle,
           endAngle: details.endAngle,
           series: series,
@@ -219,7 +309,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
 
         animatingArc.setNewTarget(arcElement);
       } else {
-        double previousEndAngle = config.startAngle;
+        double previousEndAngle = renderer.config.startAngle;
 
         for (int arcIndex = 0; arcIndex < series.data.length; arcIndex += 1) {
           final Object? datum = series.data[arcIndex];
@@ -236,8 +326,8 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
           arcList.radius = radius;
           arcList.innerRadius = innerRadius;
           arcList.series = series;
-          arcList.stroke = strokeColor;
-          arcList.strokeWidth = config.strokeWidth;
+          arcList.stroke = renderer.strokeColor;
+          arcList.strokeWidth = renderer.config.strokeWidth;
 
           // If we don't have any existing arc element, create a arc and
           // have it animate in from the position of the previous arc's end
@@ -280,7 +370,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
     }
 
     // Animate out arcs that don't exist anymore.
-    _seriesArcMap.forEach((String key, AnimatedArcs<D> arcList) {
+    renderer._seriesArcMap.forEach((String key, AnimatedArcs<D> arcList) {
       for (int arcIndex = 0; arcIndex < arcList.arcs.length; arcIndex += 1) {
         final arc = arcList.arcs[arcIndex];
         final arcStartAngle = arc.previousArcStartAngle;
@@ -288,7 +378,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
         if (_currentKeys.contains(arc.key) != true) {
           // Default to animating out to the top of the chart, clockwise, if
           // there are no arcs that start past this arc.
-          double targetArcAngle = (2 * pi) + config.startAngle;
+          double targetArcAngle = (2 * pi) + renderer.config.startAngle;
 
           // Find the nearest start angle of the next arc that still exists in
           // the data.
@@ -316,7 +406,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
     if (chartState.animationPosition.isCompleted) {
       final keysToRemove = <String>[];
 
-      _seriesArcMap.forEach((String key, AnimatedArcs<D> arcList) {
+      renderer._seriesArcMap.forEach((String key, AnimatedArcs<D> arcList) {
         arcList.arcs.removeWhere((AnimatedArc<D> arc) => arc.animatingOut);
 
         if (arcList.arcs.isEmpty) {
@@ -324,57 +414,7 @@ class ArcRenderer<D, S extends BaseChart<D>> extends BaseArcRenderer<D, S> {
         }
       });
 
-      keysToRemove.forEach(_seriesArcMap.remove);
+      keysToRemove.forEach(renderer._seriesArcMap.remove);
     }
-  }
-
-  /// Assigns colors to series that are missing their colorFn.
-  @override
-  void assignMissingColors(
-    Iterable<MutableSeries<D>> seriesList, {
-    required bool emptyCategoryUsesSinglePalette,
-  }) {
-    int maxMissing = 0;
-
-    for (final series in seriesList) {
-      if (series.colorFn == null) {
-        maxMissing = max(maxMissing, series.data.length);
-      }
-    }
-
-    if (maxMissing > 0) {
-      final colorPalettes = chartState.themeData.getOrderedPalettes(1);
-      final colorPalette = colorPalettes[0].makeShades(maxMissing);
-
-      for (final series in seriesList) {
-        series.colorFn ??= (index) => colorPalette[index!];
-      }
-    }
-  }
-
-  /// Calculates the size of the inner pie radius given the outer radius.
-  double _calculateInnerRadius(double radius) {
-    // arcRatio trumps arcWidth. If neither is defined, then inner radius is 0.
-    if (config.arcRatio != null) {
-      return max(radius - radius * config.arcRatio!, 0.0).roundToDouble();
-    } else if (config.arcWidth != null) {
-      return max(radius - config.arcWidth!, 0.0).roundToDouble();
-    } else {
-      return 0.0;
-    }
-  }
-
-  @override
-  List<AnimatedArcs<D>> getArcLists({String? seriesId}) {
-    if (seriesId == null) {
-      return _seriesArcMap.values.toList();
-    }
-    final arcList = _seriesArcMap[seriesId];
-
-    if (arcList == null) {
-      return [];
-    }
-
-    return [arcList];
   }
 }

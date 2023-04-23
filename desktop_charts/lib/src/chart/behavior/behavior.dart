@@ -12,6 +12,7 @@ export 'chart_behavior.dart'
     show
         BehaviorPosition,
         ChartBehavior,
+        ChartBehaviorState,
         InsideJustification,
         OutsideJustification;
 export 'chart_title/chart_title.dart' show ChartTitle, ChartTitleDirection;

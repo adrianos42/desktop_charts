@@ -24,6 +24,19 @@ import '../../series_renderer.dart' show rendererKey;
 
 /// The most basic possible legend entry - just a display name and positioning.
 class LegendEntryBase {
+  LegendEntryBase(
+    this.label, {
+    this.textStyle,
+    this.rowNumber,
+    this.columnNumber,
+    this.rowCount,
+    this.columnCount,
+    this.inFirstRow,
+    this.inFirstColumn,
+    this.inLastRow,
+    this.inLastColumn,
+  });
+
   final String label;
   final TextStyle? textStyle;
 
@@ -50,19 +63,6 @@ class LegendEntryBase {
 
   /// Indicates whether this is in the last column of a tabular layout.
   bool? inLastColumn;
-
-  LegendEntryBase(
-    this.label, {
-    this.textStyle,
-    this.rowNumber,
-    this.columnNumber,
-    this.rowCount,
-    this.columnCount,
-    this.inFirstRow,
-    this.inFirstColumn,
-    this.inLastRow,
-    this.inLastColumn,
-  });
 }
 
 /// When the legend groups by category it will create additional legend entries

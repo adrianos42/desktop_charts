@@ -21,22 +21,20 @@ import '../../../color.dart';
 import '../../base_chart.dart';
 import '../../processed_series.dart';
 import '../../selection_model.dart';
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 
 /// Chart behavior that monitors the specified [SelectionModel] and outlines the
 /// selected data.
 ///
 /// This is typically used for treemap charts to highlight nodes.
 /// For bars and pies, prefers to use [DomainHighlighter] for UX consistency.
+@immutable
 class DomainOutliner<D> extends ChartBehavior<D> {
-  DomainOutliner({
+  const DomainOutliner({
     this.selectionType = SelectionModelType.info,
-    double? defaultStroke,
-    double? strokePadding,
-  })  : defaultStroke = defaultStroke ?? 2.0,
-        strokePadding = strokePadding ?? 1.0 {
-    _lifecycleListener = LifecycleListener<D>(onPostprocess: _outline);
-  }
+    this.defaultStroke = 2.0,
+    this.strokePadding = 1.0,
+  });
 
   final SelectionModelType selectionType;
 
@@ -53,16 +51,42 @@ class DomainOutliner<D> extends ChartBehavior<D> {
   /// defined.
   final double strokePadding;
 
-  late BaseChartState<D, BaseChart<D>> _chartState;
+  @override
+  String get role => 'domainOutliner-$selectionType';
+
+  @override
+  ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _DomainHighlighterState<D, S>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class _DomainHighlighterState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, DomainOutliner<D>> {
+  _DomainHighlighterState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    _lifecycleListener = LifecycleListener<D>(onPostprocess: _outline);
+
+    chartState.addLifecycleListener(_lifecycleListener);
+    chartState
+        .getSelectionModel(behavior.selectionType)
+        .addSelectionChangedListener(_selectionChange);
+  }
 
   late LifecycleListener<D> _lifecycleListener;
 
   void _selectionChange(SelectionModel<D> selectionModel) {
-    _chartState.redraw(skipLayout: true, skipAnimation: true);
+    chartState.redraw(skipAnimation: true);
   }
 
   void _outline(List<MutableSeries<D>> seriesList) {
-    final selectionModel = _chartState.getSelectionModel(selectionType);
+    final selectionModel = chartState.getSelectionModel(behavior.selectionType);
 
     for (final series in seriesList) {
       final strokeWidthFn = series.strokeWidthFn;
@@ -84,34 +108,20 @@ class DomainOutliner<D> extends ChartBehavior<D> {
             return strokeWidth;
           }
           return strokeWidth == null
-              ? defaultStroke
-              : strokeWidth + strokePadding;
+              ? behavior.defaultStroke
+              : strokeWidth + behavior.strokePadding;
         };
       }
     }
   }
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState.addLifecycleListener(_lifecycleListener);
-    _chartState
-        .getSelectionModel(selectionType)
-        .addSelectionChangedListener(_selectionChange);
-  }
-
-  @override
   void dispose() {
-    _chartState
-        .getSelectionModel(selectionType)
+    chartState
+        .getSelectionModel(behavior.selectionType)
         .removeSelectionChangedListener(_selectionChange);
-    _chartState.removeLifecycleListener(_lifecycleListener);
-  }
+    chartState.removeLifecycleListener(_lifecycleListener);
 
-  @override
-  String get role => 'domainOutliner-$selectionType';
-
-  @override
-  Widget buildBehavior(BuildContext context) {
-    return const SizedBox();
+    super.dispose();
   }
 }

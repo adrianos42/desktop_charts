@@ -21,7 +21,7 @@ import '../../../data/series.dart' show AttributeKey;
 import '../../base_chart.dart'
     show BaseChartState, BaseChart, LifecycleListener;
 import '../../processed_series.dart' show MutableSeries;
-import '../chart_behavior.dart' show ChartBehavior;
+import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 
 const percentInjectedKey =
     AttributeKey<bool>('PercentInjector.percentInjected');
@@ -42,45 +42,52 @@ const percentInjectedKey =
 /// Note that if the chart has a [Legend] that is capable of hiding series data,
 /// then this behavior must be added after the [Legend] to ensure that it
 /// calculates values after series have been potentially removed from the list.
+@immutable
 class PercentInjector<D> extends ChartBehavior<D> {
   /// Constructs a [PercentInjector].
   ///
   /// [totalType] configures the type of data total to be calculated.
-  PercentInjector({this.totalType = PercentInjectorTotalType.domain}) {
-    // Set up chart draw cycle listeners.
-    _lifecycleListener =
-        LifecycleListener<D>(onPreprocess: _preProcess, onData: _onData);
-  }
-
-  late final LifecycleListener<D> _lifecycleListener;
+  const PercentInjector({this.totalType = PercentInjectorTotalType.domain});
 
   /// The type of data total to be calculated.
   final PercentInjectorTotalType totalType;
 
-  late BaseChartState<D, BaseChart<D>> _chartState;
+  @override
+  String get role => 'PercentInjector';
 
   @override
-  void attachTo<S extends BaseChart<D>>(BaseChartState<D, S> chartState) {
-    _chartState = chartState;
-    _chartState.addLifecycleListener(_lifecycleListener);
+  ChartBehaviorState<D, S, PercentInjector<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _PercentInjectorState<D, S>(
+      behavior: this,
+      chartState: chartState,
+    );
+  }
+}
+
+class _PercentInjectorState<D, S extends BaseChart<D>>
+    extends ChartBehaviorState<D, S, PercentInjector<D>> {
+  _PercentInjectorState({
+    required super.behavior,
+    required super.chartState,
+  }) {
+    // Set up chart draw cycle listeners.
+    _lifecycleListener =
+        LifecycleListener<D>(onPreprocess: _preProcess, onData: _onData);
+
+    chartState.addLifecycleListener(_lifecycleListener);
   }
 
-  @override
-  Widget buildBehavior(BuildContext context) {
-    return const SizedBox();
-  }
-
-  @override
-  void dispose() {
-    _chartState.removeLifecycleListener(_lifecycleListener);
-  }
+  late LifecycleListener<D> _lifecycleListener;
 
   /// Resets the state of the behavior when data is drawn on the chart.
   void _onData(List<MutableSeries<D>> seriesList) {
     // Reset tracking of percentage injection for data.
-    seriesList.forEach((series) {
+
+    for (final series in seriesList) {
       series.setAttr(percentInjectedKey, false);
-    });
+    }
   }
 
   /// Injects percent of domain and/or series accessor functions into each
@@ -91,21 +98,21 @@ class PercentInjector<D> extends ChartBehavior<D> {
   void _preProcess(List<MutableSeries<D>> seriesList) {
     bool percentInjected = true;
 
-    seriesList.forEach((series) {
+    for (final series in seriesList) {
       percentInjected = percentInjected && series.getAttr(percentInjectedKey)!;
-    });
+    }
 
     if (percentInjected) {
       return;
     }
 
-    switch (totalType) {
+    switch (behavior.totalType) {
       case PercentInjectorTotalType.domain:
       case PercentInjectorTotalType.domainBySeriesCategory:
         final totalsByDomain = <String, double>{};
 
-        final useSeriesCategory =
-            totalType == PercentInjectorTotalType.domainBySeriesCategory;
+        final useSeriesCategory = behavior.totalType ==
+            PercentInjectorTotalType.domainBySeriesCategory;
 
         // Walk the series and compute the domain total. Series total is
         // automatically computed by [MutableSeries].
@@ -190,7 +197,7 @@ class PercentInjector<D> extends ChartBehavior<D> {
         break;
 
       case PercentInjectorTotalType.series:
-        seriesList.forEach((series) {
+        for (final series in seriesList) {
           // Replace the default measure accessor with one that computes the
           // percentage.
           series.measureFn = (int? index) =>
@@ -213,17 +220,20 @@ class PercentInjector<D> extends ChartBehavior<D> {
           }
 
           series.setAttr(percentInjectedKey, true);
-        });
-
+        }
         break;
 
       default:
-        throw ArgumentError('Unsupported totalType: $totalType');
+        throw ArgumentError('Unsupported totalType: ${behavior.totalType}');
     }
   }
 
   @override
-  String get role => 'PercentInjector';
+  void dispose() {
+    chartState.removeLifecycleListener(_lifecycleListener);
+
+    super.dispose();
+  }
 }
 
 /// Describes the type of data total that will be calculated by PercentInjector.

@@ -17,13 +17,15 @@
 
 import 'dart:math' show max;
 
-import 'package:flutter/rendering.dart';
+import 'package:flutter/widgets.dart';
 
 import '../base_chart.dart' show BaseChart;
 import '../cartesian/axis/axis.dart' show ImmutableAxis;
 import '../cartesian/cartesian_chart.dart' show CartesianChartState;
-import '../processed_series.dart' show ImmutableSeries;
-import 'point_renderer.dart' show AnimatedPoint, DatumPoint, PointRenderer;
+import '../processed_series.dart' show ImmutableSeries, MutableSeries;
+import '../series_renderer.dart' show BaseSeriesRenderObjectWidget;
+import 'point_renderer.dart'
+    show AnimatedPoint, DatumPoint, PointRenderer, PointRendererRender;
 import 'symbol_annotation_renderer_config.dart'
     show SymbolAnnotationRendererConfig;
 
@@ -45,7 +47,6 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
     String? rendererId,
     super.config,
     required super.chartState,
-    required super.seriesList,
   }) : super(rendererId: rendererId ?? defaultRendererId);
 
   static const defaultRendererId = 'symbolAnnotation';
@@ -61,10 +62,10 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
   /// Symbol annotations do not use any measure axes, or draw anything in the
   /// main draw area associated with them.
   @override
-  void configureMeasureAxes() {}
+  void configureMeasureAxes(List<MutableSeries<D>> seriesList) {}
 
   @override
-  void preprocessSeries() {
+  void preprocessSeries(List<MutableSeries<D>> seriesList) {
     final localConfig = config as SymbolAnnotationRendererConfig;
 
     _seriesInfo.clear();
@@ -118,7 +119,7 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
 
     _currentHeight = offset.ceilToDouble();
 
-    super.preprocessSeries();
+    super.preprocessSeries(seriesList);
   }
 
   @override
@@ -137,8 +138,6 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
   ) {
     final domainPosition = domainAxis.getLocation(domainValue);
 
-    final bounds = Rect.fromLTWH(0.0, 0.0, size.width, size.height); // TODO
-
     final domainLowerBoundPosition = domainLowerBoundValue != null
         ? domainAxis.getLocation(domainLowerBoundValue)
         : null;
@@ -150,7 +149,7 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
     final seriesKey = series.id;
     final seriesInfo = _seriesInfo[seriesKey]!;
 
-    final measurePosition = bounds.top + seriesInfo.symbolCenter;
+    final measurePosition = seriesInfo.symbolCenter;
 
     final measureLowerBoundPosition =
         domainLowerBoundPosition != null ? measurePosition : null;
@@ -171,6 +170,60 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
   }
 
   @override
+  Widget build(
+    BuildContext context, {
+    required List<ImmutableSeries<D>> seriesList,
+    required Key key,
+  }) {
+    return _SymbolAnnotationRender<D, S>(
+      key: key,
+      seriesList: seriesList,
+      renderer: this,
+    );
+  }
+}
+
+class _SymbolAnnotationRender<D, S extends BaseChart<D>>
+    extends BaseSeriesRenderObjectWidget<D, S,
+        PointRendererRender<D, S, PointRenderer<D, S>>> {
+  const _SymbolAnnotationRender({
+    required this.renderer,
+    required super.seriesList,
+    required super.key,
+  });
+
+  final PointRenderer<D, S> renderer;
+
+  @override
+  PointRendererRender<D, S, PointRenderer<D, S>> createRenderObject(
+      BuildContext context) {
+    return PointRendererRender<D, S, PointRenderer<D, S>>(
+      chartState: renderer.chartState,
+      renderer: renderer,
+      seriesList: seriesList,
+    );
+  }
+}
+
+class SymbolAnnotationRendererRender<D, S extends BaseChart<D>,
+        R extends SymbolAnnotationRenderer<D, S>>
+    extends PointRendererRender<D, S, R> {
+  SymbolAnnotationRendererRender({
+    required super.chartState,
+    required super.seriesList,
+    required super.renderer,
+  });
+
+  @override
+  void performLayout() {
+    markNeedsUpdate();
+    // The sizing of component is not flexible. It's height is always a multiple
+    // of the number of series rendered, even if that ends up taking all of the
+    // available margin space.
+    size = Size(constraints.maxWidth, renderer._currentHeight);
+  }
+
+  @override
   void paint(
     PaintingContext context,
     Offset offset,
@@ -179,14 +232,16 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
 
     // Use the domain axis of the attached chart to render the separator lines
     // to keep the same overall style.
-    if ((config as SymbolAnnotationRendererConfig).showSeparatorLines) {
+    if ((renderer.config as SymbolAnnotationRendererConfig)
+        .showSeparatorLines) {
       seriesPointMap.forEach((String key, List<AnimatedPoint<D>> points) {
-        final seriesInfo = _seriesInfo[key]!;
+        final seriesInfo = renderer._seriesInfo[key]!;
 
         final y = seriesInfo.rowStart;
 
         final domainAxis = (chartState as CartesianChartState).domainAxis!;
         final bounds = Rect.fromLTWH(0.0, y.roundToDouble(), size.width, 0.0);
+        
         domainAxis.tickDrawStrategy.drawAxisLine(
           context.canvas,
           offset,
@@ -195,27 +250,6 @@ class SymbolAnnotationRenderer<D, S extends BaseChart<D>>
         );
       });
     }
-  }
-
-  //
-  // Layout methods
-  //
-
-  // TODO @override
-  // LayoutViewConfig get layoutConfig {
-  //   return const LayoutViewConfig(
-  //     paintOrder: LayoutViewPaintOrder.point,
-  //     position: LayoutPosition.bottom,
-  //     positionOrder: LayoutViewPositionOrder.symbolAnnotation,
-  //   );
-  // }
-
-  @override
-  void performLayout() {
-    // The sizing of component is not flexible. It's height is always a multiple
-    // of the number of series rendered, even if that ends up taking all of the
-    // available margin space.
-    size = Size(constraints.maxWidth, _currentHeight);
   }
 }
 

@@ -17,14 +17,17 @@
 
 import 'dart:math' show pi;
 
+import 'package:collection/collection.dart' show ListEquality;
+import 'package:flutter/widgets.dart';
+
 import '../../symbol_renderer.dart';
-import '../series_renderer_config.dart'
-    show RendererAttributes, SeriesRendererConfig;
+import '../series_renderer_config.dart' show SeriesRendererConfig;
 import 'arc_renderer_decorator.dart' show ArcRendererDecorator;
 
 /// The base renderer config for arc renderer and sunburst arc renderer.
-abstract class BaseArcRendererConfig<D> implements SeriesRendererConfig<D> {
-  BaseArcRendererConfig({
+@immutable
+abstract class BaseArcRendererConfig<D> extends SeriesRendererConfig<D> {
+  const BaseArcRendererConfig({
     this.customRendererId,
     this.arcLength = 2.0 * pi,
     this.arcRendererDecorators = const [],
@@ -39,14 +42,11 @@ abstract class BaseArcRendererConfig<D> implements SeriesRendererConfig<D> {
   @override
   final String? customRendererId;
 
-  /// List of decorators applied to rendered arcs.
-  final List<ArcRendererDecorator<D>> arcRendererDecorators;
-
   @override
   final SymbolRenderer symbolRenderer;
 
-  @override
-  final RendererAttributes rendererAttributes = RendererAttributes();
+  /// List of decorators applied to rendered arcs.
+  final List<ArcRendererDecorator<D>> arcRendererDecorators;
 
   /// Total arc length, in radians.
   ///
@@ -73,4 +73,34 @@ abstract class BaseArcRendererConfig<D> implements SeriesRendererConfig<D> {
 
   /// Stroke width of the border of the arcs.
   final double strokeWidth;
+
+  @override
+  bool operator ==(covariant BaseArcRendererConfig<D> other) {
+    if (identical(this, other)) {
+      return true;
+    }
+    return other.customRendererId == customRendererId &&
+        ListEquality<ArcRendererDecorator<D>>()
+            .equals(other.arcRendererDecorators, arcRendererDecorators) &&
+        other.symbolRenderer == symbolRenderer &&
+        other.arcLength == arcLength &&
+        other.arcRatio == arcRatio &&
+        other.arcWidth == arcWidth &&
+        other.minHoleWidthForCenterContent == minHoleWidthForCenterContent &&
+        other.startAngle == startAngle &&
+        other.strokeWidth == strokeWidth;
+  }
+
+  @override
+  int get hashCode => Object.hash(
+        customRendererId,
+        arcRendererDecorators,
+        symbolRenderer,
+        arcLength,
+        arcRatio,
+        arcWidth,
+        minHoleWidthForCenterContent,
+        startAngle,
+        strokeWidth,
+      );
 }
