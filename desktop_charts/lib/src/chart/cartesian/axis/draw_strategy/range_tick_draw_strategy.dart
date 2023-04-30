@@ -238,7 +238,7 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
   }
 
   @override
-  Size measureVerticallyDrawnTicks(
+  double measureVerticallyDrawnTicks(
     List<Tick<D>> ticks,
     double maxWidth,
     double maxHeight, {
@@ -276,11 +276,11 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
       }
     }).roundToDouble();
 
-    return Size(maxHorizontalSliceWidth, maxHeight);
+    return maxHorizontalSliceWidth;
   }
 
   @override
-  Size measureHorizontallyDrawnTicks(
+  double measureHorizontallyDrawnTicks(
     List<Tick<D>> ticks,
     double maxWidth,
     double maxHeight, {
@@ -315,7 +315,7 @@ class RangeTickDrawStrategy<D> extends SmallTickDrawStrategy<D> {
       }
     }).roundToDouble();
 
-    return Size(maxWidth, maxVerticalSliceWidth);
+    return maxVerticalSliceWidth;
   }
 
   void drawRangeShadeAndRangeLabel(

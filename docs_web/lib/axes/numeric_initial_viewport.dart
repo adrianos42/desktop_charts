@@ -98,7 +98,7 @@ class NumericInitialViewport extends StatelessWidget {
       ),
       // Optionally add a pan or pan and zoom behavior.
       // If pan/zoom is not added, the viewport specified remains the viewport.
-      // TODO behaviors: [charts.PanAndZoomBehavior()],
+      behaviors: const [charts.PanAndZoomBehavior()],
     );
   }
 

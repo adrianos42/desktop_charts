@@ -6,7 +6,7 @@ import '../cartesian/cartesian_chart.dart'
 import 'line_renderer_config.dart' show LineRendererConfig;
 
 class LineChart extends NumericCartesianChart {
-  LineChart(
+  const LineChart(
     super.seriesList, {
     LineRendererConfig<num>? defaultRenderer,
     super.key,
@@ -24,7 +24,7 @@ class LineChart extends NumericCartesianChart {
     super.defaultInteractions,
     super.rtlSpec,
     super.flipVerticalAxis,
-  }) : super(defaultRenderer: defaultRenderer ?? LineRendererConfig());
+  }) : super(defaultRenderer: defaultRenderer ?? const LineRendererConfig());
 
   @override
   LineChartState createState() => LineChartState();
@@ -35,6 +35,6 @@ class LineChartState extends NumericCartesianChartState {
   void addDefaultInteractions(List<ChartBehavior> behaviors) {
     super.addDefaultInteractions(behaviors);
 
-    behaviors.add(LinePointHighlighter<num>());
+    behaviors.add(const LinePointHighlighter<num>());
   }
 }

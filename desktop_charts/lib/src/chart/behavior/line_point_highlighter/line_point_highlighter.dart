@@ -46,7 +46,7 @@ import '../chart_behavior.dart' show ChartBehavior, ChartBehaviorState;
 /// It is used in combination with SelectNearest to update the selection model
 /// and expand selection out to the domain value.
 class LinePointHighlighter<D> extends ChartBehavior<D> {
-  LinePointHighlighter({
+  const LinePointHighlighter({
     SelectionModelType? selectionModelType,
     double? defaultRadius,
     double? radiusPadding,
@@ -62,7 +62,7 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
             showHorizontalFollowLine ?? LinePointHighlighterFollowLineType.none,
         showVerticalFollowLine = showVerticalFollowLine ??
             LinePointHighlighterFollowLineType.nearest,
-        dashPattern = dashPattern ?? [1, 3],
+        dashPattern = dashPattern ?? const [1, 3],
         drawFollowLinesAcrossChart = drawFollowLinesAcrossChart ?? true,
         symbolRenderer = symbolRenderer ?? const CircleSymbolRenderer();
 
@@ -108,12 +108,10 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
   /// Renderer used to draw the highlighted points.
   final SymbolRenderer symbolRenderer;
 
-  final GlobalKey _linePointKey = GlobalKey();
-
-  Map<String, _AnimatedPoint<D>> get _seriesPointMap =>
-      (_linePointKey.currentContext!.findRenderObject()!
-              as _LinePointRender<D>)
-          ._seriesPointMap;
+  // Map<String, _AnimatedPoint<D>> get _seriesPointMap =>
+  //     (_linePointKey.currentContext!.findRenderObject()!
+  //             as _LinePointRender<D>)
+  //         ._seriesPointMap;
 
   @override
   String get role => 'LinePointHighlighter-$selectionModelType';
@@ -126,7 +124,6 @@ class LinePointHighlighter<D> extends ChartBehavior<D> {
     return _LinePointHighlighterState<D, S>(
       behavior: this,
       chartState: chartState,
-      linePointKey: _linePointKey,
     );
   }
 }
@@ -136,10 +133,9 @@ class _LinePointHighlighterState<D, S extends BaseChart<D>>
   _LinePointHighlighterState({
     required super.behavior,
     required super.chartState,
-    required this.linePointKey,
   });
 
-  final GlobalKey linePointKey;
+  final GlobalKey linePointKey = GlobalKey();
 
   @override
   Widget buildBehaviorWidget(BuildContext context) {
@@ -819,8 +815,8 @@ class LinePointHighlighterTester<D> {
 
   final LinePointHighlighter<D> behavior;
 
-  int getSelectionLength() => behavior._seriesPointMap.length;
+  //int getSelectionLength() => behavior._seriesPointMap.length;
 
-  bool isDatumSelected(D datum) => behavior._seriesPointMap.values
-      .any((point) => point._currentPoint!.point.datum == datum);
+  //bool isDatumSelected(D datum) => behavior._seriesPointMap.values
+  //    .any((point) => point._currentPoint!.point.datum == datum);
 }

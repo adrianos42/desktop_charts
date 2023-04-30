@@ -201,7 +201,7 @@ class SelectionScatterPlotHighlight extends StatelessWidget {
       )
         // Accessor function that associates each datum with a symbol renderer.
         ..setAttribute(
-            charts.pointSymbolRendererFnKey, (int index) => data[index].shape)
+            charts.pointSymbolRendererFnKey, (int? index) => data[index!].shape)
         // Default symbol renderer ID for data that have no defined shape.
         ..setAttribute(charts.pointSymbolRendererIdKey, 'rect')
     ];
@@ -211,7 +211,7 @@ class SelectionScatterPlotHighlight extends StatelessWidget {
   Widget build(BuildContext context) {
     return charts.ScatterPlotChart(seriesList,
         animate: animate,
-        behaviors: [
+        behaviors: const [
           // Optional - Configures a [LinePointHighlighter] behavior with
           // horizontal and vertical follow lines. The highlighter will increase
           // the size of the selected points on the chart.
@@ -222,22 +222,24 @@ class SelectionScatterPlotHighlight extends StatelessWidget {
           // null value will be treated the same as not passing in a value at
           // all.
           charts.LinePointHighlighter(
-              showHorizontalFollowLine:
-                  charts.LinePointHighlighterFollowLineType.nearest,
-              showVerticalFollowLine:
-                  charts.LinePointHighlighterFollowLineType.nearest),
+            showHorizontalFollowLine:
+                charts.LinePointHighlighterFollowLineType.nearest,
+            showVerticalFollowLine:
+                charts.LinePointHighlighterFollowLineType.nearest,
+          ),
           // Optional - By default, select nearest is configured to trigger
           // with tap so that a user can have pan/zoom behavior and line point
           // highlighter. Changing the trigger to tap and drag allows the
           // highlighter to follow the dragging gesture but it is not
           // recommended to be used when pan/zoom behavior is enabled.
           charts.SelectNearest(
-              eventTrigger: charts.SelectionTrigger.tapAndDrag),
+            eventTrigger: charts.SelectionTrigger.tapAndDrag,
+          ),
         ],
         // Configure the point renderer to have a map of custom symbol
         // renderers.
         defaultRenderer:
-            charts.PointRendererConfig<num>(customSymbolRenderers: const {
+            const charts.PointRendererConfig<num>(customSymbolRenderers: {
           'circle': charts.CircleSymbolRenderer(),
           'rect': charts.RectSymbolRenderer(),
         }));

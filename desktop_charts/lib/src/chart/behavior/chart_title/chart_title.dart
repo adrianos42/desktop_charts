@@ -21,7 +21,6 @@ import 'package:desktop/desktop.dart';
 import 'package:flutter/rendering.dart';
 
 import '../../../text_element.dart' show MaxWidthStrategy, TextElement;
-import '../../../theme.dart';
 import '../../base_chart.dart'
     show BaseChartState, LifecycleListener, BaseChart;
 import '../../chart_canvas.dart' show ChartCanvas;

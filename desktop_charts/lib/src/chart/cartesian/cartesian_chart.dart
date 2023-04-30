@@ -15,16 +15,13 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-import 'package:collection/collection.dart' show ListEquality;
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
-import '../behavior/behavior.dart'
-    show ChartBehavior, ChartBehaviorState, BehaviorPosition;
-import 'package:flutter/scheduler.dart';
 import '../../data/series.dart' show Series;
 import '../base_chart.dart'
     show BaseChart, BaseChartState, WidgetLayoutDelegate;
+import '../behavior/behavior.dart' show ChartBehavior, BehaviorPosition;
 import '../datum_details.dart' show DatumDetails;
 import '../processed_series.dart' show MutableSeries;
 import '../selection_model.dart' show SelectionModelType;
@@ -35,6 +32,7 @@ import 'axis/draw_strategy/gridline_draw_strategy.dart'
     show GridlineRendererSpec;
 import 'axis/draw_strategy/small_tick_draw_strategy.dart'
     show SmallTickRendererSpec;
+import 'axis/draw_strategy/none_draw_strategy.dart' show NoneRenderSpec;
 import 'axis/spec/axis_spec.dart' show AxisSpec;
 import 'axis/spec/numeric_axis_spec.dart' show NumericAxisSpec;
 import 'axis/spec/ordinal_axis_spec.dart' show OrdinalAxisSpec;
@@ -222,6 +220,11 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
   NumericAxis? _secondaryMeasureAxis;
   Map<String, NumericAxis> _disjointMeasureAxes = {};
 
+  bool _domainAxisNeedsUpdate = false;
+  bool _primaryMeasureAxisNeedsUpdate = false;
+  bool _secondaryMeasureAxisNeedsUpdate = false;
+  bool _disjointMeasureAxesNeedsUpdate = false;
+
   /// If set to true, the vertical axis will render the opposite of the default
   /// direction.
   bool get flipVerticalAxisOutput => widget.flipVerticalAxis ?? false;
@@ -284,6 +287,22 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
 
     _usePrimaryMeasureAxis = false;
     _useSecondaryMeasureAxis = false;
+
+    if (_domainAxisNeedsUpdate) {
+      domainAxis = null;
+    }
+
+    if (_primaryMeasureAxisNeedsUpdate) {
+      _primaryMeasureAxis = null;
+    }
+
+    if (_secondaryMeasureAxisNeedsUpdate) {
+      _secondaryMeasureAxis = null;
+    }
+
+    if (_disjointMeasureAxesNeedsUpdate) {
+      _disjointMeasureAxes = {};
+    }
 
     // Check if primary or secondary measure axis is being used.
     for (final series in seriesList) {
@@ -361,6 +380,21 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
       );
     }
 
+    if (_disjointMeasureAxes.isEmpty &&
+        widget.disjointMeasureAxes != null &&
+        widget.disjointMeasureAxes!.isNotEmpty) {
+      widget.disjointMeasureAxes!
+          .forEach((String axisId, NumericAxisSpec axisSpec) {
+        _disjointMeasureAxes[axisId] = axisSpec.createAxis(
+          chartContext: this,
+          tickDrawStrategy:
+              const NoneRenderSpec<num>().createDrawStrategy(this),
+          axisDirection: disjointMeasureAxisDirection,
+          reverseOutputRange: disjointMeasureReverseAxisDirection,
+        );
+      });
+    }
+
     domainAxis ??= buildDomainAxis(
       axisDirection: domainAxisDirection,
       reverseOutputRange: domainReverseAxisDirection,
@@ -394,6 +428,11 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
       getSeriesRenderer(rendererId)!.configureDomainAxes(seriesList);
       getSeriesRenderer(rendererId)!.configureMeasureAxes(seriesList);
     });
+
+    _domainAxisNeedsUpdate = false;
+    _primaryMeasureAxisNeedsUpdate = false;
+    _secondaryMeasureAxisNeedsUpdate = false;
+    _disjointMeasureAxesNeedsUpdate = false;
 
     return rendererToSeriesList;
   }
@@ -440,30 +479,34 @@ abstract class CartesianChartState<D, S extends CartesianChart<D>>
     return entries;
   }
 
-  @protected
-  Map<String, NumericAxis>? createDisjointMeasureAxes() {
-    if (widget.disjointMeasureAxes != null) {
-      final disjointAxes = {};
-
-      // _disjointMeasureAxes.forEach((String axisId, NumericAxisSpec axisSpec) {
-      //   disjointAxes[axisId] = axisSpec.createAxis();
-      // });
-
-      // return disjointAxes;
-      return null;
-    } else {
-      return null;
-    }
-  }
-
-  void didUpdateWidget(covariant S oldWidget) {
-    super.didUpdateWidget(oldWidget);
-  }
-
   void axisConfigured() {
     for (final listener in lifecycleListeners) {
       listener.onAxisConfigured?.call();
     }
+  }
+
+  @override
+  bool didUpdateWidgetNeedsDrawing(covariant S oldWidget) {
+    final needsDrawing = super.didUpdateWidgetNeedsDrawing(oldWidget);
+
+    _domainAxisNeedsUpdate = widget.domainAxis != oldWidget.domainAxis;
+
+    _primaryMeasureAxisNeedsUpdate =
+        widget.primaryMeasureAxis != oldWidget.primaryMeasureAxis;
+
+    _secondaryMeasureAxisNeedsUpdate =
+        widget.secondaryMeasureAxis != oldWidget.secondaryMeasureAxis;
+
+    _disjointMeasureAxesNeedsUpdate =
+        widget.disjointMeasureAxes != oldWidget.disjointMeasureAxes;
+
+    return needsDrawing ||
+        widget.flipVerticalAxis != oldWidget.flipVerticalAxis ||
+        _domainAxisNeedsUpdate ||
+        _primaryMeasureAxisNeedsUpdate ||
+        _secondaryMeasureAxisNeedsUpdate ||
+        _disjointMeasureAxesNeedsUpdate ||
+        widget.isVertical != oldWidget.isVertical;
   }
 
   @override
@@ -613,6 +656,9 @@ class _AxisRender<D> extends RenderBox
     _domainAxis.addListener(markNeedsPaint);
     _primaryMeasureAxis?.addListener(markNeedsPaint);
     _secondaryMeasureAxis?.addListener(markNeedsPaint);
+    for (final axis in _disjointMeasureAxes.values) {
+      axis.addListener(markNeedsPaint);
+    }
   }
 
   @mustCallSuper
@@ -621,6 +667,9 @@ class _AxisRender<D> extends RenderBox
     _domainAxis.removeListener(markNeedsPaint);
     _primaryMeasureAxis?.removeListener(markNeedsPaint);
     _secondaryMeasureAxis?.removeListener(markNeedsPaint);
+    for (final axis in _disjointMeasureAxes.values) {
+      axis.addListener(markNeedsPaint);
+    }
     super.detach();
   }
 
@@ -646,7 +695,7 @@ class _AxisRender<D> extends RenderBox
   set isVertical(bool value) {
     if (_isVertical != value) {
       _isVertical = value;
-      markNeedsPaint();
+      markNeedsLayout();
       _needsUpdate = true;
     }
   }
@@ -654,8 +703,10 @@ class _AxisRender<D> extends RenderBox
   CartesianAxis<D> _domainAxis;
   set domainAxis(CartesianAxis<D> value) {
     if (_domainAxis != value) {
+      _domainAxis.removeListener(markNeedsPaint);
+      value.addListener(markNeedsPaint);
       _domainAxis = value;
-      markNeedsPaint();
+      markNeedsLayout();
       _needsUpdate = true;
     }
   }
@@ -663,8 +714,10 @@ class _AxisRender<D> extends RenderBox
   NumericAxis? _primaryMeasureAxis;
   set primaryMeasureAxis(NumericAxis? value) {
     if (_primaryMeasureAxis != value) {
+      _primaryMeasureAxis?.removeListener(markNeedsPaint);
+      value?.addListener(markNeedsPaint);
       _primaryMeasureAxis = value;
-      markNeedsPaint();
+      markNeedsLayout();
       _needsUpdate = true;
     }
   }
@@ -672,8 +725,10 @@ class _AxisRender<D> extends RenderBox
   NumericAxis? _secondaryMeasureAxis;
   set secondaryMeasureAxis(NumericAxis? value) {
     if (_secondaryMeasureAxis != value) {
+      _secondaryMeasureAxis?.removeListener(markNeedsPaint);
+      value?.addListener(markNeedsPaint);
       _secondaryMeasureAxis = value;
-      markNeedsPaint();
+      markNeedsLayout();
       _needsUpdate = true;
     }
   }
@@ -681,8 +736,15 @@ class _AxisRender<D> extends RenderBox
   Map<String, NumericAxis> _disjointMeasureAxes;
   set disjointMeasureAxes(Map<String, NumericAxis> value) {
     if (_disjointMeasureAxes != value) {
+      for (final axis in _disjointMeasureAxes.values) {
+        axis.removeListener(markNeedsPaint);
+      }
+      for (final axis in value.values) {
+        axis.addListener(markNeedsPaint);
+      }
+
       _disjointMeasureAxes = value;
-      markNeedsPaint();
+      markNeedsLayout();
       _needsUpdate = true;
     }
   }
@@ -692,6 +754,7 @@ class _AxisRender<D> extends RenderBox
   Offset _domainOffset = Offset.zero;
   Offset _primaryMeasureOffsest = Offset.zero;
   Offset _secondaryMeasureOffset = Offset.zero;
+  final Map<String, Offset> _disjointMeasureOffest = {};
 
   @override
   void performLayout() {
@@ -701,27 +764,36 @@ class _AxisRender<D> extends RenderBox
     double chartOffsetY = 0.0;
 
     if (!_deferAnimation) {
-      final Size domainSize = _domainAxis.measure(constraints);
-      final Size? primarySize = _primaryMeasureAxis?.measure(constraints);
-      final Size? secondarySize = _secondaryMeasureAxis?.measure(constraints);
-
       if (_isVertical) {
-        availableHeight -= domainSize.height;
+        final double domainHeight = _domainAxis.measureHeight(constraints);
+        final double primaryWidth =
+            _primaryMeasureAxis?.measureWidth(constraints) ?? 0.0;
+        final double secondaryWidth =
+            _secondaryMeasureAxis?.measureWidth(constraints) ?? 0.0;
+
+        availableHeight -= domainHeight;
+
+        print(domainHeight);
+
+        _primaryMeasureOffsest = Offset.zero;
+        _secondaryMeasureOffset = Offset.zero;
 
         if (_primaryMeasureAxis != null) {
           if (_primaryMeasureAxis!.axisDirection == AxisDirection.left) {
-            chartOffsetX += primarySize!.width;
+            chartOffsetX += primaryWidth;
+            _secondaryMeasureOffset = Offset(chartOffsetX, 0.0);
           }
 
-          availableWidth -= primarySize!.width;
+          availableWidth -= primaryWidth;
         }
 
         if (_secondaryMeasureAxis != null) {
           if (_secondaryMeasureAxis!.axisDirection == AxisDirection.left) {
-            chartOffsetX += secondarySize!.width;
+            chartOffsetX += secondaryWidth;
+            _primaryMeasureOffsest = Offset(chartOffsetX, 0.0);
           }
 
-          availableWidth -= secondarySize!.width;
+          availableWidth -= secondaryWidth;
         }
 
         _domainAxis.measure(
@@ -729,68 +801,104 @@ class _AxisRender<D> extends RenderBox
             maxWidth: availableWidth,
             maxHeight: constraints.maxHeight,
           ),
+          Size(availableWidth, domainHeight),
         );
+        _domainOffset = Offset(chartOffsetX, 0.0);
+
         _primaryMeasureAxis?.measure(
           BoxConstraints(
-            maxWidth: constraints.maxWidth,
+            maxWidth: constraints.maxWidth - secondaryWidth,
             maxHeight: availableHeight,
           ),
+          Size(primaryWidth, availableHeight),
         );
+
         _secondaryMeasureAxis?.measure(
           BoxConstraints(
-            maxWidth: constraints.maxWidth,
+            maxWidth: constraints.maxWidth - primaryWidth,
             maxHeight: availableHeight,
           ),
+          Size(secondaryWidth, availableHeight),
         );
 
-        _domainOffset = Offset(chartOffsetX, 0.0);
-        _primaryMeasureOffsest = Offset.zero;
-        _secondaryMeasureOffset = Offset.zero;
+        _disjointMeasureAxes.forEach((key, axis) {
+          axis.measure(
+            BoxConstraints(
+              maxWidth: availableWidth,
+              maxHeight: availableHeight,
+            ),
+          );
+
+          _disjointMeasureOffest[key] = Offset.zero;
+        });
       } else {
+        final double domainWidth = _domainAxis.measureWidth(constraints);
+        final double primaryHeight =
+            _primaryMeasureAxis?.measureHeight(constraints) ?? 0.0;
+        final double secondaryHeight =
+            _secondaryMeasureAxis?.measureHeight(constraints) ?? 0.0;
+
+        if (_domainAxis.axisDirection == AxisDirection.left) {
+          chartOffsetX += domainWidth;
+        }
+        availableWidth -= domainWidth;
+
+        _secondaryMeasureOffset = Offset(chartOffsetX, 0.0);
+        _primaryMeasureOffsest = Offset(chartOffsetX, 0.0);
+
         if (_primaryMeasureAxis != null) {
-          availableHeight -= primarySize!.height;
+          availableHeight -= primaryHeight;
 
           if (_primaryMeasureAxis!.axisDirection == AxisDirection.up) {
-            chartOffsetY += primarySize.height;
+            chartOffsetY += primaryHeight;
+            _secondaryMeasureOffset = Offset(chartOffsetX, chartOffsetY);
           }
         }
 
         if (_secondaryMeasureAxis != null) {
-          availableHeight -= secondarySize!.height;
+          availableHeight -= secondaryHeight;
 
           if (_secondaryMeasureAxis!.axisDirection == AxisDirection.up) {
-            chartOffsetY += secondarySize.height;
+            chartOffsetY += secondaryHeight;
+            _primaryMeasureOffsest = Offset(chartOffsetX, chartOffsetY);
           }
         }
-
-        if (_domainAxis.axisDirection == AxisDirection.left) {
-          chartOffsetX += domainSize.width;
-        }
-
-        availableWidth -= domainSize.width;
 
         _domainAxis.measure(
           BoxConstraints(
             maxWidth: constraints.maxWidth,
             maxHeight: availableHeight,
           ),
+          Size(domainWidth, availableHeight),
         );
+        _domainOffset = Offset(0.0, chartOffsetY);
+
         _primaryMeasureAxis?.measure(
           BoxConstraints(
             maxWidth: availableWidth,
-            maxHeight: constraints.maxHeight,
+            maxHeight: constraints.maxHeight - secondaryHeight,
           ),
+          Size(availableWidth, primaryHeight),
         );
+
         _secondaryMeasureAxis?.measure(
           BoxConstraints(
             maxWidth: availableWidth,
-            maxHeight: constraints.maxHeight,
+            maxHeight: constraints.maxHeight - primaryHeight,
           ),
+          Size(availableWidth, secondaryHeight),
         );
 
-        _domainOffset = Offset(0.0, chartOffsetY);
-        _primaryMeasureOffsest = Offset(chartOffsetX, 0.0);
-        _secondaryMeasureOffset = Offset(chartOffsetX, 0.0);
+        _disjointMeasureAxes.forEach((key, axis) {
+          axis.measure(
+            BoxConstraints(
+              maxWidth: availableWidth,
+              maxHeight: constraints.maxHeight,
+            ),
+          );
+
+          _disjointMeasureOffest[key] = Offset(chartOffsetX, 0.0);
+        });
       }
 
       _needsUpdate = true;
@@ -848,6 +956,10 @@ class _AxisRender<D> extends RenderBox
       _primaryMeasureAxis?.update();
       _domainAxis.update();
 
+      for (final axis in _disjointMeasureAxes.values) {
+        axis.update();
+      }
+
       _needsUpdate = false;
     }
 
@@ -862,9 +974,13 @@ class _AxisRender<D> extends RenderBox
       child = childAfter(child);
     }
 
-    _domainAxis.paint(context, _domainOffset + offset);
-    _secondaryMeasureAxis?.paint(context, _secondaryMeasureOffset + offset);
+    _disjointMeasureAxes.forEach((key, axis) {
+      axis.paint(context, _disjointMeasureOffest[key]! + offset);
+    });
+
     _primaryMeasureAxis?.paint(context, _primaryMeasureOffsest + offset);
+    _secondaryMeasureAxis?.paint(context, _secondaryMeasureOffset + offset);
+    _domainAxis.paint(context, _domainOffset + offset);
 
     context.paintChild(
       child!,

@@ -73,6 +73,7 @@ List<(String, String?, WidgetBuilder)> _createItemsWithSeries({
   required List<charts.Series<dynamic, num>> disjointMeasureAxisLineChartSeries,
   bool animate = true,
 }) {
+
   return [
     (
       'Bar chart with Secondary Measure Axis',

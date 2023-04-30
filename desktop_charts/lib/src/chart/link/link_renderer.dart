@@ -22,7 +22,7 @@ import '../../math.dart' show NullablePoint;
 import '../base_chart.dart' show BaseChart;
 import '../chart_canvas.dart';
 import '../datum_details.dart';
-import '../processed_series.dart' show MutableSeries;
+import '../processed_series.dart' show MutableSeries, ImmutableSeries;
 import '../series_datum.dart';
 import '../series_renderer.dart' show BaseSeriesRenderer;
 import 'link_renderer_config.dart';
@@ -99,6 +99,15 @@ class LinkRenderer<D, S extends BaseChart<D>> extends BaseSeriesRenderer<D, S> {
       details,
       chartPosition: NullablePoint.from(chartPosition),
     );
+  }
+
+  @override
+  Widget build(
+    BuildContext context, {
+    required Key key,
+    required List<ImmutableSeries<D>> seriesList,
+  }) {
+    throw '';
   }
 
   /// Datum details of nearest link.

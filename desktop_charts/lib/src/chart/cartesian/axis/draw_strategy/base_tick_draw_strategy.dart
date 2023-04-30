@@ -150,12 +150,15 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
   LineStyle get axisLineStyle => LineStyle(
         color: _axisLineStyle?.color ?? labelStyle.color,
         dashPattern: _axisLineStyle?.dashPattern,
-        strokeWidth: _axisLineStyle?.strokeWidth ?? 1.0,
+        strokeWidth: _axisLineStyle?.strokeWidth ?? 2.0,
       );
 
   final TextStyle? _labelStyle;
   TextStyle get labelStyle =>
       chartContext!.themeData.labelStyle.merge(_labelStyle);
+
+  @override
+  double get axisLineWidth => axisLineStyle.strokeWidth ?? 0.0;
 
   final TickLabelJustification tickLabelJustification;
 
@@ -344,7 +347,7 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
   }
 
   @override
-  Size measureVerticallyDrawnTicks(
+  double measureVerticallyDrawnTicks(
     List<Tick<D>> ticks,
     double maxWidth,
     double maxHeight, {
@@ -369,11 +372,11 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
       );
     }).roundToDouble();
 
-    return Size(maxHorizontalSliceWidth, maxHeight);
+    return maxHorizontalSliceWidth;
   }
 
   @override
-  Size measureHorizontallyDrawnTicks(
+  double measureHorizontallyDrawnTicks(
     List<Tick<D>> ticks,
     double maxWidth,
     double maxHeight, {
@@ -391,12 +394,9 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
           ));
     }).roundToDouble();
 
-    return Size(
-      maxWidth,
-      min(
-        maxHeight,
-        maxVerticalSliceWidth + labelOffsetFromAxis(collision: collision),
-      ),
+    return min(
+      maxHeight,
+      maxVerticalSliceWidth + labelOffsetFromAxis(collision: collision),
     );
   }
 
@@ -412,20 +412,20 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
 
     switch (orientation) {
       case AxisDirection.up:
-        start = axisBounds.bottomLeft;
-        end = axisBounds.bottomRight;
+        start = axisBounds.bottomLeft.translate(0.0, -axisLineWidth / 2.0);
+        end = axisBounds.bottomRight.translate(0.0, -axisLineWidth / 2.0);
         break;
       case AxisDirection.down:
-        start = axisBounds.topLeft;
-        end = axisBounds.topRight;
+        start = axisBounds.topLeft.translate(0.0, axisLineWidth / 2.0);
+        end = axisBounds.topRight.translate(0.0, axisLineWidth / 2.0);
         break;
       case AxisDirection.right:
-        start = axisBounds.topLeft;
-        end = axisBounds.bottomLeft;
+        start = axisBounds.topLeft.translate(axisLineWidth / 2.0, 0.0);
+        end = axisBounds.bottomLeft.translate(axisLineWidth / 2.0, 0.0);
         break;
       case AxisDirection.left:
-        start = axisBounds.topRight;
-        end = axisBounds.bottomRight;
+        start = axisBounds.topRight.translate(-axisLineWidth / 2.0, 0.0);
+        end = axisBounds.bottomRight.translate(-axisLineWidth / 2.0, 0.0);
         break;
     }
 
@@ -474,13 +474,11 @@ abstract class BaseTickDrawStrategy<D> implements TickDrawStrategy<D> {
         line.textDirection = direction;
 
         x = switch (direction) {
-          TextDirection.rtl => (location +
-                    labelOffsetFromTick(collision: collision) +
-                    labelOffset)
+          TextDirection.rtl =>
+            (location + labelOffsetFromTick(collision: collision) + labelOffset)
                 .roundToDouble(),
-          TextDirection.ltr => (location -
-                    labelOffsetFromTick(collision: collision) -
-                    labelOffset)
+          TextDirection.ltr =>
+            (location - labelOffsetFromTick(collision: collision) - labelOffset)
                 .roundToDouble(),
           _ => (location - labelOffset).roundToDouble()
         };

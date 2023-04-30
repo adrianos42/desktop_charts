@@ -88,9 +88,7 @@ abstract class SeriesRenderer<D, S extends BaseChart<D>> {
     BuildContext context, {
     required Key key,
     required List<ImmutableSeries<D>> seriesList,
-  }) {
-    throw '';
-  }
+  });
 
   /// Generates rendering data needed to paint the data on the chart.
   ///

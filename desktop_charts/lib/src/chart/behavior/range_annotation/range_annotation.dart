@@ -255,7 +255,9 @@ class _RangeAnnotationLayoutRenderObjectWidget<D, S extends CartesianChart<D>>
 
   @override
   void updateRenderObject(
-      BuildContext context, _RangeAnnotationLayoutRender<D> renderObject) {}
+    BuildContext context,
+    _RangeAnnotationLayoutRender<D> renderObject,
+  ) {}
 }
 
 class _RangeAnnotationLayoutRender<D> extends RenderBox {

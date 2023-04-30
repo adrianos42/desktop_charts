@@ -128,6 +128,9 @@ class NoneDrawStrategy<D> implements TickDrawStrategy<D> {
   }
 
   @override
+  double get axisLineWidth => 0.0;
+
+  @override
   void draw(
     Canvas canvas,
     Offset offset,
@@ -141,22 +144,22 @@ class NoneDrawStrategy<D> implements TickDrawStrategy<D> {
   }) {}
 
   @override
-  Size measureHorizontallyDrawnTicks(
+  double measureHorizontallyDrawnTicks(
     List<Tick<D>> ticks,
     double maxWidth,
     double maxHeight, {
     bool collision = false,
   }) {
-    return Size(maxWidth, 0.0);
+    return 0.0;
   }
 
   @override
-  Size measureVerticallyDrawnTicks(
+  double measureVerticallyDrawnTicks(
     List<Tick<D>> ticks,
     double maxWidth,
     double maxHeight, {
     bool collision = false,
   }) {
-    return Size(0.0, maxHeight);
+    return 0.0;
   }
 }

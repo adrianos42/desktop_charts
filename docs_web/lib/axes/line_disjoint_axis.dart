@@ -90,10 +90,10 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
     // different sort ratio-based data. If this was on the same axis as any of
     // the other series, it would be squashed near zero.
     final myFakeClickRateData = [
-      LinearClicks(0, clickRate: .25),
-      LinearClicks(1, clickRate: .65),
-      LinearClicks(2, clickRate: .50),
-      LinearClicks(3, clickRate: .30),
+      LinearClicks(0, clickRate: random.nextDouble()),
+      LinearClicks(1, clickRate: random.nextDouble()),
+      LinearClicks(2, clickRate: random.nextDouble()),
+      LinearClicks(3, clickRate: random.nextDouble()),
     ];
 
     return [
@@ -101,10 +101,11 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
       // the axis itself gets rendered. This helps us draw the grid lines on the
       // chart.
       charts.Series<LinearClicks, int>(
-          id: 'Fake Series',
-          domain: (LinearClicks clickCount, _) => clickCount.year,
-          measure: (LinearClicks clickCount, _) => clickCount.clickCount,
-          data: []),
+        id: 'Fake Series',
+        domain: (LinearClicks clickCount, _) => clickCount.year,
+        measure: (LinearClicks clickCount, _) => clickCount.clickCount,
+        data: myFakeClickRateData,
+      ),
       charts.Series<LinearClicks, int>(
         id: 'Desktop',
         color: (_, __) => charts.DesktopPalette.blue.shadeDefault,
@@ -136,7 +137,7 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
         id: 'Click Rate',
         color: (_, __) => charts.DesktopPalette.purple.shadeDefault,
         domain: (LinearClicks clickCount, _) => clickCount.year,
-        measure: (LinearClicks clickCount, _) => clickCount.clickCount,
+        measure: (LinearClicks clickCount, _) => clickCount.clickRate,
         data: myFakeClickRateData,
       )
         // Set the 'Click Rate' series to use a disjoint axis.
@@ -146,36 +147,39 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return charts.LineChart(seriesList,
-        animate: animate,
-        // Configure a primary measure axis that will render grid lines across
-        // the chart. This axis uses fake ticks with no labels to ensure that we
-        // get 5 grid lines.
-        //
-        // We do this because disjoint measure axes do not draw any tick
-        // elements on the chart.
-        primaryMeasureAxis: const charts.NumericAxisSpec(
-            tickProviderSpec: charts.StaticNumericTickProviderSpec(
-          // Create the ticks to be used the domain axis.
-          <charts.TickSpec<num>>[
-            charts.TickSpec(0, label: ''),
-            charts.TickSpec(1, label: ''),
-            charts.TickSpec(2, label: ''),
-            charts.TickSpec(3, label: ''),
-            charts.TickSpec(4, label: ''),
-          ],
-        )),
-        // Create one disjoint measure axis per series on the chart.
-        //
-        // Disjoint measure axes will be used to scale the rendered data,
-        // without drawing any tick elements on either side of the chart.
-        disjointMeasureAxes:
-            LinkedHashMap<String, charts.NumericAxisSpec>.from(const {
+    return charts.LineChart(
+      seriesList,
+      animate: animate,
+      // Configure a primary measure axis that will render grid lines across
+      // the chart. This axis uses fake ticks with no labels to ensure that we
+      // get 5 grid lines.
+      //
+      // We do this because disjoint measure axes do not draw any tick
+      // elements on the chart.
+      primaryMeasureAxis: const charts.NumericAxisSpec(
+          tickProviderSpec: charts.StaticNumericTickProviderSpec(
+        // Create the ticks to be used the domain axis.
+        <charts.TickSpec<num>>[
+          charts.TickSpec(0, label: ''),
+          charts.TickSpec(1, label: ''),
+          charts.TickSpec(2, label: ''),
+          charts.TickSpec(3, label: ''),
+          charts.TickSpec(4, label: ''),
+        ],
+      )),
+      // Create one disjoint measure axis per series on the chart.
+      //
+      // Disjoint measure axes will be used to scale the rendered data,
+      // without drawing any tick elements on either side of the chart.
+      disjointMeasureAxes: LinkedHashMap<String, charts.NumericAxisSpec>.from(
+        const {
           'axis 1': charts.NumericAxisSpec(),
           'axis 2': charts.NumericAxisSpec(),
           'axis 3': charts.NumericAxisSpec(),
           'axis 4': charts.NumericAxisSpec(),
-        }));
+        },
+      ),
+    );
   }
 
   /// Create one series with sample hard coded data.
@@ -184,21 +188,21 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
     // This demonstrates the ability to graph the trends in each series relative
     // to each other, without the largest magnitude series compressing the
     // smallest.
-    final myFakeDesktopData = [
+    const myFakeDesktopData = [
       LinearClicks(0, clickCount: 25),
       LinearClicks(1, clickCount: 125),
       LinearClicks(2, clickCount: 920),
       LinearClicks(3, clickCount: 375),
     ];
 
-    final myFakeTabletData = [
+    const myFakeTabletData = [
       LinearClicks(0, clickCount: 375),
       LinearClicks(1, clickCount: 1850),
       LinearClicks(2, clickCount: 9700),
       LinearClicks(3, clickCount: 5000),
     ];
 
-    final myFakeMobileData = [
+    const myFakeMobileData = [
       LinearClicks(0, clickCount: 5000),
       LinearClicks(1, clickCount: 25000),
       LinearClicks(2, clickCount: 100000),
@@ -208,7 +212,7 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
     // The fourth series renders with decimal values, representing a very
     // different sort ratio-based data. If this was on the same axis as any of
     // the other series, it would be squashed near zero.
-    final myFakeClickRateData = [
+    const myFakeClickRateData = [
       LinearClicks(0, clickRate: .25),
       LinearClicks(1, clickRate: .65),
       LinearClicks(2, clickRate: .50),
@@ -220,10 +224,11 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
       // the axis itself gets rendered. This helps us draw the grid lines on the
       // chart.
       charts.Series<LinearClicks, int>(
-          id: 'Fake Series',
-          domain: (LinearClicks clickCount, _) => clickCount.year,
-          measure: (LinearClicks clickCount, _) => clickCount.clickCount,
-          data: []),
+        id: 'Fake Series',
+        domain: (LinearClicks clickCount, _) => clickCount.year,
+        measure: (LinearClicks clickCount, _) => clickCount.clickCount,
+        data: myFakeClickRateData,
+      ),
       charts.Series<LinearClicks, int>(
         id: 'Desktop',
         color: (_, __) => charts.DesktopPalette.blue.shadeDefault,

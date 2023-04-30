@@ -33,16 +33,16 @@ abstract class TickDrawStrategy<D> {
   CollisionReport<D> collides(
       List<Tick<D>>? ticks, AxisDirection? orientation);
 
-  /// Returns measurement of ticks drawn vertically.
-  Size measureVerticallyDrawnTicks(
+  /// Returns the width of ticks drawn vertically.
+  double  measureVerticallyDrawnTicks(
     List<Tick<D>> ticks,
     double maxWidth,
     double maxHeight, {
     bool collision = false,
   });
 
-  /// Returns measurement of ticks drawn horizontally.
-  Size measureHorizontallyDrawnTicks(
+  /// Returns the height of ticks drawn horizontally.
+  double measureHorizontallyDrawnTicks(
     List<Tick<D>> ticks,
     double maxWidth,
     double maxHeight, {
@@ -83,4 +83,6 @@ abstract class TickDrawStrategy<D> {
     AxisDirection orientation,
     Rect axisBounds,
   );
+
+  double get axisLineWidth;
 }

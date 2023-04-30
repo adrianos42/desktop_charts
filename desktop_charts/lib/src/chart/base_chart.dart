@@ -342,14 +342,35 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     });
 
     // Remove any lingering listeners.
-    for (final type in prevTypes) {
-      getSelectionModel(type)
-        ..removeSelectionChangedListener(
-          addedSelectionChangedListenersByType[type]!,
-        )
-        ..removeSelectionUpdatedListener(
-          addedSelectionUpdatedListenersByType[type]!,
-        );
+    // for (final type in prevTypes) {
+    //   getSelectionModel(type)
+    //     ..removeSelectionChangedListener(
+    //       addedSelectionChangedListenersByType[type]!,
+    //     )
+    //     ..removeSelectionUpdatedListener(
+    //       addedSelectionUpdatedListenersByType[type]!,
+    //     );
+    // }
+  }
+
+  void _updateUserManagedState() {
+    if (widget.userManagedState == null) {
+      return;
+    }
+
+    // Only override the selection model if it is different than the existing
+    // selection model so update listeners are not unnecessarily triggered.
+    for (final SelectionModelType type
+        in widget.userManagedState!.selectionModels.keys) {
+      final model = getSelectionModel(type);
+
+      final userModel = widget.userManagedState!.selectionModels[type]!
+          .getModel(currentSeriesList);
+
+      if (model != userModel) {
+        model.updateSelection(
+            userModel.selectedDatum, userModel.selectedSeries);
+      }
     }
   }
 
@@ -517,45 +538,6 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     return details;
   }
 
-  // /// Attaches a behavior to the chart.
-  // ///
-  // /// Setting a behavior with the same role as a behavior already attached
-  // /// to the chart will replace the old behavior. The old behavior's removeFrom
-  // /// method will be called before we attach the behavior.
-  // void addBehavior(ChartBehavior<D> behavior) {
-  //   final role = behavior.role;
-
-  //   if (_behaviorRoles[role]?.behavior != behavior) {
-  //     // Remove any old behavior with the same role.
-  //     removeBehavior(_behaviorRoles[role]);
-  //     // Add the behavior.
-  //     _behaviorRoles[role] = behavior;
-  //   }
-
-  //   // Add the behavior if it wasn't already added.
-  //   if (!_behaviorStack.contains(behavior)) {
-  //     _behaviorStack.add(behavior);
-  //   }
-  // }
-
-  // /// Removes a behavior from the chart.
-  // ///
-  // /// Returns true if a behavior was removed, otherwise returns false.
-  // bool removeBehavior(ChartBehaviorState<D, S, ChartBehavior<D>>? behaviorState) {
-  //   if (behaviorState == null) {
-  //     return false;
-  //   }
-
-  //   final role = behaviorState.behavior.role;
-  //   if (_behaviorRoles[role] == behaviorState) {
-  //     _behaviorRoles.remove(role);
-  //   }
-
-  //   final wasAttached = _behaviorStack.remove(behaviorState);
-
-  //   return wasAttached;
-  // }
-
   /// Returns a list of behaviors that have been added.
   List<ChartBehavior<D>> get behaviors =>
       List.unmodifiable(_behaviorStack.map((e) => e.behavior));
@@ -635,6 +617,8 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     _fireOnPostprocess(seriesList);
 
     _currentSeriesList = seriesList;
+
+    _updateUserManagedState();
 
     for (final rendererId in _usingRenderers) {
       getSeriesRendererRender(rendererId)?.markNeedsUpdate();
@@ -807,10 +791,9 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     _draw();
   }
 
-  @override
-  void didUpdateWidget(covariant S oldWidget) {
-    super.didUpdateWidget(oldWidget);
-
+  @protected
+  @mustCallSuper
+  bool didUpdateWidgetNeedsDrawing(covariant S oldWidget) {
     final customSeriesRenderers = widget.customSeriesRenderers ?? [];
     final oldCustomSeriesRenderers = oldWidget.customSeriesRenderers ?? [];
 
@@ -824,6 +807,11 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
       );
       _seriesRenderersKeys[SeriesRenderer.defaultRendererId] = GlobalKey();
 
+      needsDrawing = true;
+    }
+
+    if (widget.selectionModels != oldWidget.selectionModels) {
+      _updateSelectionModel();
       needsDrawing = true;
     }
 
@@ -868,7 +856,16 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
       needsDrawing = true;
     }
 
-    if (needsDrawing && !_deferAnimation) {
+    return needsDrawing;
+  }
+
+  @override
+  void didUpdateWidget(covariant S oldWidget) {
+    super.didUpdateWidget(oldWidget);
+
+    _deferAnimation = !TickerMode.of(context);
+
+    if (didUpdateWidgetNeedsDrawing(oldWidget) && !_deferAnimation) {
       _draw();
     }
   }
@@ -1095,10 +1092,10 @@ class WidgetLayoutDelegate<D, S extends BaseChart<D>,
   }
 
   @override
-  bool shouldRelayout(MultiChildLayoutDelegate delegate) {
+  bool shouldRelayout(MultiChildLayoutDelegate oldDelegate) {
     // TODO: Deep equality check because the instance will not be
     // the same on each build, even if the buildable behavior has not changed.
-    return idAndBehavior != (delegate as WidgetLayoutDelegate).idAndBehavior;
+    return idAndBehavior != (oldDelegate as WidgetLayoutDelegate).idAndBehavior;
   }
 
   // Calculate behavior's offset.
@@ -1202,7 +1199,6 @@ class LifecycleListener<D> {
     this.onPreprocess,
     this.onPostprocess,
     this.onAxisConfigured,
-    this.onPostrender,
     this.onAnimationComplete,
   });
 
@@ -1231,14 +1227,6 @@ class LifecycleListener<D> {
   /// This step is good if you need to use the axes to get any cartesian
   /// location information. At this point Axes should be immutable and stable.
   final LifecycleEmptyCallback? onAxisConfigured;
-
-  /// Called after the chart is done rendering passing along the canvas allowing
-  /// a behavior or other listener to render on top of the chart.
-  ///
-  /// This is a convenience callback, however if there is any significant canvas
-  /// interaction or stacking needs, it is preferred that a AplosView/ChartView
-  /// is added to the chart instead to fully participate in the view stacking.
-  final LifecycleCanvasCallback? onPostrender;
 
   /// Called after animation hits 100%. This allows a behavior or other listener
   /// to chain animations to create a multiple step animation transition.

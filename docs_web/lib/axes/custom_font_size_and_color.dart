@@ -91,12 +91,12 @@ class CustomFontSizeAndColor extends StatelessWidget {
           // Tick and Label styling here.
           labelStyle: TextStyle(
             fontSize: 18, // size in Pts.
-            color: charts.DesktopPalette.background,
+            color: Theme.of(context).colorScheme.primary[70],
           ),
 
           // Change the line colors to match text color.
           lineStyle: charts.LineStyle(
-            color: charts.DesktopPalette.background,
+            color: Theme.of(context).colorScheme.primary[70],
           ),
         ),
       ),
@@ -106,13 +106,13 @@ class CustomFontSizeAndColor extends StatelessWidget {
         renderSpec: charts.GridlineRendererSpec(
           // Tick and Label styling here.
           labelStyle: TextStyle(
-            fontSize: 18, // size in Pts.
-            color: charts.DesktopPalette.background,
+            fontSize: 18,
+            color: Theme.of(context).colorScheme.primary[70],
           ),
 
           // Change the line colors to match text color.
           lineStyle: charts.LineStyle(
-            color: charts.DesktopPalette.background,
+            color: Theme.of(context).colorScheme.primary[70],
           ),
         ),
       ),

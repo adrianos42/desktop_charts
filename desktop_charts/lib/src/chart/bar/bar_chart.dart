@@ -33,7 +33,6 @@ class BarChart extends OrdinalCartesianChart {
     super.primaryMeasureAxis,
     super.secondaryMeasureAxis,
     super.disjointMeasureAxes,
-    this.isVertical = true,
     this.barRendererDecorator,
     super.key,
     super.animate,
@@ -46,6 +45,7 @@ class BarChart extends OrdinalCartesianChart {
     super.userManagedState,
     super.domainAxis,
     super.flipVerticalAxis,
+    super.isVertical = true,
   }) : super(
           defaultRenderer: defaultRenderer ??
               BarRendererConfig<String>(
@@ -54,7 +54,6 @@ class BarChart extends OrdinalCartesianChart {
               ),
         );
 
-  final bool isVertical;
   final BarRendererDecorator<String>? barRendererDecorator;
 
   @override
@@ -66,6 +65,6 @@ class BarChartState extends OrdinalCartesianChartState {
   void addDefaultInteractions(List<ChartBehavior> behaviors) {
     super.addDefaultInteractions(behaviors);
 
-    behaviors.add(DomainHighlighter<String>());
+    behaviors.add(const DomainHighlighter<String>());
   }
 }

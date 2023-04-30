@@ -44,7 +44,7 @@ export 'selection/select_nearest.dart' show SelectNearest, SelectionMode;
 export 'selection/selection_trigger.dart' show SelectionTrigger;
 export 'slider/slider.dart'
     show
-        Slider,
+        SliderBehavior,
         SliderHandlePosition,
         SliderListenerCallback,
         SliderListenerDragState,

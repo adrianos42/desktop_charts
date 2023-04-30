@@ -22,7 +22,7 @@ import '../base_chart.dart' show BaseChart;
 import '../datum_details.dart';
 import '../series_datum.dart';
 import '../series_renderer.dart';
-import '../processed_series.dart' show MutableSeries;
+import '../processed_series.dart' show MutableSeries, ImmutableSeries;
 import 'sankey_renderer_config.dart';
 
 /// Sankey Renderer for the Sankey Chart using Graph data structure
@@ -64,6 +64,15 @@ class SankeyRenderer<D, S extends BaseChart<D>>
     //super.draw(context, offset);
 
     // TODO Paint the renderer elements on the canvas.
+  }
+
+  @override
+  Widget build(
+    BuildContext context, {
+    required Key key,
+    required List<ImmutableSeries<D>> seriesList,
+  }) {
+    throw '';
   }
 
   @override

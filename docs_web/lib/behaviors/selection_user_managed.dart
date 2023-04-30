@@ -125,9 +125,9 @@ class SelectionUserManagedState extends State<SelectionUserManaged> {
       userManagedState: _myState,
       // The initial selection can still be optionally added by adding the
       // initial selection behavior.
-      behaviors: [
+      behaviors: const [
         charts.InitialSelection(selectedDataConfig: [
-          const charts.SeriesDatumConfig<String>('Sales', '2016')
+          charts.SeriesDatumConfig<String>('Sales', '2016')
         ])
       ],
     );
@@ -140,7 +140,7 @@ class SelectionUserManagedState extends State<SelectionUserManaged> {
     );
 
     return Column(children: [
-      SizedBox(height: 150.0, child: chart),
+      Expanded(child: chart),
       clearSelection,
     ]);
   }

@@ -13,7 +13,7 @@ dependencies:
     sdk: flutter
   desktop: any
   dart_style: ^2.2.4
-  markdown_docs_flutter: ^1.0.0
+  markdown_docs_flutter: any
   intl: ^0.17.0
   desktop_charts: any
 

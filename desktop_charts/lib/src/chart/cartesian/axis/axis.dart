@@ -515,7 +515,7 @@ abstract class CartesianAxis<D> extends ChangeNotifier
       _axisDirection == AxisDirection.left ||
       _axisDirection == AxisDirection.right;
 
-  Size _measureVerticalAxis(double maxWidth, double maxHeight) {
+  double _measureVerticalAxis(double maxWidth, double maxHeight) {
     setOutputRange(maxHeight, 0);
     _updateProvidedTicks();
 
@@ -527,7 +527,7 @@ abstract class CartesianAxis<D> extends ChangeNotifier
     );
   }
 
-  Size _measureHorizontalAxis(double maxWidth, double maxHeight) {
+  double _measureHorizontalAxis(double maxWidth, double maxHeight) {
     setOutputRange(0, maxWidth);
     _updateProvidedTicks();
 
@@ -594,14 +594,35 @@ abstract class CartesianAxis<D> extends ChangeNotifier
 
   late Size size;
 
-  Size measure(BoxConstraints constraints) {
+  void measure(BoxConstraints constraints, [Size? axisSize]) {
     size = constraints.biggest;
 
-    _axisSize = isVertical
-        ? _measureVerticalAxis(constraints.maxWidth, constraints.maxHeight)
-        : _measureHorizontalAxis(constraints.maxWidth, constraints.maxHeight);
+    _axisSize = axisSize ??
+        (isVertical
+            ? Size(measureWidth(constraints), size.height)
+            : Size(size.width, measureHeight(constraints)));
+  }
 
-    return _axisSize;
+  double measureHeight(BoxConstraints constraints) {
+    double result =
+        _measureHorizontalAxis(constraints.maxWidth, constraints.maxHeight);
+
+    if (drawAxisLine) {
+      result += tickDrawStrategy.axisLineWidth;
+    }
+
+    return result;
+  }
+
+  double measureWidth(BoxConstraints constraints) {
+    double result =
+        _measureVerticalAxis(constraints.maxWidth, constraints.maxHeight);
+
+    if (drawAxisLine) {
+      result += tickDrawStrategy.axisLineWidth;
+    }
+
+    return result;
   }
 
   @mustCallSuper
@@ -611,6 +632,55 @@ abstract class CartesianAxis<D> extends ChangeNotifier
     if (animationPercent == 1.0) {
       _axisTicks.removeWhere((t) => t.markedForRemoval);
     }
+
+    final Rect tickAxisBound;
+
+    if (drawAxisLine) {
+      tickDrawStrategy.drawAxisLine(
+        context.canvas,
+        offset,
+        _axisDirection,
+        _componentBounds,
+      );
+
+      switch (axisDirection) {
+        case AxisDirection.up:
+          tickAxisBound = _componentBounds.shift(
+            Offset(
+              0.0,
+              -tickDrawStrategy.axisLineWidth,
+            ),
+          );
+          break;
+        case AxisDirection.down:
+          tickAxisBound = _componentBounds.shift(
+            Offset(
+              0.0,
+              tickDrawStrategy.axisLineWidth,
+            ),
+          );
+          break;
+        case AxisDirection.right:
+          tickAxisBound = _componentBounds.shift(
+            Offset(
+              tickDrawStrategy.axisLineWidth,
+              0.0,
+            ),
+          );
+          break;
+        case AxisDirection.left:
+          tickAxisBound = _componentBounds.shift(
+            Offset(
+              -tickDrawStrategy.axisLineWidth,
+              0.0,
+            ),
+          );
+          break;
+      }
+    } else {
+      tickAxisBound = _componentBounds;
+    }
+
     for (int i = 0; i < _axisTicks.length; i += 1) {
       final animatedTick = _axisTicks[i];
 
@@ -619,20 +689,11 @@ abstract class CartesianAxis<D> extends ChangeNotifier
         offset,
         animatedTick..setCurrentTick(animationPercent),
         orientation: _axisDirection,
-        axisBounds: _componentBounds,
+        axisBounds: tickAxisBound,
         collision: hasTickCollision,
         drawAreaBounds: Offset.zero & size,
         isFirst: i == 0,
         isLast: i == _axisTicks.length - 1,
-      );
-    }
-
-    if (drawAxisLine) {
-      tickDrawStrategy.drawAxisLine(
-        context.canvas,
-        offset,
-        _axisDirection,
-        _componentBounds,
       );
     }
   }

@@ -135,45 +135,45 @@ class _SliderCallbackState extends State<SliderLine> {
   Widget build(BuildContext context) {
     // The children consist of a Chart and Text widgets below to hold the info.
     final children = <Widget>[
-      SizedBox(
-          height: 150.0,
-          child: charts.LineChart(
-            widget.seriesList,
-            animate: widget.animate,
-            // Configures a [Slider] behavior.
-            //
-            // Available options include:
-            //
-            // [eventTrigger] configures the type of mouse gesture that controls
-            // the slider.
-            //
-            // [handleRenderer] draws a handle for the slider. Defaults to a
-            // rectangle.
-            //
-            // [initialDomainValue] sets the initial position of the slider in
-            // domain units. The default is the center of the chart.
-            //
-            // [onChangeCallback] will be called when the position of the slider
-            // changes during a drag event.
-            //
-            // [roleId] optional custom role ID for the slider. This can be used to
-            // allow multiple [Slider] behaviors on the same chart. Normally, there can
-            // only be one slider (per event trigger type) on a chart. This setting
-            // allows for configuring multiple independent sliders.
-            //
-            // [snapToDatum] configures the slider to snap snap onto the nearest
-            // datum (by domain distance) when dragged. By default, the slider
-            // can be positioned anywhere along the domain axis.
-            //
-            // [style] takes in a [SliderStyle] configuration object, and
-            // configures the color and sizing of the slider line and handle.
-            behaviors: [
-              charts.Slider(
-                initialDomainValue: 1.0,
-                onChangeCallback: _onSliderChange,
-              ),
-            ],
-          )),
+      Expanded(
+        child: charts.LineChart(
+          widget.seriesList,
+          animate: widget.animate,
+          // Configures a [Slider] behavior.
+          //
+          // Available options include:
+          //
+          // [eventTrigger] configures the type of mouse gesture that controls
+          // the slider.
+          //
+          // [handleRenderer] draws a handle for the slider. Defaults to a
+          // rectangle.
+          //
+          // [initialDomainValue] sets the initial position of the slider in
+          // domain units. The default is the center of the chart.
+          //
+          // [onChangeCallback] will be called when the position of the slider
+          // changes during a drag event.
+          //
+          // [roleId] optional custom role ID for the slider. This can be used to
+          // allow multiple [Slider] behaviors on the same chart. Normally, there can
+          // only be one slider (per event trigger type) on a chart. This setting
+          // allows for configuring multiple independent sliders.
+          //
+          // [snapToDatum] configures the slider to snap snap onto the nearest
+          // datum (by domain distance) when dragged. By default, the slider
+          // can be positioned anywhere along the domain axis.
+          //
+          // [style] takes in a [SliderStyle] configuration object, and
+          // configures the color and sizing of the slider line and handle.
+          behaviors: [
+            charts.SliderBehavior(
+              initialDomainValue: 1.0,
+              onChangeCallback: _onSliderChange,
+            ),
+          ],
+        ),
+      ),
     ];
 
     // If there is a slider change event, then include the details.

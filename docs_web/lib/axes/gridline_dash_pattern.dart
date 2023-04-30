@@ -83,7 +83,6 @@ class GridlineDashPattern extends StatelessWidget {
     return charts.TimeSeriesChart(
       seriesList,
       animate: animate,
-
       /// Customize the grid lines to use a dash pattern.
       primaryMeasureAxis: const charts.NumericAxisSpec(
         renderSpec: charts.GridlineRendererSpec(

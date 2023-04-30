@@ -36,7 +36,10 @@ import 'panning_tick_provider.dart' show PanningTickProviderMode;
 ///
 /// Panning is supported by clicking and dragging the mouse for web, or tapping
 /// and dragging on the chart for mobile devices.
+@immutable
 class PanAndZoomBehavior<D> extends PanBehavior<D> {
+  const PanAndZoomBehavior();
+
   @override
   String get role => 'PanAndZoom';
 
