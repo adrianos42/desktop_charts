@@ -126,7 +126,7 @@ class InitialHintAnimation extends StatelessWidget {
         viewport: charts.OrdinalViewport('2018', 4),
       ),
       isVertical: true,
-      behaviors: [
+      behaviors: const [
         // Add this behavior to show initial hint animation that will pan to the
         // final desired viewport.
         // The duration of the animation can be adjusted by pass in

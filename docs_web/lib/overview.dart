@@ -128,9 +128,9 @@ class OverviewPageState extends State<OverviewPage> {
       //return pie_chart.PiePage();
       // return time_series_chart.TimeSeriesPage();
       //return line_chart.LinePage();
-      //return const behaviors.BehaviorsPage();
+      return const behaviors.BehaviorsPage();
       //return legends.LegendsPage();
-      return const axes.AxesPage();
+      //return const axes.AxesPage();
     }
 
     return Column(

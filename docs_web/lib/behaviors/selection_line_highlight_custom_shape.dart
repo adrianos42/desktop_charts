@@ -84,7 +84,7 @@ class SelectionLineHighlightCustomShape extends StatelessWidget {
     //
     // As an alternative, [defaultInteractions] can be set to true to include
     // the default chart interactions, including a LinePointHighlighter.
-    return charts.LineChart(seriesList, animate: animate, behaviors: [
+    return charts.LineChart(seriesList, animate: animate, behaviors: const [
       // Optional - Configures a [LinePointHighlighter] behavior with a
       // vertical follow line. A vertical follow line is included by
       // default, but is shown here as an example configuration.
@@ -101,7 +101,7 @@ class SelectionLineHighlightCustomShape extends StatelessWidget {
             charts.LinePointHighlighterFollowLineType.none,
         showVerticalFollowLine:
             charts.LinePointHighlighterFollowLineType.nearest,
-        symbolRenderer: const charts.RectSymbolRenderer(isSolid: false),
+        symbolRenderer: charts.RectSymbolRenderer(isSolid: false),
       ),
       // Optional - By default, select nearest is configured to trigger
       // with tap so that a user can have pan/zoom behavior and line point

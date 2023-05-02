@@ -86,7 +86,7 @@ class InitialSelection extends StatelessWidget {
     return charts.BarChart(
       seriesList,
       animate: animate,
-      behaviors: [
+      behaviors: const [
         // Initial selection can be configured by passing in:
         //
         // A list of datum config, specified with series ID and domain value.
@@ -97,7 +97,7 @@ class InitialSelection extends StatelessWidget {
         // [BarChart] by default includes behaviors [SelectNearest] and
         // [DomainHighlighter]. So this behavior shows the initial selection
         // highlighted and when another datum is tapped, the selection changes.
-        charts.InitialSelection(selectedDataConfig: const [
+        charts.InitialSelection(selectedDataConfig: [
           charts.SeriesDatumConfig<String>('Sales', '2016')
         ])
       ],

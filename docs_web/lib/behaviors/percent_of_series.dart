@@ -84,7 +84,7 @@ class PercentOfSeriesBarChart extends StatelessWidget {
       barGroupingType: charts.BarGroupingType.grouped,
       // Configures a [PercentInjector] behavior that will calculate measure
       // values as the percentage of the total of all data in its series.
-      behaviors: [
+      behaviors: const [
         charts.PercentInjector(
             totalType: charts.PercentInjectorTotalType.series)
       ],

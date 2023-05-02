@@ -35,13 +35,13 @@ class _BehaviorsPageState extends State<BehaviorsPage> {
 
   @override
   Widget build(BuildContext context) {
-     //return Defaults(header: 'Behaviors', items: [
-     //  ItemTitle(
-     //     title: 'Selection Scatter Plot Highlight',
-     //     subtitle: 'Scatter plot chart with tap and drag activation',
-     //     body: (context) => SelectionScatterPlotHighlight.withRandomData(),
-     //   ),
-     //]);
+    //return Defaults(header: 'Behaviors', items: [
+    //  ItemTitle(
+    //    title: 'Initial hint animation ',
+    //    subtitle: 'Animate into final viewport',
+    //    body: (context) => InitialHintAnimation.withRandomData(),
+    //  ),
+    //]);
 
     return Defaults(
       header: 'Behaviors',

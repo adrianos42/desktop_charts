@@ -162,7 +162,7 @@ class PercentOfDomainByCategoryBarChart extends StatelessWidget {
       // We use this option on a grouped stacked bar chart to ensure that the
       // total value for each bar stack is 100%. A stacked bar chart that does
       // not group by series category would use the "domain" option.
-      behaviors: [
+      behaviors: const [
         charts.PercentInjector(
             totalType: charts.PercentInjectorTotalType.domainBySeriesCategory)
       ],

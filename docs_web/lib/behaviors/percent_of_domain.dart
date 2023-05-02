@@ -109,7 +109,7 @@ class PercentOfDomainBarChart extends StatelessWidget {
       // Configures a [PercentInjector] behavior that will calculate measure
       // values as the percentage of the total of all data that shares a
       // domain value.
-      behaviors: [
+      behaviors: const [
         charts.PercentInjector(
             totalType: charts.PercentInjectorTotalType.domain)
       ],

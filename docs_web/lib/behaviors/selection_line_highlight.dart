@@ -81,7 +81,7 @@ class SelectionLineHighlight extends StatelessWidget {
     //
     // As an alternative, [defaultInteractions] can be set to true to include
     // the default chart interactions, including a LinePointHighlighter.
-    return charts.LineChart(seriesList, animate: animate, behaviors: [
+    return charts.LineChart(seriesList, animate: animate, behaviors: const [
       // Optional - Configures a [LinePointHighlighter] behavior with a
       // vertical follow line. A vertical follow line is included by
       // default, but is shown here as an example configuration.

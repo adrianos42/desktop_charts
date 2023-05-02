@@ -773,8 +773,6 @@ class _AxisRender<D> extends RenderBox
 
         availableHeight -= domainHeight;
 
-        print(domainHeight);
-
         _primaryMeasureOffsest = Offset.zero;
         _secondaryMeasureOffset = Offset.zero;
 

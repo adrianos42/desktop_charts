@@ -90,7 +90,7 @@ class SlidingViewportOnSelection extends StatelessWidget {
     return charts.BarChart(
       seriesList,
       animate: animate,
-      behaviors: [
+      behaviors: const [
         // Add the sliding viewport behavior to have the viewport center on the
         // domain that is currently selected.
         charts.SlidingViewport(),

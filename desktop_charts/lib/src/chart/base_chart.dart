@@ -624,14 +624,16 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
       getSeriesRendererRender(rendererId)?.markNeedsUpdate();
     }
 
-    SchedulerBinding.instance.addPostFrameCallback((_) {
-      onPostLayout(_rendererToSeriesList);
-    });
-
-    if (!skipAnimation) {
+    if (!skipAnimation && transition > Duration.zero) {
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        onPostLayout(_rendererToSeriesList);
+      });
       _playAnimation(transition);
     } else {
-      _animationController.value = 1.0;
+      SchedulerBinding.instance.addPostFrameCallback((_) {
+        onPostLayout(_rendererToSeriesList);
+        _animationController.value = 1.0;
+      });
     }
   }
 
