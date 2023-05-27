@@ -17,9 +17,12 @@
 
 import 'package:flutter/foundation.dart';
 
+import 'package:flutter/rendering.dart';
+import '../../curve.dart';
+
 import '../../data/series.dart' show Accessor;
 import '../base_chart.dart' show BaseChart;
-import '../processed_series.dart' show MutableSeries;
+import '../processed_series.dart' show MutableSeries, ImmutableSeries;
 import '../series_renderer.dart' show BaseSeriesRenderer;
 import 'axis/axis.dart' show CartesianAxis, measureAxisIdKey;
 import 'cartesian_chart.dart' show CartesianChartState, CartesianChart;
@@ -38,6 +41,12 @@ abstract class BaseCartesianRenderer<D, S extends BaseChart<D>>
   // True when the chart should be rendered in vertical mode, false when in
   // horizontal mode.
   bool get renderingVertically => chart.widget.isVertical;
+
+  @protected
+  (double?, double?) measureAxisOverflow(
+    ImmutableSeries<D> series,
+  ) =>
+      (null, null);
 
   @override
   void configureDomainAxes(List<MutableSeries<D>> seriesList) {
@@ -107,6 +116,16 @@ abstract class BaseCartesianRenderer<D, S extends BaseChart<D>>
           (chartState as CartesianChartState<D, CartesianChart<D>>)
               .getMeasureAxis(axisId: series.getAttr(measureAxisIdKey));
 
+      final (bottomOverflow, topOverflow) = measureAxisOverflow(series);
+
+      if (bottomOverflow != null) {
+        measureAxis.scale.addDomain(bottomOverflow);
+      }
+
+      if (topOverflow != null) {
+        measureAxis.scale.addDomain(topOverflow);
+      }
+
       // Only add the measure values for datum who's domain is within the
       // domainAxis viewport.
       final startIndex =
@@ -148,7 +167,10 @@ abstract class BaseCartesianRenderer<D, S extends BaseChart<D>>
 
   @visibleForTesting
   int findNearestViewportStart(
-      CartesianAxis<D> domainAxis, Accessor<D> domainFn, List<Object?> data) {
+    CartesianAxis<D> domainAxis,
+    Accessor<D> domainFn,
+    List<Object?> data,
+  ) {
     assert(data.isNotEmpty);
 
     // Quick optimization for full viewport (likely).
@@ -202,7 +224,10 @@ abstract class BaseCartesianRenderer<D, S extends BaseChart<D>>
 
   @visibleForTesting
   int findNearestViewportEnd(
-      CartesianAxis<D> domainAxis, Accessor<D> domainFn, List<Object?> data) {
+    CartesianAxis<D> domainAxis,
+    Accessor<D> domainFn,
+    List<Object?> data,
+  ) {
     assert(data.isNotEmpty);
 
     int start = 1;

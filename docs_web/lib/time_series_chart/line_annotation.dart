@@ -15,6 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class TimeSeriesLineAnnotationChartPage extends StatefulWidget {
+  const TimeSeriesLineAnnotationChartPage({super.key});
+
+  @override
+  State<TimeSeriesLineAnnotationChartPage> createState() =>
+      _TimeSeriesLineAnnotationChartPageState();
+}
+
+class _TimeSeriesLineAnnotationChartPageState
+    extends State<TimeSeriesLineAnnotationChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = TimeSeriesLineAnnotationChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<TimeSeriesSales, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Time Series',
+      items: [
+        ItemTitle(
+          title: TimeSeriesLineAnnotationChart.title,
+          subtitle: TimeSeriesLineAnnotationChart.subtitle,
+          body: (context) => TimeSeriesLineAnnotationChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class TimeSeriesLineAnnotationChartBuilder extends ExampleBuilder {
+  const TimeSeriesLineAnnotationChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const TimeSeriesLineAnnotationChartPage();
+
+  @override
+  String? get subtitle => TimeSeriesLineAnnotationChart.subtitle;
+
+  @override
+  String get title => TimeSeriesLineAnnotationChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      TimeSeriesLineAnnotationChart.withSampleData(animate);
+}
+
 /// Time series chart with line annotation example
 ///
 /// The example future range annotation extends beyond the range of the series
@@ -23,12 +103,6 @@
 ///
 /// Additional annotations may be added simply by adding additional
 /// [Charts.RangeAnnotationSegment] items to the list.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class TimeSeriesLineAnnotationChart extends StatelessWidget {
   const TimeSeriesLineAnnotationChart(
     this.seriesList, {
@@ -44,15 +118,9 @@ class TimeSeriesLineAnnotationChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory TimeSeriesLineAnnotationChart.withRandomData([bool animate = true]) {
-    return TimeSeriesLineAnnotationChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Line Annotation';
+  static String? get subtitle =>
+      'Time series chart with future line annotation';
 
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
@@ -78,24 +146,6 @@ class TimeSeriesLineAnnotationChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(seriesList, animate: animate, behaviors: [
-      charts.RangeAnnotation([
-        charts.LineAnnotationSegment(
-          DateTime(2017, 10, 4),
-          charts.RangeAnnotationAxisType.domain,
-          startLabel: 'Oct 4',
-        ),
-        charts.LineAnnotationSegment(
-          DateTime(2017, 10, 15),
-          charts.RangeAnnotationAxisType.domain,
-          endLabel: 'Oct 15',
-        ),
-      ]),
-    ]);
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<TimeSeriesSales, DateTime>> createSampleData() {
     final data = [
@@ -113,6 +163,30 @@ class TimeSeriesLineAnnotationChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+      behaviors: [
+        charts.RangeAnnotation(
+          [
+            charts.LineAnnotationSegment(
+              DateTime(2017, 10, 4),
+              charts.RangeAnnotationAxisType.domain,
+              startLabel: 'Oct 4',
+            ),
+            charts.LineAnnotationSegment(
+              DateTime(2017, 10, 15),
+              charts.RangeAnnotationAxisType.domain,
+              endLabel: 'Oct 15',
+            ),
+          ],
+        ),
+      ],
+    );
   }
 }
 

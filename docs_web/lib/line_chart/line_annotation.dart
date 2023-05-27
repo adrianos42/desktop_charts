@@ -15,13 +15,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Line chart with line annotations example.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class LineLineAnnotationChartPage extends StatefulWidget {
+  const LineLineAnnotationChartPage({super.key});
+
+  @override
+  State<LineLineAnnotationChartPage> createState() =>
+      _LineLineAnnotationChartPageState();
+}
+
+class _LineLineAnnotationChartPageState
+    extends State<LineLineAnnotationChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = LineLineAnnotationChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Line',
+      items: [
+        ItemTitle(
+          title: LineLineAnnotationChart.title,
+          subtitle: LineLineAnnotationChart.subtitle,
+          body: (context) => LineLineAnnotationChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class LineLineAnnotationChartBuilder extends ExampleBuilder {
+  const LineLineAnnotationChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const LineLineAnnotationChartPage();
+
+  @override
+  String? get subtitle => LineLineAnnotationChart.subtitle;
+
+  @override
+  String get title => LineLineAnnotationChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      LineLineAnnotationChart.withSampleData(animate);
+}
+
+/// Line chart with line annotations example.
 @immutable
 class LineLineAnnotationChart extends StatelessWidget {
   const LineLineAnnotationChart(
@@ -42,15 +116,8 @@ class LineLineAnnotationChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory LineLineAnnotationChart.withRandomData([bool animate = true]) {
-    return LineLineAnnotationChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Line Annotation';
+  static String? get subtitle => 'Line chart with line annotations';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -66,6 +133,25 @@ class LineLineAnnotationChart extends StatelessWidget {
       // Fix one of the points to 100 so that the annotations are consistently
       // placed.
       const LinearSales(3, 100),
+    ];
+
+    return [
+      charts.Series<LinearSales, int>(
+        id: 'Sales',
+        domain: (LinearSales sales, _) => sales.year,
+        measure: (LinearSales sales, _) => sales.sales,
+        data: data,
+      )
+    ];
+  }
+
+  /// Create one series with sample hard coded data.
+  static List<charts.Series<LinearSales, int>> createSampleData() {
+    const data = [
+      LinearSales(0, 5),
+      LinearSales(1, 25),
+      LinearSales(2, 100),
+      LinearSales(3, 75),
     ];
 
     return [
@@ -109,25 +195,6 @@ class LineLineAnnotationChart extends StatelessWidget {
         ),
       ],
     );
-  }
-
-  /// Create one series with sample hard coded data.
-  static List<charts.Series<LinearSales, int>> createSampleData() {
-    const data = [
-      LinearSales(0, 5),
-      LinearSales(1, 25),
-      LinearSales(2, 100),
-      LinearSales(3, 75),
-    ];
-
-    return [
-      charts.Series<LinearSales, int>(
-        id: 'Sales',
-        domain: (LinearSales sales, _) => sales.year,
-        measure: (LinearSales sales, _) => sales.sales,
-        data: data,
-      )
-    ];
   }
 }
 

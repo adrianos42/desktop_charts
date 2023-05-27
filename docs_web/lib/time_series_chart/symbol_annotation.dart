@@ -15,7 +15,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Example of timeseries chart with annotation rows between the chart draw area
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class TimeSeriesSymbolAnnotationChartPage extends StatefulWidget {
+  const TimeSeriesSymbolAnnotationChartPage({super.key});
+
+  @override
+  State<TimeSeriesSymbolAnnotationChartPage> createState() =>
+      _TimeSeriesSymbolAnnotationChartPageState();
+}
+
+class _TimeSeriesSymbolAnnotationChartPageState
+    extends State<TimeSeriesSymbolAnnotationChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = TimeSeriesSymbolAnnotationChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<TimeSeriesSales, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Time Series',
+      items: [
+        ItemTitle(
+          title: TimeSeriesSymbolAnnotationChart.title,
+          subtitle: TimeSeriesSymbolAnnotationChart.subtitle,
+          body: (context) => TimeSeriesSymbolAnnotationChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class TimeSeriesSymbolAnnotationChartBuilder extends ExampleBuilder {
+  const TimeSeriesSymbolAnnotationChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const TimeSeriesSymbolAnnotationChartPage();
+
+  @override
+  String? get subtitle => TimeSeriesSymbolAnnotationChart.subtitle;
+
+  @override
+  String get title => TimeSeriesSymbolAnnotationChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      TimeSeriesSymbolAnnotationChart.withSampleData(animate);
+}
+
+/// Example of time series chart with annotation rows between the chart draw area
 /// and the domain axis.
 ///
 /// The symbol annotation renderer draws a row of symbols for each series below
@@ -27,12 +107,6 @@
 /// shape between the domainLowerBound and domainUpperBound positions along the
 /// chart's domain axis. Point annotations are drawn on top of range
 /// annotations.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class TimeSeriesSymbolAnnotationChart extends StatelessWidget {
   const TimeSeriesSymbolAnnotationChart(
     this.seriesList, {
@@ -50,17 +124,9 @@ class TimeSeriesSymbolAnnotationChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory TimeSeriesSymbolAnnotationChart.withRandomData([
-    bool animate = true,
-  ]) {
-    return TimeSeriesSymbolAnnotationChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Symbol Annotation';
+  static String? get subtitle =>
+      'Time series chart with annotation data below the draw area';
 
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
@@ -187,25 +253,6 @@ class TimeSeriesSymbolAnnotationChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(
-      seriesList,
-      animate: animate,
-      // Custom renderer configuration for the point series.
-      customSeriesRenderers: [
-        charts.SymbolAnnotationRendererConfig(
-          // ID used to link series to this renderer.
-          customRendererId: 'customSymbolAnnotation',
-        )
-      ],
-      // Optionally pass in a [DateTimeFactory] used by the chart. The factory
-      // should create the same type of [DateTime] as the data provided. If none
-      // specified, the default creates local date time.
-      dateTimeFactory: const charts.LocalDateTimeFactory(),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<TimeSeriesSales, DateTime>> createSampleData() {
     final myDesktopData = [
@@ -306,6 +353,25 @@ class TimeSeriesSymbolAnnotationChart extends StatelessWidget {
         // default to the same radius as the domain point.
         ..setAttribute(charts.boundsLineRadiusKey, 3.5),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+      // Custom renderer configuration for the point series.
+      customSeriesRenderers: [
+        charts.SymbolAnnotationRendererConfig(
+          // ID used to link series to this renderer.
+          customRendererId: 'customSymbolAnnotation',
+        )
+      ],
+      // Optionally pass in a [DateTimeFactory] used by the chart. The factory
+      // should create the same type of [DateTime] as the data provided. If none
+      // specified, the default creates local date time.
+      dateTimeFactory: const charts.LocalDateTimeFactory(),
+    );
   }
 }
 

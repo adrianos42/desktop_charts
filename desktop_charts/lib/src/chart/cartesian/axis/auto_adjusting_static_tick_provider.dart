@@ -84,8 +84,7 @@ class AutoAdjustingStaticTickProvider<D> extends TickProvider<D> {
   }
 
   @override
-  bool operator ==(Object other) =>
-      other is AutoAdjustingStaticTickProvider &&
+  bool operator ==(covariant AutoAdjustingStaticTickProvider other) =>
       tickSpec == other.tickSpec &&
       allowedTickIncrements == other.allowedTickIncrements;
 

@@ -15,18 +15,91 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Bar chart with custom symbol in legend example.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class LegendWithCustomSymbolPage extends StatefulWidget {
+  const LegendWithCustomSymbolPage({super.key});
+
+  @override
+  State<LegendWithCustomSymbolPage> createState() =>
+      _LegendWithCustomSymbolPageState();
+}
+
+class _LegendWithCustomSymbolPageState
+    extends State<LegendWithCustomSymbolPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = LegendWithCustomSymbol.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Legends',
+      items: [
+        ItemTitle(
+          title: LegendWithCustomSymbol.title,
+          subtitle: LegendWithCustomSymbol.subtitle,
+          body: (context) => LegendWithCustomSymbol(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class LegendWithCustomSymbolBuilder extends ExampleBuilder {
+  const LegendWithCustomSymbolBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const LegendWithCustomSymbolPage();
+
+  @override
+  String? get subtitle => LegendWithCustomSymbol.subtitle;
+
+  @override
+  String get title => LegendWithCustomSymbol.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      LegendWithCustomSymbol.withSampleData(animate);
+}
+
 /// Example custom renderer that renders [IconData].
 ///
 /// This is used to show that legend symbols can be assigned a custom symbol.
 class IconRenderer extends charts.CustomSymbolRenderer {
-  IconRenderer(this.iconData);
+  const IconRenderer(this.iconData);
 
   final IconData iconData;
 
@@ -54,6 +127,7 @@ class IconRenderer extends charts.CustomSymbolRenderer {
   }
 }
 
+/// Bar chart with custom symbol in legend example.
 class LegendWithCustomSymbol extends StatelessWidget {
   const LegendWithCustomSymbol(
     this.seriesList, {
@@ -68,15 +142,9 @@ class LegendWithCustomSymbol extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory LegendWithCustomSymbol.withRandomData([bool animate = true]) {
-    return LegendWithCustomSymbol(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Series Custom Symbol';
+  static String? get subtitle =>
+      'A series legend using a custom symbol renderer';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -141,24 +209,6 @@ class LegendWithCustomSymbol extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.BarChart(
-      seriesList,
-      animate: animate,
-      barGroupingType: charts.BarGroupingType.grouped,
-      // Add the legend behavior to the chart to turn on legends.
-      // By default the legend will display above the chart.
-      //
-      // To change the symbol used in the legend, set the renderer attribute of
-      // symbolRendererKey to a SymbolRenderer.
-      behaviors: const [charts.SeriesLegend()],
-      defaultRenderer: charts.BarRendererConfig(
-        symbolRenderer: IconRenderer(Icons.cloud),
-      ),
-    );
-  }
-
   /// Create series list with multiple series
   static List<charts.Series<OrdinalSales, String>> createSampleData() {
     const desktopSalesData = [
@@ -215,6 +265,24 @@ class LegendWithCustomSymbol extends StatelessWidget {
         data: otherSalesData,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.BarChart(
+      seriesList,
+      animate: animate,
+      barGroupingType: charts.BarGroupingType.grouped,
+      // Add the legend behavior to the chart to turn on legends.
+      // By default the legend will display above the chart.
+      //
+      // To change the symbol used in the legend, set the renderer attribute of
+      // symbolRendererKey to a SymbolRenderer.
+      behaviors: const [charts.SeriesLegend()],
+      defaultRenderer: const charts.BarRendererConfig(
+        symbolRenderer: IconRenderer(Icons.cloud),
+      ),
+    );
   }
 }
 

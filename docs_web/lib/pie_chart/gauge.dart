@@ -15,14 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Gauge chart example, where the data does not cover a full revolution in the
-/// chart.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class GaugeChartPage extends StatefulWidget {
+  const GaugeChartPage({super.key});
+
+  @override
+  State<GaugeChartPage> createState() => _GaugeChartPageState();
+}
+
+class _GaugeChartPageState extends State<GaugeChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = GaugeChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<GaugeSegment, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Pie',
+      items: [
+        ItemTitle(
+          title: GaugeChart.title,
+          subtitle: GaugeChart.subtitle,
+          body: (context) => GaugeChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class GaugeChartBuilder extends ExampleBuilder {
+  const GaugeChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) => const GaugeChartPage();
+
+  @override
+  String? get subtitle => GaugeChart.subtitle;
+
+  @override
+  String get title => GaugeChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      GaugeChart.withSampleData(animate);
+}
+
+/// Gauge chart example, where the data does not cover a full revolution in the
+/// chart.
 class GaugeChart extends StatelessWidget {
   const GaugeChart(
     this.seriesList, {
@@ -38,15 +109,8 @@ class GaugeChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory GaugeChart.withRandomData([bool animate = true]) {
-    return GaugeChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Gauge';
+  static String? get subtitle => 'That doesn\'t cover a full revolution';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -72,22 +136,6 @@ class GaugeChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.PieChart(
-      seriesList,
-      animate: animate,
-      // Configure the width of the pie slices to 30px. The remaining space in
-      // the chart will be left as a hole in the center. Adjust the start
-      // angle and the arc length of the pie so it resembles a gauge.
-      defaultRenderer: charts.ArcRendererConfig(
-        arcWidth: 30,
-        startAngle: 4 / 5 * pi,
-        arcLength: 7 / 5 * pi,
-      ),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<GaugeSegment, String>> createSampleData() {
     const data = [
@@ -105,6 +153,22 @@ class GaugeChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+   @override
+  Widget build(BuildContext context) {
+    return charts.PieChart(
+      seriesList,
+      animate: animate,
+      // Configure the width of the pie slices to 30px. The remaining space in
+      // the chart will be left as a hole in the center. Adjust the start
+      // angle and the arc length of the pie so it resembles a gauge.
+      defaultRenderer: const charts.ArcRendererConfig(
+        arcWidth: 30,
+        startAngle: 4 / 5 * pi,
+        arcLength: 7 / 5 * pi,
+      ),
+    );
   }
 }
 

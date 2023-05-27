@@ -15,13 +15,88 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Example of axis using statically provided ticks.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class StaticallyProvidedTicksPage extends StatefulWidget {
+  const StaticallyProvidedTicksPage({super.key});
+
+  @override
+  State<StaticallyProvidedTicksPage> createState() =>
+      _StaticallyProvidedTicksPageState();
+}
+
+class _StaticallyProvidedTicksPageState
+    extends State<StaticallyProvidedTicksPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = StaticallyProvidedTicks.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: StaticallyProvidedTicks.title,
+          subtitle: StaticallyProvidedTicks.subtitle,
+          body: (context) => StaticallyProvidedTicks(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class StaticallyProvidedTicksBuilder extends ExampleBuilder {
+  const StaticallyProvidedTicksBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const StaticallyProvidedTicksPage();
+
+  @override
+  String? get subtitle => StaticallyProvidedTicks.subtitle;
+
+  @override
+  String get title => StaticallyProvidedTicks.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      StaticallyProvidedTicks.withSampleData(animate);
+}
+
+/// Example of axis using statically provided ticks.
+///
 /// Example of specifying a custom set of ticks to be used on the domain axis.
 ///
 /// Specifying custom set of ticks allows specifying exactly what ticks are
@@ -49,15 +124,8 @@ class StaticallyProvidedTicks extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory StaticallyProvidedTicks.withRandomData([bool animate = true]) {
-    return StaticallyProvidedTicks(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Statically Provided Ticks';
+  static String? get subtitle => 'Bar chart with statically provided ticks';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -71,6 +139,25 @@ class StaticallyProvidedTicks extends StatelessWidget {
       OrdinalSales('2015', random.nextInt(100) * 100),
       OrdinalSales('2016', random.nextInt(100) * 100),
       OrdinalSales('2017', random.nextInt(100) * 100),
+    ];
+
+    return [
+      charts.Series<OrdinalSales, String>(
+        id: 'Global Revenue',
+        domain: (OrdinalSales sales, _) => sales.year,
+        measure: (OrdinalSales sales, _) => sales.sales,
+        data: globalSalesData,
+      ),
+    ];
+  }
+
+  /// Create series list with single series
+  static List<charts.Series<OrdinalSales, String>> createSampleData() {
+    const globalSalesData = [
+      OrdinalSales('2014', 5000),
+      OrdinalSales('2015', 25000),
+      OrdinalSales('2016', 100000),
+      OrdinalSales('2017', 750000),
     ];
 
     return [
@@ -105,27 +192,9 @@ class StaticallyProvidedTicks extends StatelessWidget {
       seriesList,
       animate: animate,
       domainAxis: charts.OrdinalAxisSpec(
-          tickProviderSpec: charts.StaticOrdinalTickProviderSpec(staticTicks)),
-    );
-  }
-
-  /// Create series list with single series
-  static List<charts.Series<OrdinalSales, String>> createSampleData() {
-    const globalSalesData = [
-      OrdinalSales('2014', 5000),
-      OrdinalSales('2015', 25000),
-      OrdinalSales('2016', 100000),
-      OrdinalSales('2017', 750000),
-    ];
-
-    return [
-      charts.Series<OrdinalSales, String>(
-        id: 'Global Revenue',
-        domain: (OrdinalSales sales, _) => sales.year,
-        measure: (OrdinalSales sales, _) => sales.sales,
-        data: globalSalesData,
+        tickProviderSpec: charts.StaticOrdinalTickProviderSpec(staticTicks),
       ),
-    ];
+    );
   }
 }
 

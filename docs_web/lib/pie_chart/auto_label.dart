@@ -15,14 +15,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Donut chart with labels example. This is a simple pie chart with a hole in
-/// the middle.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class DonutAutoLabelChartPage extends StatefulWidget {
+  const DonutAutoLabelChartPage({super.key});
+
+  @override
+  State<DonutAutoLabelChartPage> createState() =>
+      _DonutAutoLabelChartPageState();
+}
+
+class _DonutAutoLabelChartPageState extends State<DonutAutoLabelChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = DonutAutoLabelChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Pie',
+      items: [
+        ItemTitle(
+          title: DonutAutoLabelChart.title,
+          subtitle: DonutAutoLabelChart.subtitle,
+          body: (context) => DonutAutoLabelChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class DonutAutoLabelChartBuilder extends ExampleBuilder {
+  const DonutAutoLabelChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const DonutAutoLabelChartPage();
+
+  @override
+  String? get subtitle => DonutAutoLabelChart.subtitle;
+
+  @override
+  String get title => DonutAutoLabelChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      DonutAutoLabelChart.withSampleData(animate);
+}
+
+/// Donut chart with labels example. This is a simple pie chart with a hole in
+/// the middle.
 class DonutAutoLabelChart extends StatelessWidget {
   const DonutAutoLabelChart(
     this.seriesList, {
@@ -38,15 +111,9 @@ class DonutAutoLabelChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory DonutAutoLabelChart.withRandomData([bool animate = true]) {
-    return DonutAutoLabelChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Auto Label Donut';
+  static String? get subtitle =>
+      'With a single series, a hole in the middle, and auto-positioned labels';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -60,6 +127,27 @@ class DonutAutoLabelChart extends StatelessWidget {
       LinearSales(1, random.nextInt(100)),
       LinearSales(2, random.nextInt(100)),
       LinearSales(3, random.nextInt(100)),
+    ];
+
+    return [
+      charts.Series<LinearSales, int>(
+        id: 'Sales',
+        domain: (LinearSales sales, _) => sales.year,
+        measure: (LinearSales sales, _) => sales.sales,
+        data: data,
+        // Set a label accessor to control the text of the arc label.
+        labelAccessor: (LinearSales row, _) => '${row.year}: ${row.sales}',
+      )
+    ];
+  }
+
+  /// Create one series with sample hard coded data.
+  static List<charts.Series<LinearSales, int>> createSampleData() {
+    const data = [
+      LinearSales(0, 100),
+      LinearSales(1, 75),
+      LinearSales(2, 25),
+      LinearSales(3, 5),
     ];
 
     return [
@@ -101,27 +189,6 @@ class DonutAutoLabelChart extends StatelessWidget {
         ],
       ),
     );
-  }
-
-  /// Create one series with sample hard coded data.
-  static List<charts.Series<LinearSales, int>> createSampleData() {
-    const data = [
-      LinearSales(0, 100),
-      LinearSales(1, 75),
-      LinearSales(2, 25),
-      LinearSales(3, 5),
-    ];
-
-    return [
-      charts.Series<LinearSales, int>(
-        id: 'Sales',
-        domain: (LinearSales sales, _) => sales.year,
-        measure: (LinearSales sales, _) => sales.sales,
-        data: data,
-        // Set a label accessor to control the text of the arc label.
-        labelAccessor: (LinearSales row, _) => '${row.year}: ${row.sales}',
-      )
-    ];
   }
 }
 

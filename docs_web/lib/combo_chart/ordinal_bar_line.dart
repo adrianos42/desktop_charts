@@ -15,14 +15,88 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Example of an ordinal combo chart with two series rendered as bars, and a
-/// third rendered as a line.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class OrdinalComboBarLineChartPage extends StatefulWidget {
+  const OrdinalComboBarLineChartPage({super.key});
+
+  @override
+  State<OrdinalComboBarLineChartPage> createState() =>
+      _OrdinalComboBarLineChartPageState();
+}
+
+class _OrdinalComboBarLineChartPageState
+    extends State<OrdinalComboBarLineChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = OrdinalComboBarLineChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Combo',
+      items: [
+        ItemTitle(
+          title: OrdinalComboBarLineChart.title,
+          subtitle: OrdinalComboBarLineChart.subtitle,
+          body: (context) => OrdinalComboBarLineChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class OrdinalComboBarLineChartBuilder extends ExampleBuilder {
+  const OrdinalComboBarLineChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const OrdinalComboBarLineChartPage();
+
+  @override
+  String? get subtitle => OrdinalComboBarLineChart.subtitle;
+
+  @override
+  String get title => OrdinalComboBarLineChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      OrdinalComboBarLineChart.withSampleData(animate);
+}
+
+/// Example of an ordinal combo chart with two series rendered as bars, and a
+/// third rendered as a line.
 class OrdinalComboBarLineChart extends StatelessWidget {
   const OrdinalComboBarLineChart(
     this.seriesList, {
@@ -37,15 +111,8 @@ class OrdinalComboBarLineChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory OrdinalComboBarLineChart.withRandomData([bool animate = true]) {
-    return OrdinalComboBarLineChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Ordinal';
+  static String? get subtitle => 'Ordinal combo chart with bars and lines';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -102,26 +169,6 @@ class OrdinalComboBarLineChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.OrdinalCartesianChart(
-      seriesList,
-      animate: animate,
-      // Configure the default renderer as a bar renderer.
-      defaultRenderer: const charts.BarRendererConfig(
-        groupingType: charts.BarGroupingType.grouped,
-      ),
-      // Custom renderer configuration for the line series. This will be used for
-      // any series that does not define a rendererIdKey.
-      customSeriesRenderers: [
-        charts.LineRendererConfig(
-          // ID used to link series to this renderer.
-          customRendererId: 'customLine',
-        ),
-      ],
-    );
-  }
-
   /// Create series list with multiple series
   static List<charts.Series<OrdinalSales, String>> createSampleData() {
     const desktopSalesData = [
@@ -170,6 +217,26 @@ class OrdinalComboBarLineChart extends StatelessWidget {
         // Configure our custom line renderer for this series.
         ..setAttribute(charts.rendererIdKey, 'customLine'),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.OrdinalCartesianChart(
+      seriesList,
+      animate: animate,
+      // Configure the default renderer as a bar renderer.
+      defaultRenderer: const charts.BarRendererConfig(
+        groupingType: charts.BarGroupingType.grouped,
+      ),
+      // Custom renderer configuration for the line series. This will be used for
+      // any series that does not define a rendererIdKey.
+      customSeriesRenderers: const [
+        charts.LineRendererConfig(
+          // ID used to link series to this renderer.
+          customRendererId: 'customLine',
+        ),
+      ],
+    );
   }
 }
 

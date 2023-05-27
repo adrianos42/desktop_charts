@@ -51,7 +51,7 @@ class BarTargetLineRendererConfig<D> extends BaseBarRendererConfig<D> {
   /// sides of the bars.
   final double? overDrawOuter;
 
-  /// The number of pixels that the line will extend beyond the bandwidth for
+  /// The value that the line will extend beyond the bandwidth for
   /// every bar in a group.
   final double overDraw;
 

@@ -15,6 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class DateTimeComboLinePointChartPage extends StatefulWidget {
+  const DateTimeComboLinePointChartPage({super.key});
+
+  @override
+  State<DateTimeComboLinePointChartPage> createState() =>
+      _DateTimeComboLinePointChartPageState();
+}
+
+class _DateTimeComboLinePointChartPageState
+    extends State<DateTimeComboLinePointChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = DateTimeComboLinePointChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<TimeSeriesSales, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Combo',
+      items: [
+        ItemTitle(
+          title: DateTimeComboLinePointChart.title,
+          subtitle: DateTimeComboLinePointChart.subtitle,
+          body: (context) => DateTimeComboLinePointChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class DateTimeComboLinePointChartBuilder extends ExampleBuilder {
+  const DateTimeComboLinePointChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const DateTimeComboLinePointChartPage();
+
+  @override
+  String? get subtitle => DateTimeComboLinePointChart.subtitle;
+
+  @override
+  String get title => DateTimeComboLinePointChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      DateTimeComboLinePointChart.withSampleData(animate);
+}
+
 /// Example of a combo time series chart with two series rendered as lines, and
 /// a third rendered as points along the top line with a different color.
 ///
@@ -22,12 +102,6 @@
 /// different color from the main series color. The line renderer supports
 /// drawing points with the "includePoints" option, but those points will share
 /// the same color as the line.
-
-import 'dart:math';
-
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-import 'package:desktop/desktop.dart';
-
 class DateTimeComboLinePointChart extends StatelessWidget {
   const DateTimeComboLinePointChart(
     this.seriesList, {
@@ -43,15 +117,9 @@ class DateTimeComboLinePointChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory DateTimeComboLinePointChart.withRandomData([bool animate = true]) {
-    return DateTimeComboLinePointChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Time Series';
+  static String? get subtitle =>
+      'Time series combo chart with lines and points';
 
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
@@ -108,30 +176,6 @@ class DateTimeComboLinePointChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(
-      seriesList,
-      animate: animate,
-      // Configure the default renderer as a line renderer. This will be used
-      // for any series that does not define a rendererIdKey.
-      //
-      // This is the default configuration, but is shown here for  illustration.
-      defaultRenderer: charts.LineRendererConfig(),
-      // Custom renderer configuration for the point series.
-      customSeriesRenderers: [
-        charts.PointRendererConfig(
-          // ID used to link series to this renderer.
-          customRendererId: 'customPoint',
-        ),
-      ],
-      // Optionally pass in a [DateTimeFactory] used by the chart. The factory
-      // should create the same type of [DateTime] as the data provided. If none
-      // specified, the default creates local date time.
-      dateTimeFactory: const charts.LocalDateTimeFactory(),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<TimeSeriesSales, DateTime>> createSampleData() {
     final desktopSalesData = [
@@ -180,6 +224,30 @@ class DateTimeComboLinePointChart extends StatelessWidget {
         // Configure our custom point renderer for this series.
         ..setAttribute(charts.rendererIdKey, 'customPoint'),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+      // Configure the default renderer as a line renderer. This will be used
+      // for any series that does not define a rendererIdKey.
+      //
+      // This is the default configuration, but is shown here for  illustration.
+      defaultRenderer: const charts.LineRendererConfig(),
+      // Custom renderer configuration for the point series.
+      customSeriesRenderers: const [
+        charts.PointRendererConfig(
+          // ID used to link series to this renderer.
+          customRendererId: 'customPoint',
+        ),
+      ],
+      // Optionally pass in a [DateTimeFactory] used by the chart. The factory
+      // should create the same type of [DateTime] as the data provided. If none
+      // specified, the default creates local date time.
+      dateTimeFactory: const charts.LocalDateTimeFactory(),
+    );
   }
 }
 

@@ -87,7 +87,7 @@ class RangeTickRendererSpec<D> extends SmallTickRendererSpec<D> {
   final int? rangeTickLength;
   // Specifies range shade's height.
   final double? rangeShadeHeight;
-  // Specifies the starting offset of range shade from axis in pixels.
+  // Specifies the starting offset of range shade from axis.
   final double? rangeShadeOffsetFromAxis;
   // A range tick offset from the original location. The start point offset is
   // toward the origin and end point offset is toward the end of axis.

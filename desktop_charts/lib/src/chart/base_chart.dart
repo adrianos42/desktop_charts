@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math' show max;
+
 import 'package:collection/collection.dart' show ListEquality;
 import 'package:flutter/scheduler.dart';
 import 'package:flutter/widgets.dart';
@@ -97,7 +99,7 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     with TickerProviderStateMixin
     implements ChartContext {
   // Animation
-  late AnimationController _animationController;
+  AnimationController? _animationController;
   late CurvedAnimation _animationPosition;
 
   @override
@@ -231,8 +233,8 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
 
   void _playAnimation(Duration duration) {
     if (!_deferAnimation) {
-      _animationController.duration = duration;
-      _animationController.forward(from: 0.0);
+      _animationController!.duration = duration;
+      _animationController!.forward(from: 0.0);
     }
   }
 
@@ -506,7 +508,8 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     for (final seriesDatum in selectionModel.selectedDatum) {
       final rendererId = seriesDatum.series.getAttr(rendererIdKey);
       details.add(
-          getSeriesRenderer(rendererId)!.getDetailsForSeriesDatum(seriesDatum));
+        getSeriesRenderer(rendererId)!.getDetailsForSeriesDatum(seriesDatum),
+      );
     }
 
     return details;
@@ -602,6 +605,8 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
       throw 'Invalid draw state.';
     }
 
+    _animationController!.stop();
+
     final seriesList = _originalSeriesList
         .map((MutableSeries<D> series) => MutableSeries<D>.clone(series))
         .toList();
@@ -632,7 +637,7 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     } else {
       SchedulerBinding.instance.addPostFrameCallback((_) {
         onPostLayout(_rendererToSeriesList);
-        _animationController.value = 1.0;
+        _animationController?.value = 1.0;
       });
     }
   }
@@ -716,7 +721,7 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
   bool get animatingThisDraw => transition.inMilliseconds > 0;
 
   void setAnimation(Duration value) {
-    _animationController.reset();
+    _animationController!.reset();
     _playAnimation(value);
   }
 
@@ -729,7 +734,7 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
   void initState() {
     super.initState();
     _animationController = AnimationController(vsync: this);
-    _animationController.addStatusListener((status) {
+    _animationController!.addStatusListener((status) {
       if (status == AnimationStatus.completed) {
         SchedulerBinding.instance.addPostFrameCallback((_) {
           animationCompleted();
@@ -738,7 +743,7 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
     });
 
     _animationPosition = CurvedAnimation(
-      parent: _animationController,
+      parent: _animationController!,
       curve: Curves.easeInSine,
     );
 
@@ -874,7 +879,8 @@ abstract class BaseChartState<D, S extends BaseChart<D>> extends State<S>
 
   @override
   void dispose() {
-    _animationController.dispose();
+    _animationController?.dispose();
+    _animationController = null;
     _animationPosition.dispose();
     _behaviorAnimationControllers
         .forEach((_, controller) => controller.dispose());
@@ -1053,14 +1059,18 @@ class WidgetLayoutDelegate<D, S extends BaseChart<D>,
             layoutChild(behaviorID, BoxConstraints.loose(size));
         if (behaviorPosition == BehaviorPosition.top) {
           chartOffsetY += behaviorSize[behaviorID]!.height;
-          availableHeight -= behaviorSize[behaviorID]!.height;
+          availableHeight =
+              max(0.0, availableHeight - behaviorSize[behaviorID]!.height);
         } else if (behaviorPosition == BehaviorPosition.bottom) {
-          availableHeight -= behaviorSize[behaviorID]!.height;
+          availableHeight =
+              max(0.0, availableHeight - behaviorSize[behaviorID]!.height);
         } else if (behaviorPosition == leftPosition) {
           chartOffsetX += behaviorSize[behaviorID]!.width;
-          availableWidth -= behaviorSize[behaviorID]!.width;
+          availableWidth =
+              max(0.0, availableWidth - behaviorSize[behaviorID]!.width);
         } else if (behaviorPosition == rightPosition) {
-          availableWidth -= behaviorSize[behaviorID]!.width;
+          availableWidth =
+              max(0.0, availableWidth - behaviorSize[behaviorID]!.width);
         }
       }
     }

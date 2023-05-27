@@ -95,7 +95,7 @@ class Tree<T, D> {
   /// Accessor function that returns the fill pattern for a tree node.
   final TypedAccessor<TreeNode<T>, FillPatternType>? fillPattern;
 
-  /// Accessor function that returns the stroke width in pixel for a tree node.
+  /// Accessor function that returns the stroke width for a tree node.
   final TypedAccessor<TreeNode<T>, double>? strokeWidth;
 
   /// Accessor function that returns the label for a tree node.

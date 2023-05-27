@@ -15,18 +15,92 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class IntegerOnlyMeasureAxisPage extends StatefulWidget {
+  const IntegerOnlyMeasureAxisPage({super.key});
+
+  @override
+  State<IntegerOnlyMeasureAxisPage> createState() =>
+      _IntegerOnlyMeasureAxisPageState();
+}
+
+class _IntegerOnlyMeasureAxisPageState
+    extends State<IntegerOnlyMeasureAxisPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = IntegerOnlyMeasureAxis.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<MyRow, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: IntegerOnlyMeasureAxis.title,
+          subtitle: IntegerOnlyMeasureAxis.subtitle,
+          body: (context) => IntegerOnlyMeasureAxis(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class IntegerOnlyMeasureAxisBuilder extends ExampleBuilder {
+  const IntegerOnlyMeasureAxisBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const IntegerOnlyMeasureAxisPage();
+
+  @override
+  String? get subtitle => IntegerOnlyMeasureAxis.subtitle;
+
+  @override
+  String get title => IntegerOnlyMeasureAxis.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      IntegerOnlyMeasureAxis.withSampleData(animate);
+}
+
 /// Example of time series chart forcing the measure axis to have whole number
 /// ticks. This is useful if the measure units don't make sense to present as
 /// fractional.
 ///
 /// This is done by customizing the measure axis and setting
 /// [dataIsInWholeNumbers] on the tick provider.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class IntegerOnlyMeasureAxis extends StatelessWidget {
   const IntegerOnlyMeasureAxis(
     this.seriesList, {
@@ -42,15 +116,9 @@ class IntegerOnlyMeasureAxis extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory IntegerOnlyMeasureAxis.withRandomData([bool animate = true]) {
-    return IntegerOnlyMeasureAxis(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Integer Measure Ticks';
+  static String? get subtitle =>
+      'Time series with only whole number measure axis ticks';
 
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
@@ -83,24 +151,6 @@ class IntegerOnlyMeasureAxis extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(
-      seriesList,
-      animate: animate,
-      // Provides a custom axis ensuring that the ticks are in whole numbers.
-      primaryMeasureAxis: const charts.NumericAxisSpec(
-        tickProviderSpec: charts.BasicNumericTickProviderSpec(
-            // Make sure we don't have values less than 1 as ticks
-            // (ie: counts).
-            dataIsInWholeNumbers: true,
-            // Fixed tick count to highlight the integer only behavior
-            // generating ticks [0, 1, 2, 3, 4].
-            desiredTickCount: 5),
-      ),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<MyRow, DateTime>> createSampleData() {
     final data = [
@@ -125,6 +175,25 @@ class IntegerOnlyMeasureAxis extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+      // Provides a custom axis ensuring that the ticks are in whole numbers.
+      primaryMeasureAxis: const charts.NumericAxisSpec(
+        tickProviderSpec: charts.BasicNumericTickProviderSpec(
+          // Make sure we don't have values less than 1 as ticks
+          // (ie: counts).
+          dataIsInWholeNumbers: true,
+          // Fixed tick count to highlight the integer only behavior
+          // generating ticks [0, 1, 2, 3, 4].
+          desiredTickCount: 5,
+        ),
+      ),
+    );
   }
 }
 

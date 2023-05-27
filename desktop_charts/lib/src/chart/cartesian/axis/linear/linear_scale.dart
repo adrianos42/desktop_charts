@@ -26,7 +26,7 @@ import 'linear_scale_viewport.dart' show LinearScaleViewportSettings;
 ///
 /// A [Scale] which converts numeric domain units to a given numeric range units
 /// linearly (as opposed to other methods like log scales).  This is used to map
-/// the domain's values to the available pixel range of the chart using the
+/// the domain's values to the available range of the chart using the
 /// apply method.
 ///
 /// <p>The domain extent of the scale are determined by adding all domain
@@ -75,9 +75,7 @@ class LinearScale implements NumericScale {
   @override
   LinearScale copy() => LinearScale._copy(this);
 
-  //
   // Domain methods
-  //
 
   @override
   void addDomain(num domainValue) {
@@ -119,9 +117,7 @@ class LinearScale implements NumericScale {
     return dataExtent.compareValue(domainValue);
   }
 
-  //
   // Viewport methods
-  //
 
   @override
   void setViewportSettings(double viewportScale, double viewportTranslate) {
@@ -172,9 +168,7 @@ class LinearScale implements NumericScale {
   @override
   ScaleOutputExtent? get range => _viewportSettings.range;
 
-  //
   // Scale application methods
-  //
 
   @override
   double operator [](num domainValue) {
@@ -183,40 +177,40 @@ class LinearScale implements NumericScale {
   }
 
   @override
-  double reverse(double viewPixels) {
+  double reverse(double value) {
     _configureScale();
-    final double domain = _scaleFunction.reverse(viewPixels);
+    final double domain = _scaleFunction.reverse(value);
     return domain;
   }
 
   @override
   double get rangeBand {
     _configureScale();
-    return _scaleFunction.rangeBandPixels;
+    return _scaleFunction.rangeBand;
   }
 
   @override
   double get stepSize {
     _configureScale();
-    return _scaleFunction.stepSizePixels;
+    return _scaleFunction.stepSize;
   }
 
   @override
   double get domainStepSize => _domainInfo.minimumDetectedDomainStep.toDouble();
 
   @override
-  int get rangeWidth => (range!.end - range!.start).abs().toInt();
+  double get rangeWidth => (range!.end - range!.start).abs();
 
   @override
   bool isRangeValueWithinViewport(double rangeValue) =>
       range!.containsValue(rangeValue);
 
-  //
   // Private update
-  //
 
   void _configureScale() {
-    if (_scaleReady) return;
+    if (_scaleReady) {
+      return;
+    }
 
     assert(_viewportSettings.range != null);
 
@@ -224,25 +218,38 @@ class LinearScale implements NumericScale {
     // viewport's scaleFactor now that the domainInfo has been loaded.
     // The viewport also has a chance to correct the scaleFactor.
     _viewportSettings.updateViewportScaleFactor(_domainInfo);
+
     // Now that the viewport's scalingFactor is setup, set it on the scale
     // function.
     _scaleFunction.updateScaleFactor(
-        _viewportSettings, _domainInfo, rangeBandConfig, stepSizeConfig);
+      _viewportSettings,
+      _domainInfo,
+      rangeBandConfig,
+      stepSizeConfig,
+    );
 
     // If the viewport's domainExtent are set, then we can calculate the
     // viewport's translate now that the scaleFactor has been loaded.
     // The viewport also has a chance to correct the translate.
     _viewportSettings.updateViewportTranslate(
-        _domainInfo, _scaleFunction.scalingFactor);
+      _domainInfo,
+      _scaleFunction.scalingFactor,
+    );
+
     // Now that the viewport has a chance to update the translate, set it on the
     // scale function.
     _scaleFunction.updateTranslateAndRangeBand(
-        _viewportSettings, _domainInfo, rangeBandConfig);
+      _viewportSettings,
+      _domainInfo,
+      rangeBandConfig,
+    );
 
     // Now that the viewport's scaleFactor and translate have been updated
     // set the effective domainExtent of the viewport.
     _viewportSettings.updateViewportDomainExtent(
-        _domainInfo, _scaleFunction.scalingFactor);
+      _domainInfo,
+      _scaleFunction.scalingFactor,
+    );
 
     // Cached computed values are updated.
     _scaleReady = true;

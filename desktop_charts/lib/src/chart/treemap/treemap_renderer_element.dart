@@ -43,7 +43,7 @@ class TreeMapRendererElement<D> {
   set boundingRect(Rect value) => _boundingRect = value;
   Rect? _boundingRect;
 
-  /// Occupied area of this element in pixel.
+  /// Occupied area of this element.
   double get area => _area!;
   set area(double value) => _area = value;
   double? _area;

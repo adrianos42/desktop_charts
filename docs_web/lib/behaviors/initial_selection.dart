@@ -15,6 +15,84 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class InitialSelectionPage extends StatefulWidget {
+  const InitialSelectionPage({super.key});
+
+  @override
+  State<InitialSelectionPage> createState() => _InitialSelectionPageState();
+}
+
+class _InitialSelectionPageState extends State<InitialSelectionPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = InitialSelection.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Behaviors',
+      items: [
+        ItemTitle(
+          title: InitialSelection.title,
+          subtitle: InitialSelection.subtitle,
+          body: (context) => InitialSelection(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class InitialSelectionBuilder extends ExampleBuilder {
+  const InitialSelectionBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const InitialSelectionPage();
+
+  @override
+  String? get subtitle => InitialSelection.subtitle;
+
+  @override
+  String get title => InitialSelection.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      InitialSelection.withSampleData(animate);
+}
+
 /// Example of adding an initial selection behavior.
 ///
 /// This example adds initial selection to a bar chart, but any chart can use
@@ -25,12 +103,6 @@
 ///
 /// The selection will remain on the chart unless another behavior is added
 /// that updates the selection.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class InitialSelection extends StatelessWidget {
   const InitialSelection(
     this.seriesList, {
@@ -46,15 +118,8 @@ class InitialSelection extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory InitialSelection.withRandomData([bool animate = true]) {
-    return InitialSelection(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Bar Chart with initial selection';
+  static String? get subtitle => 'Single series with initial selection';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -68,6 +133,26 @@ class InitialSelection extends StatelessWidget {
       OrdinalSales('2015', random.nextInt(100)),
       OrdinalSales('2016', random.nextInt(100)),
       OrdinalSales('2017', random.nextInt(100)),
+    ];
+
+    return [
+      charts.Series<OrdinalSales, String>(
+        id: 'Sales',
+        color: (_, __) => charts.DesktopPalette.blue.shadeDefault,
+        domain: (OrdinalSales sales, _) => sales.year,
+        measure: (OrdinalSales sales, _) => sales.sales,
+        data: data,
+      )
+    ];
+  }
+
+  /// Create one series with sample hard coded data.
+  static List<charts.Series<OrdinalSales, String>> createSampleData() {
+    const data = [
+      OrdinalSales('2014', 5),
+      OrdinalSales('2015', 25),
+      OrdinalSales('2016', 100),
+      OrdinalSales('2017', 75),
     ];
 
     return [
@@ -102,26 +187,6 @@ class InitialSelection extends StatelessWidget {
         ])
       ],
     );
-  }
-
-  /// Create one series with sample hard coded data.
-  static List<charts.Series<OrdinalSales, String>> createSampleData() {
-    const data = [
-      OrdinalSales('2014', 5),
-      OrdinalSales('2015', 25),
-      OrdinalSales('2016', 100),
-      OrdinalSales('2017', 75),
-    ];
-
-    return [
-      charts.Series<OrdinalSales, String>(
-        id: 'Sales',
-        color: (_, __) => charts.DesktopPalette.blue.shadeDefault,
-        domain: (OrdinalSales sales, _) => sales.year,
-        measure: (OrdinalSales sales, _) => sales.sales,
-        data: data,
-      )
-    ];
   }
 }
 

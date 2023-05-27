@@ -28,15 +28,15 @@ import 'date_time_axis_spec.dart'
         DateTimeTickFormatterSpec,
         DateTimeTickProviderSpec;
 
-/// Default [AxisSpec] used for Timeseries charts.
+/// Default [AxisSpec] used for time series charts.
 @immutable
 class EndPointsTimeAxisSpec extends DateTimeAxisSpec {
-  /// Creates a [AxisSpec] that specialized for timeseries charts.
+  /// Creates a [AxisSpec] that specialized for time series charts.
   ///
   /// [renderSpec] spec used to configure how the ticks and labels
   ///     actually render. Possible values are [GridlineRendererSpec],
   ///     [SmallTickRendererSpec] & [NoneRenderSpec]. Make sure that the <D>
-  ///     given to the RenderSpec is of type [DateTime] for Timeseries.
+  ///     given to the RenderSpec is of type [DateTime] for time series.
   /// [tickProviderSpec] spec used to configure what ticks are generated.
   /// [tickFormatterSpec] spec used to configure how the tick labels
   ///     are formatted.

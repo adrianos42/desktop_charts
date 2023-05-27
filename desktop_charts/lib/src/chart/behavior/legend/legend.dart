@@ -246,9 +246,9 @@ abstract class LegendState<D, S extends BaseChart<D>, B extends Legend<D>>
   }
 }
 
-/// Stores legend cell padding, in percents or pixels.
+/// Stores legend cell padding.
 ///
-/// If a percent is specified, it takes precedence over a flat pixel value.
+/// If a percent is specified, it takes precedence over a flat value.
 class LegendCellPadding {
   /// Creates padding in percents from the left, top, right, and bottom.
   const LegendCellPadding.fromLTRBPct(
@@ -258,7 +258,7 @@ class LegendCellPadding {
         right = null,
         bottom = null;
 
-  /// Creates padding in pixels from the left, top, right, and bottom.
+  /// Creates padding from the left, top, right, and bottom.
   const LegendCellPadding.fromLTRB(this.left, this.top, this.right, this.bottom)
       : leftPct = null,
         topPct = null,
@@ -273,7 +273,7 @@ class LegendCellPadding {
         bottom = null,
         left = null;
 
-  /// Creates padding in pixels from the top, right, bottom, and left.
+  /// Creates padding from the top, right, bottom, and left.
   const LegendCellPadding.fromTRBL(this.top, this.right, this.bottom, this.left)
       : topPct = null,
         rightPct = null,
@@ -292,11 +292,11 @@ class LegendCellPadding {
   const LegendCellPadding.allPct(double value)
       : this.fromLTRBPct(value, value, value, value);
 
-  /// Creates cell padding where all the offsets are `value` in pixels.
+  /// Creates cell padding where all the offsets are `value`.
   ///
   /// ## Sample code
   ///
-  /// Typical eight-pixel margin on all sides:
+  /// Typical eight margin on all sides:
   ///
   /// ```dart
   /// const LegendCellPadding.all(8.0)

@@ -24,8 +24,18 @@ import 'linear_scale_domain_info.dart' show LinearScaleDomainInfo;
 /// Component of the LinearScale responsible for the configuration and
 /// calculations of the viewport.
 class LinearScaleViewportSettings {
-  /// Output extent for the scale, typically set by the axis as the pixel
-  /// output.
+  LinearScaleViewportSettings();
+
+  LinearScaleViewportSettings.copy(LinearScaleViewportSettings other) {
+    range = other.range;
+    keepViewportWithinData = other.keepViewportWithinData;
+    scalingFactor = other.scalingFactor;
+    translate = other.translate;
+    _manualDomainExtent = other._manualDomainExtent;
+    _domainExtent = other._domainExtent;
+  }
+  
+  /// Output extent for the scale, typically set by the axis as the output.
   ScaleOutputExtent? range;
 
   /// Determines whether the scale should be extended to the nice values
@@ -39,7 +49,7 @@ class LinearScaleViewportSettings {
   /// the space (showing half as much data in the viewport).
   double scalingFactor = 1.0;
 
-  /// User configured viewport translate in pixel units.
+  /// User configured viewport translate.
   double translate = 0.0;
 
   /// The current extent of the viewport in domain units.
@@ -53,29 +63,17 @@ class LinearScaleViewportSettings {
 
   /// Indicates that the viewportExtends are to be read from to determine the
   /// internal scaleFactor and rangeTranslate.
-
   bool _manualDomainExtent = false;
-
-  LinearScaleViewportSettings();
-
-  LinearScaleViewportSettings.copy(LinearScaleViewportSettings other) {
-    range = other.range;
-    keepViewportWithinData = other.keepViewportWithinData;
-    scalingFactor = other.scalingFactor;
-    translate = other.translate;
-    _manualDomainExtent = other._manualDomainExtent;
-    _domainExtent = other._domainExtent;
-  }
 
   /// Resets the viewport calculated fields back to their initial settings.
   void reset() {
-    // Likely an auto assigned viewport (niced), so reset it between draws.
+    // Likely an auto assigned viewport (nice), so reset it between draws.
     scalingFactor = 1.0;
     translate = 0.0;
     domainExtent = null;
   }
 
-  int get rangeWidth => range!.diff.abs().toInt();
+  double get rangeWidth => range!.diff.abs();
 
   bool isRangeValueWithinViewport(double rangeValue) =>
       range!.containsValue(rangeValue);

@@ -20,11 +20,6 @@ import 'base_time_stepper.dart' show BaseTimeStepper;
 
 /// Day stepper.
 class DayTimeStepper extends BaseTimeStepper {
-  DayTimeStepper._internal(
-      DateTimeFactory dateTimeFactory, List<int> increments)
-      : _allowedTickIncrements = increments,
-        super(dateTimeFactory);
-
   factory DayTimeStepper(
     DateTimeFactory dateTimeFactory, {
     List<int>? allowedTickIncrements,
@@ -36,6 +31,11 @@ class DayTimeStepper extends BaseTimeStepper {
 
     return DayTimeStepper._internal(dateTimeFactory, allowedTickIncrements);
   }
+
+  DayTimeStepper._internal(
+      DateTimeFactory dateTimeFactory, List<int> increments)
+      : _allowedTickIncrements = increments,
+        super(dateTimeFactory);
 
   // TODO: Remove the 14 day increment if we add week stepper.
   static const _defaultIncrements = [1, 2, 3, 7, 14];

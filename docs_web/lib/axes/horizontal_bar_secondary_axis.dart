@@ -15,13 +15,88 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Bar chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class HorizontalBarChartWithSecondaryAxisPage extends StatefulWidget {
+  const HorizontalBarChartWithSecondaryAxisPage({super.key});
+
+  @override
+  State<HorizontalBarChartWithSecondaryAxisPage> createState() =>
+      _HorizontalBarChartWithSecondaryAxisPageState();
+}
+
+class _HorizontalBarChartWithSecondaryAxisPageState
+    extends State<HorizontalBarChartWithSecondaryAxisPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = HorizontalBarChartWithSecondaryAxis.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: HorizontalBarChartWithSecondaryAxis.title,
+          subtitle: HorizontalBarChartWithSecondaryAxis.subtitle,
+          body: (context) => HorizontalBarChartWithSecondaryAxis(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class HorizontalBarChartWithSecondaryAxisBuilder extends ExampleBuilder {
+  const HorizontalBarChartWithSecondaryAxisBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const HorizontalBarChartWithSecondaryAxisPage();
+
+  @override
+  String? get subtitle => HorizontalBarChartWithSecondaryAxis.subtitle;
+
+  @override
+  String get title => HorizontalBarChartWithSecondaryAxis.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      HorizontalBarChartWithSecondaryAxis.withSampleData(animate);
+}
+
+/// Bar chart example
+///
 /// Example of using a primary and secondary axis (left & right respectively)
 /// for a set of grouped bars. This is useful for comparing Series that have
 /// different units (revenue vs clicks by region), or different magnitudes (2017
@@ -51,16 +126,9 @@ class HorizontalBarChartWithSecondaryAxis extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory HorizontalBarChartWithSecondaryAxis.withRandomData(
-      [bool animate = true]) {
-    return HorizontalBarChartWithSecondaryAxis(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Horizontal bar chart with Secondary Measure Axis';
+  static String? get subtitle =>
+      'Horizontal Bar chart with a series using secondary measure axis';
 
   static const secondaryMeasureAxisId = 'secondaryMeasureAxisId';
 
@@ -104,27 +172,6 @@ class HorizontalBarChartWithSecondaryAxis extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // For horizontal bar charts, set the [vertical] flag to false.
-    return charts.BarChart(
-      seriesList,
-      animate: animate,
-      barGroupingType: charts.BarGroupingType.grouped,
-      isVertical: false,
-      // It is important when using both primary and secondary axes to choose
-      // the same number of ticks for both sides to get the grid lines to line
-      // up.
-      primaryMeasureAxis: const charts.NumericAxisSpec(
-          tickProviderSpec:
-              charts.BasicNumericTickProviderSpec(desiredTickCount: 3)),
-      secondaryMeasureAxis: const charts.NumericAxisSpec(
-        tickProviderSpec:
-            charts.BasicNumericTickProviderSpec(desiredTickCount: 3),
-      ),
-    );
-  }
-
   /// Create series list with multiple series
   static List<charts.Series<OrdinalSales, String>> createSampleData() {
     const globalSalesData = [
@@ -158,6 +205,30 @@ class HorizontalBarChartWithSecondaryAxis extends StatelessWidget {
       // All series that have this set will use the secondary measure axis.
       // All other series will use the primary measure axis.
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // For horizontal bar charts, set the [vertical] flag to false.
+    return charts.BarChart(
+      seriesList,
+      animate: animate,
+      barGroupingType: charts.BarGroupingType.grouped,
+      isVertical: false,
+      // It is important when using both primary and secondary axes to choose
+      // the same number of ticks for both sides to get the grid lines to line
+      // up.
+      primaryMeasureAxis: const charts.NumericAxisSpec(
+        tickProviderSpec: charts.BasicNumericTickProviderSpec(
+          desiredTickCount: 3,
+        ),
+      ),
+      secondaryMeasureAxis: const charts.NumericAxisSpec(
+        tickProviderSpec: charts.BasicNumericTickProviderSpec(
+          desiredTickCount: 3,
+        ),
+      ),
+    );
   }
 }
 

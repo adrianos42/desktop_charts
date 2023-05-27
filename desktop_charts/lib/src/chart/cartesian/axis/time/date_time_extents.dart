@@ -27,10 +27,10 @@ class DateTimeExtents extends Extents<DateTime> {
   final DateTime end;
 
   @override
-  bool operator ==(Object other) {
-    return other is DateTimeExtents && start == other.start && end == other.end;
+  bool operator ==(covariant DateTimeExtents other) {
+    return start == other.start && end == other.end;
   }
 
   @override
-  int get hashCode => start.hashCode + (end.hashCode * 37);
+  int get hashCode => Object.hash(start, end);
 }

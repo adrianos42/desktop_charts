@@ -15,6 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class NumericInitialViewportPage extends StatefulWidget {
+  const NumericInitialViewportPage({super.key});
+
+  @override
+  State<NumericInitialViewportPage> createState() =>
+      _NumericInitialViewportPageState();
+}
+
+class _NumericInitialViewportPageState
+    extends State<NumericInitialViewportPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = NumericInitialViewport.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, num>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: NumericInitialViewport.title,
+          subtitle: NumericInitialViewport.subtitle,
+          body: (context) => NumericInitialViewport(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class NumericInitialViewportBuilder extends ExampleBuilder {
+  const NumericInitialViewportBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const NumericInitialViewportPage();
+
+  @override
+  String? get subtitle => NumericInitialViewport.subtitle;
+
+  @override
+  String get title => NumericInitialViewport.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      NumericInitialViewport.withSampleData(animate);
+}
+
 /// Example of setting an initial viewport for ordinal axis.
 ///
 /// This allows for specifying the specific range of data to show that differs
@@ -23,12 +103,6 @@
 /// In this example, the series list has numeric data from 0 to 10, but we
 /// want to show from 3 to 7.
 /// We can do this by specifying an [NumericExtents] in [NumericAxisSpec].
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class NumericInitialViewport extends StatelessWidget {
   const NumericInitialViewport(
     this.seriesList, {
@@ -44,15 +118,9 @@ class NumericInitialViewport extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory NumericInitialViewport.withRandomData([bool animate = true]) {
-    return NumericInitialViewport(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Numeric axis with initial viewport';
+  static String? get subtitle =>
+      'Initial viewport is set to a subset of the data';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -86,22 +154,6 @@ class NumericInitialViewport extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.LineChart(
-      seriesList,
-      animate: animate,
-      domainAxis: const charts.NumericAxisSpec(
-        // Set the initial viewport by providing a AxisSpec with the
-        // desired viewport, in NumericExtents.
-        viewport: charts.NumericExtents(3.0, 7.0),
-      ),
-      // Optionally add a pan or pan and zoom behavior.
-      // If pan/zoom is not added, the viewport specified remains the viewport.
-      behaviors: const [charts.PanAndZoomBehavior()],
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const data = [
@@ -127,6 +179,22 @@ class NumericInitialViewport extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.LineChart(
+      seriesList,
+      animate: animate,
+      domainAxis: const charts.NumericAxisSpec(
+        // Set the initial viewport by providing a AxisSpec with the
+        // desired viewport, in NumericExtents.
+        viewport: charts.NumericExtents(3.0, 7.0),
+      ),
+      // Optionally add a pan or pan and zoom behavior.
+      // If pan/zoom is not added, the viewport specified remains the viewport.
+      behaviors: const [charts.PanAndZoomBehavior()],
+    );
   }
 }
 

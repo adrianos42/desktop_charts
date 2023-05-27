@@ -15,13 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// RTL Bar chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class RTLSeriesLegendPage extends StatefulWidget {
+  const RTLSeriesLegendPage({super.key});
+
+  @override
+  State<RTLSeriesLegendPage> createState() => _RTLSeriesLegendPageState();
+}
+
+class _RTLSeriesLegendPageState extends State<RTLSeriesLegendPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = RTLSeriesLegend.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'i18n',
+      items: [
+        ItemTitle(
+          title: RTLSeriesLegend.title,
+          subtitle: RTLSeriesLegend.subtitle,
+          body: (context) => RTLSeriesLegend(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class RTLSeriesLegendBuilder extends ExampleBuilder {
+  const RTLSeriesLegendBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const RTLSeriesLegendPage();
+
+  @override
+  String? get subtitle => RTLSeriesLegend.subtitle;
+
+  @override
+  String get title => RTLSeriesLegend.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      RTLSeriesLegend.withSampleData(animate);
+}
+
+/// RTL Bar chart example
 class RTLSeriesLegend extends StatelessWidget {
   const RTLSeriesLegend(
     this.seriesList, {
@@ -37,15 +109,8 @@ class RTLSeriesLegend extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory RTLSeriesLegend.withRandomData([bool animate = true]) {
-    return RTLSeriesLegend(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'RTL Series Legend';
+  static String? get subtitle => 'Series legend in RTL';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -110,43 +175,6 @@ class RTLSeriesLegend extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Charts will determine if RTL is enabled by checking the directionality by
-    // requesting Directionality.of(context). This returns the text direction
-    // from the closest instance of that encloses the context passed to build
-    // the chart. A [TextDirection.rtl] will be treated as a RTL chart. This
-    // means that the directionality widget does not have to directly wrap each
-    // chart. It is show here as an example only.
-    //
-    // When the legend behavior detects RTL:
-    // [BehaviorPosition.start] is to the right of the chart.
-    // [BehaviorPosition.end] is to the left of the chart.
-    //
-    // If the [BehaviorPosition] is top or bottom, the start justification
-    // is to the right, and the end justification is to the left.
-    //
-    // The legend's tabular layout will also layout rows and columns from right
-    // to left.
-    //
-    // The below example changes the position to 'start' and max rows of 2 in
-    // order to show these effects, but are not required for SeriesLegend to
-    // work with the correct directionality.
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: charts.BarChart(
-        seriesList,
-        animate: animate,
-        behaviors: [
-          // TODO charts.SeriesLegend(
-          //   position: charts.BehaviorPosition.end,
-          //   desiredMaxRows: 2,
-          // )
-        ],
-      ),
-    );
-  }
-
   /// Create series list with multiple series
   static List<charts.Series<OrdinalSales, String>> createSampleData() {
     const desktopSalesData = [
@@ -203,6 +231,43 @@ class RTLSeriesLegend extends StatelessWidget {
         data: otherSalesData,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Charts will determine if RTL is enabled by checking the directionality by
+    // requesting Directionality.of(context). This returns the text direction
+    // from the closest instance of that encloses the context passed to build
+    // the chart. A [TextDirection.rtl] will be treated as a RTL chart. This
+    // means that the directionality widget does not have to directly wrap each
+    // chart. It is show here as an example only.
+    //
+    // When the legend behavior detects RTL:
+    // [BehaviorPosition.start] is to the right of the chart.
+    // [BehaviorPosition.end] is to the left of the chart.
+    //
+    // If the [BehaviorPosition] is top or bottom, the start justification
+    // is to the right, and the end justification is to the left.
+    //
+    // The legend's tabular layout will also layout rows and columns from right
+    // to left.
+    //
+    // The below example changes the position to 'start' and max rows of 2 in
+    // order to show these effects, but are not required for SeriesLegend to
+    // work with the correct directionality.
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: charts.BarChart(
+        seriesList,
+        animate: animate,
+        behaviors: const [
+          charts.SeriesLegend(
+            position: charts.BehaviorPosition.end,
+            // TODO desiredMaxRows: 2,
+          )
+        ],
+      ),
+    );
   }
 }
 

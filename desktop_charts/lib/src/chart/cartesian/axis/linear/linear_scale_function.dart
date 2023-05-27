@@ -23,9 +23,9 @@ import 'linear_scale_viewport.dart' show LinearScaleViewportSettings;
 /// Component of the LinearScale which actually handles the apply and reverse
 /// function of the scale.
 class LinearScaleFunction {
-  /// Cached rangeBand width in pixels given the RangeBandConfig and the current
+  /// Cached rangeBand width given the RangeBandConfig and the current
   /// domain & range.
-  double rangeBandPixels = 0.0;
+  double rangeBand = 0.0;
 
   /// Cached amount in domain units to shift the input value as a part of
   /// translation.
@@ -34,12 +34,12 @@ class LinearScaleFunction {
   /// Cached translation ratio for scale translation.
   double scalingFactor = 1.0;
 
-  /// Cached amount in pixel units to shift the output value as a part of
+  /// Cached amount to shift the output value as a part of
   /// translation.
   double rangeTranslate = 0.0;
 
   /// The calculated step size given the step size config.
-  double stepSizePixels = 0.0;
+  double stepSize = 0.0;
 
   /// Translates the given domainValue to the range output.
   double operator [](num domainValue) {
@@ -48,8 +48,8 @@ class LinearScaleFunction {
   }
 
   /// Translates the given range output back to a domainValue.
-  double reverse(double viewPixels) {
-    return ((viewPixels - rangeTranslate) / scalingFactor) - domainTranslate;
+  double reverse(double value) {
+    return ((value - rangeTranslate) / scalingFactor) - domainTranslate;
   }
 
   /// Update the scale function's scaleFactor given the current state of the
@@ -101,14 +101,13 @@ class LinearScaleFunction {
     } else {
       final hasHalfStepAtStart =
           domainInfo.extent.min == domainInfo.dataDomainStart;
-      // The pixel shift of the scale function due to the half a step at the
+      // The shift of the scale function due to the half a step at the
       // beginning.
-      final reservedRangePixelShift =
-          hasHalfStepAtStart ? (stepSizePixels / 2.0) : 0.0;
+      final reservedRangeShift = hasHalfStepAtStart ? (stepSize / 2.0) : 0.0;
 
       rangeTranslate = viewportSettings.range!.start +
           viewportSettings.translate +
-          reservedRangePixelShift;
+          reservedRangeShift;
     }
 
     // We need to subtract the start from any incoming domain to apply the
@@ -116,7 +115,7 @@ class LinearScaleFunction {
     domainTranslate = -1 * domainInfo.extent.min;
 
     // Update the rangeBand size.
-    rangeBandPixels = _calculateRangeBandSize(rangeBandConfig);
+    rangeBand = _calculateRangeBandSize(rangeBandConfig);
   }
 
   /// Calculates and stores the current rangeBand given the config and current
@@ -124,12 +123,11 @@ class LinearScaleFunction {
   double _calculateRangeBandSize(RangeBandConfig rangeBandConfig) {
     return switch (rangeBandConfig.type) {
       RangeBandType.fixedDomain => rangeBandConfig.size * scalingFactor,
-      RangeBandType.fixedPixel => rangeBandConfig.size,
-      RangeBandType.fixedPixelSpaceFromStep =>
-        stepSizePixels - rangeBandConfig.size,
+      RangeBandType.fixed => rangeBandConfig.size,
+      RangeBandType.fixedSpaceFromStep => stepSize - rangeBandConfig.size,
       RangeBandType.styleAssignedPercentOfStep ||
       RangeBandType.fixedPercentOfStep =>
-        stepSizePixels * rangeBandConfig.size,
+        stepSize * rangeBandConfig.size,
       RangeBandType.none => 0.0
     };
   }
@@ -146,7 +144,7 @@ class LinearScaleFunction {
       double reservedRangePercentOfStep,
       RangeBandConfig rangeBandConfig,
       StepSizeConfig stepSizeConfig) {
-    final domainDiff = domainInfo.domainDiff.toDouble();
+    final domainDiff = domainInfo.domainDiff;
 
     // If we are going to have any rangeBands, then ensure that we account for
     // needed space on the beginning and end of the range.
@@ -161,20 +159,19 @@ class LinearScaleFunction {
                     (domainDiff +
                         (minimumDetectedDomainStep *
                             reservedRangePercentOfStep)));
-            stepSizePixels = minimumDetectedDomainStep * scalingFactor;
+            stepSize = minimumDetectedDomainStep * scalingFactor;
           } else {
-            stepSizePixels = rangeDiff.abs();
+            stepSize = rangeDiff.abs();
             scalingFactor = 1.0;
           }
           return;
-        case StepSizeType.fixedPixels:
-          stepSizePixels = stepSizeConfig.size;
-          final reservedRangeForStepPixels =
-              stepSizePixels * reservedRangePercentOfStep;
+        case StepSizeType.fixed:
+          stepSize = stepSizeConfig.size;
+          final reservedRangeForStep = stepSize * reservedRangePercentOfStep;
           scalingFactor = domainDiff == 0
               ? 1.0
               : viewportSettings.scalingFactor *
-                  (rangeDiff - reservedRangeForStepPixels) /
+                  (rangeDiff - reservedRangeForStep) /
                   domainDiff;
           return;
         case StepSizeType.fixedDomain:
@@ -184,13 +181,13 @@ class LinearScaleFunction {
           scalingFactor = totalDomainDiff == 0
               ? 1.0
               : viewportSettings.scalingFactor * (rangeDiff / totalDomainDiff);
-          stepSizePixels = domainStepWidth * scalingFactor;
+          stepSize = domainStepWidth * scalingFactor;
           return;
       }
     }
 
     // If no cases matched, use zero step size.
-    stepSizePixels = 0.0;
+    stepSize = 0.0;
     scalingFactor = domainDiff == 0
         ? 1.0
         : viewportSettings.scalingFactor * rangeDiff / domainDiff;

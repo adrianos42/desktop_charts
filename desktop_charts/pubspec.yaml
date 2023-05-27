@@ -2,17 +2,17 @@ name: desktop_charts
 description: Desktop charting library for flutter.
 repository: https://github.com/adrianos42/desktop_charts
 homepage: https://adrianos42.github.io/desktop_dcharts
-version: 0.0.1-dev.1
+version: 0.0.1-dev.2
 
 environment:
-  sdk: '>=3.0.0-308.0.dev <4.0.0'
+  sdk: '>=3.0.0 <4.0.0'
   flutter: ">=1.17.0"
 
 dependencies:
   flutter:
     sdk: flutter
   desktop: any
-  intl: ^0.17.0
+  intl: ^0.18.1
   vector_math: ^2.1.4
   collection: ^1.17.1
 
@@ -23,6 +23,6 @@ dependency_overrides:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^2.0.1
 
 flutter:

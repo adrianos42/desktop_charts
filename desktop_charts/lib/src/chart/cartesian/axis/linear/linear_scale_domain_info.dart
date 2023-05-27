@@ -51,7 +51,7 @@ class LinearScaleDomainInfo {
   num _minimumDetectedDomainStep = double.infinity;
   num get minimumDetectedDomainStep => _minimumDetectedDomainStep;
 
-  ///The diff of the nicedDomain extent.
+  ///The diff of the nice Domain extent.
   double get domainDiff => extent.width;
 
   /// Resets everything back to initial state.
@@ -81,7 +81,7 @@ class LinearScaleDomainInfo {
 
   /// Extends the data domain extent without modifying step size detection.
   ///
-  /// Returns whether the the domain interval was extended. If the domain value
+  /// Returns whether the domain interval was extended. If the domain value
   /// was already contained in the domain interval, the domain interval does not
   /// change.
   bool extendDomain(num? domainValue) {

@@ -2,10 +2,120 @@
 
 library defaults;
 
-import 'package:desktop/desktop.dart';
-import 'package:dart_style/dart_style.dart';
-import 'package:markdown_docs_flutter/markdown_docs_flutter.dart';
 import 'dart:math' as math;
+
+import 'package:dart_style/dart_style.dart';
+import 'package:desktop/desktop.dart';
+import 'package:markdown_docs_flutter/markdown_docs_flutter.dart';
+
+abstract class ExampleBuilder {
+  const ExampleBuilder();
+
+  String get title;
+
+  String? get subtitle => null;
+
+  Widget page([int? index, List<ExampleBuilder>? children]) => const SizedBox();
+
+  Widget withSampleData([bool animate = true]) => const SizedBox();
+
+  bool get hasChildren => false;
+
+  bool get hasParent => false;
+
+  String? get parentTitle => null;
+
+  Widget? withData(dynamic data, [bool animate = true]) => null;
+
+  dynamic generateRandomData() => null;
+}
+
+class GroupedItensBuilder extends ExampleBuilder {
+  const GroupedItensBuilder(this._title);
+
+  final String _title;
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      _GroupedItensPage(
+        index: index,
+        children: children!,
+        title: _title,
+      );
+
+  @override
+  String get title => _title;
+
+  @override
+  bool get hasChildren => true;
+}
+
+class _GroupedItensPage extends StatefulWidget {
+  const _GroupedItensPage({
+    required this.index,
+    required this.children,
+    required this.title,
+  });
+
+  final int? index;
+
+  final List<ExampleBuilder> children;
+
+  final String title;
+
+  @override
+  State<_GroupedItensPage> createState() => _GroupedItensPageState();
+}
+
+class _GroupedItensPageState extends State<_GroupedItensPage> {
+  late List<bool> _hasAnimation;
+  late List<dynamic> _data;
+
+  void _refresh(int index) {
+    setState(() => _data[index] = widget.children[index].generateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _data = widget.children.map((e) => e.generateRandomData()).toList();
+    _hasAnimation = List.filled(widget.children.length, true);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final result = <ItemTitle>[];
+
+    for (int i = 0; i < widget.children.length; i += 1) {
+      result.add(
+        ItemTitle(
+          title: widget.children[i].title,
+          subtitle: widget.children[i].subtitle,
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () =>
+                  setState(() => _hasAnimation[i] = !_hasAnimation[i]),
+              active: _hasAnimation[i],
+            ),
+            Button.icon(Icons.refresh, onPressed: () => _refresh(i)),
+          ],
+          body: (context) => widget.children[i].withData(
+            _data[i],
+            _hasAnimation[i],
+          )!,
+        ),
+      );
+    }
+
+    return Defaults(
+      header: widget.title,
+      itemsIndex: widget.index,
+      items: result,
+    );
+  }
+}
 
 ///
 class StyleItem {
@@ -226,8 +336,11 @@ class Defaults extends StatefulWidget {
     super.key,
     required this.items,
     required this.header,
+    this.itemsIndex,
     this.styleItems,
   });
+
+  final int? itemsIndex;
 
   ///
   final List<ItemTitle> items;
@@ -385,7 +498,7 @@ class Defaults extends StatefulWidget {
   }
 
   @override
-  DefaultsState createState() => DefaultsState();
+  State<Defaults> createState() => DefaultsState();
 }
 
 ///
@@ -411,10 +524,14 @@ class App extends StatelessWidget {
   void initState() {
     super.initState();
     _shouldBuildView.addAll(List<bool>.filled(widget.items.length, false));
+
+    if (widget.itemsIndex != null) {
+      _index = widget.itemsIndex!;
+    }
   }
 
   @override
-  void didUpdateWidget(Defaults oldWidget) {
+  void didUpdateWidget(covariant Defaults oldWidget) {
     super.didUpdateWidget(oldWidget);
 
     if (widget.items.length - _shouldBuildView.length > 0) {
@@ -423,6 +540,11 @@ class App extends StatelessWidget {
     } else if (widget.items.length - _shouldBuildView.length < 0) {
       _shouldBuildView.removeRange(
           widget.items.length, _shouldBuildView.length);
+    }
+
+    if (widget.itemsIndex != null &&
+        widget.itemsIndex != oldWidget.itemsIndex) {
+      _index = widget.itemsIndex!;
     }
 
     _index = math.min(_index, widget.items.length - 1);

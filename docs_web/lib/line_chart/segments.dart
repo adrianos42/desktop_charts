@@ -15,6 +15,84 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class SegmentsLineChartPage extends StatefulWidget {
+  const SegmentsLineChartPage({super.key});
+
+  @override
+  State<SegmentsLineChartPage> createState() => _SegmentsLineChartPageState();
+}
+
+class _SegmentsLineChartPageState extends State<SegmentsLineChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = SegmentsLineChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Line',
+      items: [
+        ItemTitle(
+          title: SegmentsLineChart.title,
+          subtitle: SegmentsLineChart.subtitle,
+          body: (context) => SegmentsLineChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SegmentsLineChartBuilder extends ExampleBuilder {
+  const SegmentsLineChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const SegmentsLineChartPage();
+
+  @override
+  String? get subtitle => SegmentsLineChart.subtitle;
+
+  @override
+  String get title => SegmentsLineChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      SegmentsLineChart.withSampleData(animate);
+}
+
 /// Example of a stacked area chart with changing styles within each line.
 ///
 /// Each series of data in this example contains different values for color,
@@ -27,12 +105,6 @@
 /// the [charts.LineRendererConfig]. This could be used, for example, to define
 /// a default dash pattern for the series, with only a specific datum called out
 /// with a different pattern.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 @immutable
 class SegmentsLineChart extends StatelessWidget {
   const SegmentsLineChart(
@@ -49,15 +121,9 @@ class SegmentsLineChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory SegmentsLineChart.withRandomData([bool animate = true]) {
-    return SegmentsLineChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Segments';
+  static String? get subtitle =>
+      'Line chart with changes of style for each line';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -140,14 +206,6 @@ class SegmentsLineChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.LineChart(seriesList,
-        defaultRenderer:
-            charts.LineRendererConfig(includeArea: true, stacked: true),
-        animate: animate);
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     // Series of data with static dash pattern and stroke width. The color
@@ -222,6 +280,18 @@ class SegmentsLineChart extends StatelessWidget {
         data: strokeWidthChangeData,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.LineChart(
+      seriesList,
+      defaultRenderer: const charts.LineRendererConfig(
+        includeArea: true,
+        stacked: true,
+      ),
+      animate: animate,
+    );
   }
 }
 

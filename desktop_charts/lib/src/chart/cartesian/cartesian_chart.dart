@@ -15,6 +15,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math' show max;
+
+import 'package:flutter/scheduler.dart';
 import 'package:flutter/rendering.dart';
 import 'package:flutter/widgets.dart';
 
@@ -30,9 +33,9 @@ import 'axis/axis.dart'
     show CartesianAxis, NumericAxis, OrdinalAxis, measureAxisIdKey;
 import 'axis/draw_strategy/gridline_draw_strategy.dart'
     show GridlineRendererSpec;
+import 'axis/draw_strategy/none_draw_strategy.dart' show NoneRenderSpec;
 import 'axis/draw_strategy/small_tick_draw_strategy.dart'
     show SmallTickRendererSpec;
-import 'axis/draw_strategy/none_draw_strategy.dart' show NoneRenderSpec;
 import 'axis/spec/axis_spec.dart' show AxisSpec;
 import 'axis/spec/numeric_axis_spec.dart' show NumericAxisSpec;
 import 'axis/spec/ordinal_axis_spec.dart' show OrdinalAxisSpec;
@@ -771,7 +774,7 @@ class _AxisRender<D> extends RenderBox
         final double secondaryWidth =
             _secondaryMeasureAxis?.measureWidth(constraints) ?? 0.0;
 
-        availableHeight -= domainHeight;
+        availableHeight = max(0.0, availableHeight - domainHeight);
 
         _primaryMeasureOffsest = Offset.zero;
         _secondaryMeasureOffset = Offset.zero;
@@ -782,7 +785,7 @@ class _AxisRender<D> extends RenderBox
             _secondaryMeasureOffset = Offset(chartOffsetX, 0.0);
           }
 
-          availableWidth -= primaryWidth;
+          availableWidth = max(0.0, availableWidth - primaryWidth);
         }
 
         if (_secondaryMeasureAxis != null) {
@@ -791,7 +794,7 @@ class _AxisRender<D> extends RenderBox
             _primaryMeasureOffsest = Offset(chartOffsetX, 0.0);
           }
 
-          availableWidth -= secondaryWidth;
+          availableWidth = max(0.0, availableWidth - secondaryWidth);
         }
 
         _domainAxis.measure(
@@ -805,7 +808,7 @@ class _AxisRender<D> extends RenderBox
 
         _primaryMeasureAxis?.measure(
           BoxConstraints(
-            maxWidth: constraints.maxWidth - secondaryWidth,
+            maxWidth: max(0.0, constraints.maxWidth - secondaryWidth),
             maxHeight: availableHeight,
           ),
           Size(primaryWidth, availableHeight),
@@ -813,7 +816,7 @@ class _AxisRender<D> extends RenderBox
 
         _secondaryMeasureAxis?.measure(
           BoxConstraints(
-            maxWidth: constraints.maxWidth - primaryWidth,
+            maxWidth: max(0.0, constraints.maxWidth - primaryWidth),
             maxHeight: availableHeight,
           ),
           Size(secondaryWidth, availableHeight),
@@ -839,13 +842,14 @@ class _AxisRender<D> extends RenderBox
         if (_domainAxis.axisDirection == AxisDirection.left) {
           chartOffsetX += domainWidth;
         }
-        availableWidth -= domainWidth;
+
+        availableWidth = max(0.0, availableWidth - domainWidth);
 
         _secondaryMeasureOffset = Offset(chartOffsetX, 0.0);
         _primaryMeasureOffsest = Offset(chartOffsetX, 0.0);
 
         if (_primaryMeasureAxis != null) {
-          availableHeight -= primaryHeight;
+          availableHeight = max(0.0, availableHeight - primaryHeight);
 
           if (_primaryMeasureAxis!.axisDirection == AxisDirection.up) {
             chartOffsetY += primaryHeight;
@@ -854,7 +858,7 @@ class _AxisRender<D> extends RenderBox
         }
 
         if (_secondaryMeasureAxis != null) {
-          availableHeight -= secondaryHeight;
+          availableHeight = max(0.0, availableHeight - secondaryHeight);
 
           if (_secondaryMeasureAxis!.axisDirection == AxisDirection.up) {
             chartOffsetY += secondaryHeight;
@@ -874,7 +878,7 @@ class _AxisRender<D> extends RenderBox
         _primaryMeasureAxis?.measure(
           BoxConstraints(
             maxWidth: availableWidth,
-            maxHeight: constraints.maxHeight - secondaryHeight,
+            maxHeight: max(0.0, constraints.maxHeight - secondaryHeight),
           ),
           Size(availableWidth, primaryHeight),
         );
@@ -882,7 +886,7 @@ class _AxisRender<D> extends RenderBox
         _secondaryMeasureAxis?.measure(
           BoxConstraints(
             maxWidth: availableWidth,
-            maxHeight: constraints.maxHeight - primaryHeight,
+            maxHeight: max(0.0, constraints.maxHeight - primaryHeight),
           ),
           Size(availableWidth, secondaryHeight),
         );

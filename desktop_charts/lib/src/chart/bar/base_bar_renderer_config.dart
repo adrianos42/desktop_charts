@@ -78,7 +78,7 @@ abstract class BaseBarRendererConfig<D> extends SeriesRendererConfig<D> {
 
   final double minBarLength;
 
-  // The maximum bar group width in pixels, or null if bars can be arbitrarily
+  // The maximum bar group width, or null if bars can be arbitrarily
   // wide.
   final double? maxBarWidth;
 

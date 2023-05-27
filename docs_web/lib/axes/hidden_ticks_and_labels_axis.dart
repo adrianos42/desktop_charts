@@ -15,13 +15,88 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// No Axis Example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class HiddenTicksAndLabelsAxisPage extends StatefulWidget {
+  const HiddenTicksAndLabelsAxisPage({super.key});
+
+  @override
+  State<HiddenTicksAndLabelsAxisPage> createState() =>
+      _HiddenTicksAndLabelsAxisPageState();
+}
+
+class _HiddenTicksAndLabelsAxisPageState
+    extends State<HiddenTicksAndLabelsAxisPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = HiddenTicksAndLabelsAxis.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: HiddenTicksAndLabelsAxis.title,
+          subtitle: HiddenTicksAndLabelsAxis.subtitle,
+          body: (context) => HiddenTicksAndLabelsAxis(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class HiddenTicksAndLabelsAxisBuilder extends ExampleBuilder {
+  const HiddenTicksAndLabelsAxisBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const HiddenTicksAndLabelsAxisPage();
+
+  @override
+  String? get subtitle => HiddenTicksAndLabelsAxis.subtitle;
+
+  @override
+  String get title => HiddenTicksAndLabelsAxis.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      HiddenTicksAndLabelsAxis.withSampleData(animate);
+}
+
+/// No Axis Example
+///
 /// Example of hiding both axis.
 class HiddenTicksAndLabelsAxis extends StatelessWidget {
   const HiddenTicksAndLabelsAxis(
@@ -37,15 +112,8 @@ class HiddenTicksAndLabelsAxis extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory HiddenTicksAndLabelsAxis.withRandomData([bool animate = true]) {
-    return HiddenTicksAndLabelsAxis(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'No Axis';
+  static String? get subtitle => 'Bar chart with only the axis line drawn';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -59,6 +127,25 @@ class HiddenTicksAndLabelsAxis extends StatelessWidget {
       OrdinalSales('2015', random.nextInt(100) * 100),
       OrdinalSales('2016', random.nextInt(100) * 100),
       OrdinalSales('2017', random.nextInt(100) * 100),
+    ];
+
+    return [
+      charts.Series<OrdinalSales, String>(
+        id: 'Global Revenue',
+        domain: (OrdinalSales sales, _) => sales.year,
+        measure: (OrdinalSales sales, _) => sales.sales,
+        data: globalSalesData,
+      ),
+    ];
+  }
+
+  /// Create series list with single series
+  static List<charts.Series<OrdinalSales, String>> createSampleData() {
+    const globalSalesData = [
+      OrdinalSales('2014', 5000),
+      OrdinalSales('2015', 25000),
+      OrdinalSales('2016', 100000),
+      OrdinalSales('2017', 750000),
     ];
 
     return [
@@ -96,25 +183,6 @@ class HiddenTicksAndLabelsAxis extends StatelessWidget {
       ),
     );
   }
-
-  /// Create series list with single series
-  static List<charts.Series<OrdinalSales, String>> createSampleData() {
-    const globalSalesData = [
-      OrdinalSales('2014', 5000),
-      OrdinalSales('2015', 25000),
-      OrdinalSales('2016', 100000),
-      OrdinalSales('2017', 750000),
-    ];
-
-    return [
-      charts.Series<OrdinalSales, String>(
-        id: 'Global Revenue',
-        domain: (OrdinalSales sales, _) => sales.year,
-        measure: (OrdinalSales sales, _) => sales.sales,
-        data: globalSalesData,
-      ),
-    ];
-  }
 }
 
 /// Sample ordinal data type.
@@ -124,5 +192,4 @@ class OrdinalSales {
 
   final String year;
   final int sales;
-
 }

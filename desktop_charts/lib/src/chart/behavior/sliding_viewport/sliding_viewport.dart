@@ -69,9 +69,9 @@ class _SlidingViewportState<D, S extends BaseChart<D>>
       return;
     }
 
-    // Calculate current viewport center and determine the translate pixels
+    // Calculate current viewport center and determine the translate
     // needed based on the selected domain value's location and existing amount
-    // of translate pixels.
+    // of translate.
     final domainAxis = _chartState.domainAxis!;
     final selectedDatum = selectionModel.selectedDatum.first;
     final domainLocation = domainAxis

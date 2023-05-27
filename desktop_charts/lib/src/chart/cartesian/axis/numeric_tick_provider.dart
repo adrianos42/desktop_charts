@@ -263,7 +263,10 @@ class NumericTickProvider extends BaseTickProvider<num> {
     final axisUnitsLow = dataToAxisUnitConverter.convert(_low);
 
     _updateTickCounts(
-        high: axisUnitsHigh, low: axisUnitsLow, rangeWidth: scale.rangeWidth);
+      high: axisUnitsHigh,
+      low: axisUnitsLow,
+      rangeWidth: scale.rangeWidth,
+    );
 
     // Only create a copy of the scale if [viewportExtensionEnabled].
     final mutableScale =
@@ -479,7 +482,7 @@ class NumericTickProvider extends BaseTickProvider<num> {
   void _updateTickCounts({
     required double high,
     required double low,
-    required int rangeWidth,
+    required double rangeWidth,
   }) {
     int tmpMaxNumMajorTicks;
     int tmpMinNumMajorTicks;
@@ -494,10 +497,10 @@ class NumericTickProvider extends BaseTickProvider<num> {
       tmpMinNumMajorTicks = max(_desiredMinTickCount!, absoluteMinTicks);
       tmpMaxNumMajorTicks = max(_desiredMaxTickCount!, tmpMinNumMajorTicks);
     } else {
-      final minPixelsPerTick = minDipsBetweenTicks.toDouble();
+      final minPerTick = minDipsBetweenTicks.toDouble();
       tmpMinNumMajorTicks = absoluteMinTicks;
       tmpMaxNumMajorTicks =
-          max(absoluteMinTicks, (rangeWidth / minPixelsPerTick).floor());
+          max(absoluteMinTicks, (rangeWidth / minPerTick).floor());
     }
 
     // Don't blow away the previous array if it hasn't changed.

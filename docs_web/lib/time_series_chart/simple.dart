@@ -15,13 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Time series chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class SimpleTimeSeriesChartPage extends StatefulWidget {
+  const SimpleTimeSeriesChartPage({super.key});
+
+  @override
+  State<SimpleTimeSeriesChartPage> createState() =>
+      _SimpleTimeSeriesChartPageState();
+}
+
+class _SimpleTimeSeriesChartPageState extends State<SimpleTimeSeriesChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = SimpleTimeSeriesChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<TimeSeriesSales, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Time Series',
+      items: [
+        ItemTitle(
+          title: SimpleTimeSeriesChart.title,
+          subtitle: SimpleTimeSeriesChart.subtitle,
+          body: (context) => SimpleTimeSeriesChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SimpleTimeSeriesChartBuilder extends ExampleBuilder {
+  const SimpleTimeSeriesChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const SimpleTimeSeriesChartPage();
+
+  @override
+  String? get subtitle => SimpleTimeSeriesChart.subtitle;
+
+  @override
+  String get title => SimpleTimeSeriesChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      SimpleTimeSeriesChart.withSampleData(animate);
+}
+
+/// Time series chart example
 class SimpleTimeSeriesChart extends StatelessWidget {
   const SimpleTimeSeriesChart(
     this.seriesList, {
@@ -37,15 +110,8 @@ class SimpleTimeSeriesChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory SimpleTimeSeriesChart.withRandomData([bool animate = true]) {
-    return SimpleTimeSeriesChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Simple';
+  static String? get subtitle => 'Simple single time series chart';
 
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
@@ -72,18 +138,6 @@ class SimpleTimeSeriesChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(
-      seriesList,
-      animate: animate,
-      // Optionally pass in a [DateTimeFactory] used by the chart. The factory
-      // should create the same type of [DateTime] as the data provided. If none
-      // specified, the default creates local date time.
-      dateTimeFactory: const charts.LocalDateTimeFactory(),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<TimeSeriesSales, DateTime>> createSampleData() {
     final data = [
@@ -102,6 +156,18 @@ class SimpleTimeSeriesChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+      // Optionally pass in a [DateTimeFactory] used by the chart. The factory
+      // should create the same type of [DateTime] as the data provided. If none
+      // specified, the default creates local date time.
+      dateTimeFactory: const charts.LocalDateTimeFactory(),
+    );
   }
 }
 

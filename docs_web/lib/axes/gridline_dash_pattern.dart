@@ -15,13 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Example of time series chart with grid lines that have a dash pattern.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class GridlineDashPatternPage extends StatefulWidget {
+  const GridlineDashPatternPage({super.key});
+
+  @override
+  State<GridlineDashPatternPage> createState() =>
+      _GridlineDashPatternPageState();
+}
+
+class _GridlineDashPatternPageState extends State<GridlineDashPatternPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = GridlineDashPattern.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<MyRow, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: GridlineDashPattern.title,
+          subtitle: GridlineDashPattern.subtitle,
+          body: (context) => GridlineDashPattern(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class GridlineDashPatternBuilder extends ExampleBuilder {
+  const GridlineDashPatternBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) => const GridlineDashPatternPage();
+
+  @override
+  String? get subtitle => GridlineDashPattern.subtitle;
+
+  @override
+  String get title => GridlineDashPattern.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      GridlineDashPattern.withSampleData(animate);
+}
+
+/// Example of time series chart with grid lines that have a dash pattern.
 class GridlineDashPattern extends StatelessWidget {
   const GridlineDashPattern(
     this.seriesList, {
@@ -37,15 +109,9 @@ class GridlineDashPattern extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory GridlineDashPattern.withRandomData([bool animate = true]) {
-    return GridlineDashPattern(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Gridline dash pattern';
+  static String? get subtitle =>
+      'Time series with measure grid lines that have a dash pattern';
 
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
@@ -78,22 +144,6 @@ class GridlineDashPattern extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(
-      seriesList,
-      animate: animate,
-      /// Customize the grid lines to use a dash pattern.
-      primaryMeasureAxis: const charts.NumericAxisSpec(
-        renderSpec: charts.GridlineRendererSpec(
-          lineStyle: charts.LineStyle(
-            dashPattern: [4, 4],
-          ),
-        ),
-      ),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<MyRow, DateTime>> createSampleData() {
     final data = [
@@ -118,6 +168,23 @@ class GridlineDashPattern extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+
+      /// Customize the grid lines to use a dash pattern.
+      primaryMeasureAxis: const charts.NumericAxisSpec(
+        renderSpec: charts.GridlineRendererSpec(
+          lineStyle: charts.LineStyle(
+            dashPattern: [4, 4],
+          ),
+        ),
+      ),
+    );
   }
 }
 

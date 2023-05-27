@@ -15,13 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// RTL Line chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class RTLLineChartPage extends StatefulWidget {
+  const RTLLineChartPage({super.key});
+
+  @override
+  State<RTLLineChartPage> createState() => _RTLLineChartPageState();
+}
+
+class _RTLLineChartPageState extends State<RTLLineChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = RTLLineChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, num>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'i18n',
+      items: [
+        ItemTitle(
+          title: RTLLineChart.title,
+          subtitle: RTLLineChart.subtitle,
+          body: (context) => RTLLineChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class RTLLineChartBuilder extends ExampleBuilder {
+  const RTLLineChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const RTLLineChartPage();
+
+  @override
+  String? get subtitle => RTLLineChart.subtitle;
+
+  @override
+  String get title => RTLLineChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      RTLLineChart.withSampleData(animate);
+}
+
+/// RTL Line chart example
 class RTLLineChart extends StatelessWidget {
   const RTLLineChart(
     this.seriesList, {
@@ -37,15 +109,8 @@ class RTLLineChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory RTLLineChart.withRandomData([bool animate = true]) {
-    return RTLLineChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'RTL Line Chart';
+  static String? get subtitle => 'Simple line chart in RTL';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -59,6 +124,25 @@ class RTLLineChart extends StatelessWidget {
       LinearSales(1, random.nextInt(100)),
       LinearSales(2, random.nextInt(100)),
       LinearSales(3, random.nextInt(100)),
+    ];
+
+    return [
+      charts.Series<LinearSales, int>(
+        id: 'Sales',
+        domain: (LinearSales sales, _) => sales.year,
+        measure: (LinearSales sales, _) => sales.sales,
+        data: data,
+      )
+    ];
+  }
+
+  /// Create one series with sample hard coded data.
+  static List<charts.Series<LinearSales, int>> createSampleData() {
+    const data = [
+      LinearSales(0, 5),
+      LinearSales(1, 25),
+      LinearSales(2, 100),
+      LinearSales(3, 75),
     ];
 
     return [
@@ -91,25 +175,6 @@ class RTLLineChart extends StatelessWidget {
         animate: animate,
       ),
     );
-  }
-
-  /// Create one series with sample hard coded data.
-  static List<charts.Series<LinearSales, int>> createSampleData() {
-    const data = [
-      LinearSales(0, 5),
-      LinearSales(1, 25),
-      LinearSales(2, 100),
-      LinearSales(3, 75),
-    ];
-
-    return [
-      charts.Series<LinearSales, int>(
-        id: 'Sales',
-        domain: (LinearSales sales, _) => sales.year,
-        measure: (LinearSales sales, _) => sales.sales,
-        data: data,
-      )
-    ];
   }
 }
 

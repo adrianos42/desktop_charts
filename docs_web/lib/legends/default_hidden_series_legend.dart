@@ -22,6 +22,81 @@ import 'dart:math';
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class DefaultHiddenSeriesLegendPage extends StatefulWidget {
+  const DefaultHiddenSeriesLegendPage({super.key});
+
+  @override
+  State<DefaultHiddenSeriesLegendPage> createState() =>
+      _DefaultHiddenSeriesLegendPageState();
+}
+
+class _DefaultHiddenSeriesLegendPageState
+    extends State<DefaultHiddenSeriesLegendPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = DefaultHiddenSeriesLegend.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Legends',
+      items: [
+        ItemTitle(
+          title: DefaultHiddenSeriesLegend.title,
+          subtitle: DefaultHiddenSeriesLegend.subtitle,
+          body: (context) => DefaultHiddenSeriesLegend(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class DefaultHiddenSeriesLegendBuilder extends ExampleBuilder {
+  const DefaultHiddenSeriesLegendBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const DefaultHiddenSeriesLegendPage();
+
+  @override
+  String? get subtitle => DefaultHiddenSeriesLegend.subtitle;
+
+  @override
+  String get title => DefaultHiddenSeriesLegend.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      DefaultHiddenSeriesLegend.withSampleData(animate);
+}
+
 class DefaultHiddenSeriesLegend extends StatelessWidget {
   const DefaultHiddenSeriesLegend(
     this.seriesList, {
@@ -36,15 +111,9 @@ class DefaultHiddenSeriesLegend extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory DefaultHiddenSeriesLegend.withRandomData([bool animate = true]) {
-    return DefaultHiddenSeriesLegend(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Default Hidden Series';
+  static String? get subtitle =>
+      'A series legend showing a series hidden by default';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -109,23 +178,6 @@ class DefaultHiddenSeriesLegend extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.BarChart(
-      seriesList,
-      animate: animate,
-      barGroupingType: charts.BarGroupingType.grouped,
-      // Add the series legend behavior to the chart to turn on series legends.
-      // By default the legend will display above the chart.
-      behaviors: [
-        const charts.SeriesLegend(
-          // Configures the "Other" series to be hidden on first chart draw.
-          defaultHiddenSeries: ['Other'],
-        )
-      ],
-    );
-  }
-
   /// Create series list with multiple series
   static List<charts.Series<OrdinalSales, String>> createSampleData() {
     const desktopSalesData = [
@@ -182,6 +234,23 @@ class DefaultHiddenSeriesLegend extends StatelessWidget {
         data: otherSalesData,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.BarChart(
+      seriesList,
+      animate: animate,
+      barGroupingType: charts.BarGroupingType.grouped,
+      // Add the series legend behavior to the chart to turn on series legends.
+      // By default the legend will display above the chart.
+      behaviors: const [
+        charts.SeriesLegend(
+          // Configures the "Other" series to be hidden on first chart draw.
+          defaultHiddenSeries: ['Other'],
+        )
+      ],
+    );
   }
 }
 

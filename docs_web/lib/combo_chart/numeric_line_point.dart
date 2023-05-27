@@ -15,6 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class NumericComboLinePointChartPage extends StatefulWidget {
+  const NumericComboLinePointChartPage({super.key});
+
+  @override
+  State<NumericComboLinePointChartPage> createState() =>
+      _NumericComboLinePointChartPageState();
+}
+
+class _NumericComboLinePointChartPageState
+    extends State<NumericComboLinePointChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = NumericComboLinePointChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, num>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Combo',
+      items: [
+        ItemTitle(
+          title: NumericComboLinePointChart.title,
+          subtitle: NumericComboLinePointChart.subtitle,
+          body: (context) => NumericComboLinePointChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class NumericComboLinePointChartBuilder extends ExampleBuilder {
+  const NumericComboLinePointChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const NumericComboLinePointChartPage();
+
+  @override
+  String? get subtitle => NumericComboLinePointChart.subtitle;
+
+  @override
+  String get title => NumericComboLinePointChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      NumericComboLinePointChart.withSampleData(animate);
+}
+
 /// Example of a numeric combo chart with two series rendered as lines, and a
 /// third rendered as points along the top line with a different color.
 ///
@@ -22,12 +102,6 @@
 /// different color from the main series color. The line renderer supports
 /// drawing points with the "includePoints" option, but those points will share
 /// the same color as the line.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class NumericComboLinePointChart extends StatelessWidget {
   const NumericComboLinePointChart(
     this.seriesList, {
@@ -43,15 +117,8 @@ class NumericComboLinePointChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory NumericComboLinePointChart.withRandomData([bool animate = true]) {
-    return NumericComboLinePointChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Numeric Line Points';
+  static String? get subtitle => 'Numeric combo chart with lines and points';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -108,24 +175,6 @@ class NumericComboLinePointChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.NumericCartesianChart(
-      seriesList,
-      animate: animate,
-      // Configure the default renderer as a line renderer. This will be used
-      // for any series that does not define a rendererIdKey.
-      defaultRenderer: charts.LineRendererConfig(),
-      // Custom renderer configuration for the point series.
-      customSeriesRenderers: [
-        charts.PointRendererConfig(
-          // ID used to link series to this renderer.
-          customRendererId: 'customPoint',
-        ),
-      ],
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const desktopSalesData = [
@@ -174,6 +223,24 @@ class NumericComboLinePointChart extends StatelessWidget {
         // Configure our custom point renderer for this series.
         ..setAttribute(charts.rendererIdKey, 'customPoint'),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.NumericCartesianChart(
+      seriesList,
+      animate: animate,
+      // Configure the default renderer as a line renderer. This will be used
+      // for any series that does not define a rendererIdKey.
+      defaultRenderer: const charts.LineRendererConfig(),
+      // Custom renderer configuration for the point series.
+      customSeriesRenderers: const [
+        charts.PointRendererConfig(
+          // ID used to link series to this renderer.
+          customRendererId: 'customPoint',
+        ),
+      ],
+    );
   }
 }
 

@@ -15,14 +15,88 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Example of a numeric combo chart with two series rendered as bars, and a
-/// third rendered as a line.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class NumericComboLineBarChartPage extends StatefulWidget {
+  const NumericComboLineBarChartPage({super.key});
+
+  @override
+  State<NumericComboLineBarChartPage> createState() =>
+      _NumericComboLineBarChartPageState();
+}
+
+class _NumericComboLineBarChartPageState
+    extends State<NumericComboLineBarChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = NumericComboLineBarChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, num>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Combo',
+      items: [
+        ItemTitle(
+          title: NumericComboLineBarChart.title,
+          subtitle: NumericComboLineBarChart.subtitle,
+          body: (context) => NumericComboLineBarChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class NumericComboLineBarChartBuilder extends ExampleBuilder {
+  const NumericComboLineBarChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const NumericComboLineBarChartPage();
+
+  @override
+  String? get subtitle => NumericComboLineBarChart.subtitle;
+
+  @override
+  String get title => NumericComboLineBarChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      NumericComboLineBarChart.withSampleData(animate);
+}
+
+/// Example of a numeric combo chart with two series rendered as bars, and a
+/// third rendered as a line.
 class NumericComboLineBarChart extends StatelessWidget {
   const NumericComboLineBarChart(
     this.seriesList, {
@@ -38,15 +112,8 @@ class NumericComboLineBarChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory NumericComboLineBarChart.withRandomData([bool animate = true]) {
-    return NumericComboLineBarChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Numeric Line Bar';
+  static String? get subtitle => 'Numeric combo chart with lines and bars';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -105,24 +172,6 @@ class NumericComboLineBarChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.NumericCartesianChart(
-      seriesList,
-      animate: animate,
-      // Configure the default renderer as a line renderer. This will be used
-      // for any series that does not define a rendererIdKey.
-      defaultRenderer: charts.LineRendererConfig(),
-      // Custom renderer configuration for the bar series.
-      customSeriesRenderers: const [
-        charts.BarRendererConfig(
-          // ID used to link series to this renderer.
-          customRendererId: 'customBar',
-        ),
-      ],
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const desktopSalesData = [
@@ -173,6 +222,24 @@ class NumericComboLineBarChart extends StatelessWidget {
         data: mobileSalesData,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.NumericCartesianChart(
+      seriesList,
+      animate: animate,
+      // Configure the default renderer as a line renderer. This will be used
+      // for any series that does not define a rendererIdKey.
+      defaultRenderer: const charts.LineRendererConfig(),
+      // Custom renderer configuration for the bar series.
+      customSeriesRenderers: const [
+        charts.BarRendererConfig(
+          // ID used to link series to this renderer.
+          customRendererId: 'customBar',
+        ),
+      ],
+    );
   }
 }
 

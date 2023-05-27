@@ -15,6 +15,11 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
 /// Example of a bar chart with domain selection A11y behavior.
 ///
 /// The OS screen reader (TalkBack / VoiceOver) setting must be turned on, or
@@ -33,12 +38,6 @@
 /// These semantic node descriptions are read out loud by the OS screen reader
 /// when the user taps within the bounding box, or when the user cycles through
 /// the screen's elements (such as swiping left and right).
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class DomainA11yExploreBarChart extends StatelessWidget {
   const DomainA11yExploreBarChart(
     this.seriesList, {
@@ -129,6 +128,40 @@ class DomainA11yExploreBarChart extends StatelessWidget {
     return buffer.toString();
   }
 
+  /// Create one series with sample hard coded data.
+  static List<charts.Series<OrdinalSales, String>> createSampleData() {
+    const mobileData = [
+      OrdinalSales('2014', 5),
+      OrdinalSales('2015', 25),
+      OrdinalSales('2016', 100),
+      OrdinalSales('2017', 75),
+    ];
+
+    const tabletData = [
+      // Purposely missing data to show that only measures that are available
+      // are vocalized.
+      OrdinalSales('2016', 25),
+      OrdinalSales('2017', 50),
+    ];
+
+    return [
+      charts.Series<OrdinalSales, String>(
+        id: 'Mobile Sales',
+        color: (_, __) => charts.DesktopPalette.blue.shadeDefault,
+        domain: (OrdinalSales sales, _) => sales.year,
+        measure: (OrdinalSales sales, _) => sales.sales,
+        data: mobileData,
+      ),
+      charts.Series<OrdinalSales, String>(
+        id: 'Tablet Sales',
+        color: (_, __) => charts.DesktopPalette.red.shadeDefault,
+        domain: (OrdinalSales sales, _) => sales.year,
+        measure: (OrdinalSales sales, _) => sales.sales,
+        data: tabletData,
+      )
+    ];
+  }
+
   @override
   Widget build(BuildContext context) {
     return Semantics(
@@ -175,40 +208,6 @@ class DomainA11yExploreBarChart extends StatelessWidget {
             // charts.DomainHighlighter(charts.SelectionModelType.info),
           ],
         ));
-  }
-
-  /// Create one series with sample hard coded data.
-  static List<charts.Series<OrdinalSales, String>> createSampleData() {
-    const mobileData = [
-      OrdinalSales('2014', 5),
-      OrdinalSales('2015', 25),
-      OrdinalSales('2016', 100),
-      OrdinalSales('2017', 75),
-    ];
-
-    const tabletData = [
-      // Purposely missing data to show that only measures that are available
-      // are vocalized.
-      OrdinalSales('2016', 25),
-      OrdinalSales('2017', 50),
-    ];
-
-    return [
-      charts.Series<OrdinalSales, String>(
-        id: 'Mobile Sales',
-        color: (_, __) => charts.DesktopPalette.blue.shadeDefault,
-        domain: (OrdinalSales sales, _) => sales.year,
-        measure: (OrdinalSales sales, _) => sales.sales,
-        data: mobileData,
-      ),
-      charts.Series<OrdinalSales, String>(
-        id: 'Tablet Sales',
-        color: (_, __) => charts.DesktopPalette.red.shadeDefault,
-        domain: (OrdinalSales sales, _) => sales.year,
-        measure: (OrdinalSales sales, _) => sales.sales,
-        data: tabletData,
-      )
-    ];
   }
 }
 

@@ -288,7 +288,7 @@ class BarRenderer<D, S extends BaseChart<D>>
               .roundToDouble();
     }
 
-    // Make sure that bars are at least one pixel wide, so that they will always
+    // Make sure that bars are at least one unit, so that they will always
     // be visible on the chart. Ideally we should do something clever with the
     // size of the chart, and the density and periodicity of the data, but this
     // at least ensures that dense charts still have visible data.

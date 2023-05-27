@@ -50,8 +50,9 @@ export 'slider/slider.dart'
         SliderListenerDragState,
         SliderStyle;
 export 'sliding_viewport/sliding_viewport.dart' show SlidingViewport;
-export 'sunburst_ring_expander/sunburst_ring_expander.dart' show SunburstRingExpander;
+export 'sunburst_ring_expander/sunburst_ring_expander.dart'
+    show SunburstRingExpander;
 export 'zoom/initial_hint_behavior.dart' show InitialHintBehavior;
-export 'zoom/pan_and_zoom_behavior.dart' show PanAndZoomBehavior;
-export 'zoom/pan_behavior.dart' show PanBehavior, PanningCompletedCallback;
+export 'zoom/pan_behavior.dart'
+    show PanBehavior, PanningCompletedCallback, PanAndZoomBehavior;
 export 'zoom/panning_tick_provider.dart' show PanningTickProviderMode;

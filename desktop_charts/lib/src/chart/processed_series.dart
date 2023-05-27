@@ -16,8 +16,10 @@
 // limitations under the License.
 
 import 'dart:ui' show Color;
+
 import 'package:flutter/painting.dart' show TextStyle;
 
+import '../curve.dart' show LineCurve;
 import '../data/series.dart'
     show Accessor, Series, SeriesAttributes, AttributeKey;
 import 'cartesian/axis/axis.dart' show CartesianAxis;
@@ -42,6 +44,7 @@ class MutableSeries<D> extends ImmutableSeries<D> {
         measureLowerBoundFn = series.measureLowerBound,
         measureUpperBoundFn = series.measureUpperBound,
         measureOffsetFn = series.measureOffset,
+        lineCurveFn = series.lineCurve,
 
         // Save the original measure functions in case they get replaced later.
         rawMeasureFn = series.measure,
@@ -106,7 +109,8 @@ class MutableSeries<D> extends ImmutableSeries<D> {
         radiusFn = other.radiusFn,
         strokeWidthFn = other.strokeWidthFn,
         measureAxis = other.measureAxis,
-        domainAxis = other.domainAxis {
+        domainAxis = other.domainAxis,
+        lineCurveFn = other.lineCurveFn {
     _attrs.mergeFrom(other._attrs);
   }
 
@@ -213,6 +217,9 @@ class MutableSeries<D> extends ImmutableSeries<D> {
   CartesianAxis<D>? domainAxis;
 
   @override
+  Accessor<LineCurve?>? lineCurveFn;
+
+  @override
   void setAttr<R>(AttributeKey<R> key, R value) => _attrs.setAttr(key, value);
 
   @override
@@ -311,6 +318,8 @@ abstract class ImmutableSeries<D> {
   Accessor<double?>? get radiusFn;
 
   Accessor<double?>? get strokeWidthFn;
+
+  Accessor<LineCurve?>? get lineCurveFn;
 
   void setAttr<R>(AttributeKey<R> key, R value);
 

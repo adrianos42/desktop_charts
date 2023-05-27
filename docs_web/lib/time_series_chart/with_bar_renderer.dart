@@ -15,13 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Example of a time series chart using a bar renderer.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class TimeSeriesBarPage extends StatefulWidget {
+  const TimeSeriesBarPage({super.key});
+
+  @override
+  State<TimeSeriesBarPage> createState() => _TimeSeriesBarPageState();
+}
+
+class _TimeSeriesBarPageState extends State<TimeSeriesBarPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = TimeSeriesBar.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<TimeSeriesSales, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Time Series',
+      items: [
+        ItemTitle(
+          title: TimeSeriesBar.title,
+          subtitle: TimeSeriesBar.subtitle,
+          body: (context) => TimeSeriesBar(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class TimeSeriesBarBuilder extends ExampleBuilder {
+  const TimeSeriesBarBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const TimeSeriesBarPage();
+
+  @override
+  String? get subtitle => TimeSeriesBar.subtitle;
+
+  @override
+  String get title => TimeSeriesBar.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      TimeSeriesBar.withSampleData(animate);
+}
+
+/// Example of a time series chart using a bar renderer.
 class TimeSeriesBar extends StatelessWidget {
   const TimeSeriesBar(
     this.seriesList, {
@@ -37,15 +109,8 @@ class TimeSeriesBar extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory TimeSeriesBar.withRandomData([bool animate = true]) {
-    return TimeSeriesBar(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Bars';
+  static String? get subtitle => 'Time series chart using the bar renderer';
 
   final List<charts.Series<TimeSeriesSales, DateTime>> seriesList;
   final bool animate;
@@ -89,24 +154,6 @@ class TimeSeriesBar extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(
-      seriesList,
-      animate: animate,
-      // Set the default renderer to a bar renderer.
-      // This can also be one of the custom renderers of the time series chart.
-      defaultRenderer: const charts.BarRendererConfig<DateTime>(),
-      // It is recommended that default interactions be turned off if using bar
-      // renderer, because the line point highlighter is the default for time
-      // series chart.
-      defaultInteractions: false,
-      // If default interactions were removed, optionally add select nearest
-      // and the domain highlighter that are typical for bar charts.
-      behaviors: [charts.SelectNearest(), charts.DomainHighlighter()],
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<TimeSeriesSales, DateTime>> createSampleData() {
     final data = [
@@ -142,6 +189,27 @@ class TimeSeriesBar extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+      // Set the default renderer to a bar renderer.
+      // This can also be one of the custom renderers of the time series chart.
+      defaultRenderer: const charts.BarRendererConfig<DateTime>(),
+      // It is recommended that default interactions be turned off if using bar
+      // renderer, because the line point highlighter is the default for time
+      // series chart.
+      defaultInteractions: false,
+      // If default interactions were removed, optionally add select nearest
+      // and the domain highlighter that are typical for bar charts.
+      behaviors: const [
+        charts.SelectNearest(),
+        charts.DomainHighlighter(),
+      ],
+    );
   }
 }
 

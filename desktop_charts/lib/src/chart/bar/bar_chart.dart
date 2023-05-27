@@ -29,7 +29,7 @@ class BarChart extends OrdinalCartesianChart {
   BarChart(
     super.seriesList, {
     BarRendererConfig<String>? defaultRenderer,
-    BarGroupingType? barGroupingType,
+    BarGroupingType barGroupingType = BarGroupingType.grouped,
     super.primaryMeasureAxis,
     super.secondaryMeasureAxis,
     super.disjointMeasureAxes,

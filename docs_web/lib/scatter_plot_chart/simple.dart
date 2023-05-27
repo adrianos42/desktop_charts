@@ -15,13 +15,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Scatter plot chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class SimpleScatterPlotChartPage extends StatefulWidget {
+  const SimpleScatterPlotChartPage({super.key});
+
+  @override
+  State<SimpleScatterPlotChartPage> createState() =>
+      _SimpleScatterPlotChartPageState();
+}
+
+class _SimpleScatterPlotChartPageState
+    extends State<SimpleScatterPlotChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = SimpleScatterPlotChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Scatter Plot',
+      items: [
+        ItemTitle(
+          title: SimpleScatterPlotChart.title,
+          subtitle: SimpleScatterPlotChart.subtitle,
+          body: (context) => SimpleScatterPlotChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SimpleScatterPlotChartBuilder extends ExampleBuilder {
+  const SimpleScatterPlotChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const SimpleScatterPlotChartPage();
+
+  @override
+  String? get subtitle => SimpleScatterPlotChart.subtitle;
+
+  @override
+  String get title => SimpleScatterPlotChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      SimpleScatterPlotChart.withSampleData(animate);
+}
+
+/// Scatter plot chart example
 class SimpleScatterPlotChart extends StatelessWidget {
   const SimpleScatterPlotChart(
     this.seriesList, {
@@ -39,17 +113,8 @@ class SimpleScatterPlotChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory SimpleScatterPlotChart.withRandomData([
-    bool animate = true,
-  ]) {
-    return SimpleScatterPlotChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Simple';
+  static String? get subtitle => 'With a single series';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -100,11 +165,6 @@ class SimpleScatterPlotChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.ScatterPlotChart(seriesList, animate: animate);
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const data = [
@@ -147,6 +207,11 @@ class SimpleScatterPlotChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.ScatterPlotChart(seriesList, animate: animate);
   }
 }
 

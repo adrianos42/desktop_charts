@@ -20,6 +20,7 @@ import 'package:flutter/painting.dart' show TextStyle;
 
 import '../chart/chart_canvas.dart' show FillPatternType;
 import '../chart/datum_details.dart' show DomainFormatter, MeasureFormatter;
+import '../curve.dart' show LineCurve;
 
 import '../typed_registry.dart' show TypedRegistry, TypedKey;
 
@@ -52,6 +53,7 @@ class Series<T, D> {
     TypedAccessor<T, double>? radius,
     String? seriesCategory,
     TypedAccessor<T, double?>? strokeWidth,
+    TypedAccessor<T, LineCurve?>? lineCurve,
   }) {
     return Series._internal(
       id: id,
@@ -114,6 +116,9 @@ class Series<T, D> {
       strokeWidth: strokeWidth == null
           ? null
           : (int? index) => strokeWidth(data[index!], index),
+      lineCurve: lineCurve == null
+          ? null
+          : (int? index) => lineCurve(data[index!], index),
     );
   }
 
@@ -145,6 +150,7 @@ class Series<T, D> {
     required this.seriesCategory,
     required this.seriesColor,
     required this.strokeWidth,
+    required this.lineCurve,
   });
 
   final String id;
@@ -224,6 +230,7 @@ class Series<T, D> {
   final Accessor<String>? labelAccessor;
   final Accessor<TextStyle>? insideLabelStyleAccessor;
   final Accessor<TextStyle>? outsideLabelStyleAccessor;
+  final Accessor<LineCurve?>? lineCurve;
 
   // TODO: should this be immutable as well? If not, should any of
   // the non-required ones be final?

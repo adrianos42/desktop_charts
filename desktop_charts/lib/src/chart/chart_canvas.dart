@@ -20,9 +20,10 @@ import 'dart:ui';
 
 import '../text_element.dart' show TextElement;
 import 'canvas_shapes.dart' show CanvasBarStack, CanvasPie;
+import '../curve.dart';
 
 extension ChartCanvas on Canvas {
-  /// Pixels to allow to overdraw above the draw area that fades to transparent.
+  /// Value to allow to overdraw above the draw area that fades to transparent.
   static const rectTopGradient = 5.0;
 
   /// Renders a sector of a circle, with an optional hole in the center.
@@ -76,7 +77,7 @@ extension ChartCanvas on Canvas {
   /// to stroke-dasharray in SVG path elements. An odd number of values in the
   /// pattern will be repeated to derive an even number of values. "1,2,3" is
   /// equivalent to "1,2,3,1,2,3."
-  void drawChartLine(
+  Rect drawChartLine(
     Offset offset, {
     required List<Offset> points,
     required Color stroke,
@@ -84,8 +85,9 @@ extension ChartCanvas on Canvas {
     bool? roundEndCaps,
     double? strokeWidth,
     List<int>? dashPattern,
+    LineCurve curve = const LinearLineCurve(),
   }) {
-    _linePainterDraw(
+    return _linePainterDraw(
       canvas: this,
       points: points.map((e) => e + offset).toList(),
       clipBounds: clipBounds?.shift(offset),
@@ -93,6 +95,23 @@ extension ChartCanvas on Canvas {
       roundEndCaps: roundEndCaps,
       strokeWidth: strokeWidth,
       dashPattern: dashPattern,
+      curve: curve,
+    );
+  }
+
+  void drawChartLinePath(
+    Offset offset, {
+    required Path path,
+    required Color stroke,
+    Rect? clipBounds,
+    double? strokeWidth,
+  }) {
+    _linePainterDrawPath(
+      canvas: this,
+      clipBounds: clipBounds?.shift(offset),
+      stroke: stroke,
+      strokeWidth: strokeWidth,
+      path: path.shift(offset),
     );
   }
 
@@ -170,7 +189,6 @@ extension ChartCanvas on Canvas {
     Color? fill,
     Color? stroke,
     double? strokeWidth,
-    BlendMode? blendMode,
   }) {
     _pointPainterDraw(
       canvas: this,
@@ -192,30 +210,36 @@ extension ChartCanvas on Canvas {
   ///
   /// [stroke] and [strokeWidth] configure the color and thickness of the
   /// edges of the polygon. Both must be provided together for a line to appear.
-  void drawChartPolygon(
+  Rect drawChartPolygon(
     Offset offset, {
     required List<Offset> points,
+    List<Offset> bottomPoints = const [],
+    bool hasBottomCurve = false,
+    LineCurve curve = const LinearLineCurve(),
     Rect? clipBounds,
     Color? fill,
     Color? stroke,
     double? strokeWidth,
   }) {
-    _polygonPainterDraw(
+    return _polygonPainterDraw(
       canvas: this,
       points: points.map((e) => offset + e).toList(),
       clipBounds: clipBounds?.shift(offset),
       fill: fill,
       stroke: stroke,
       strokeWidth: strokeWidth,
+      curve: curve,
+      bottomPoints: bottomPoints.map((e) => offset + e).toList(),
+      hasBottomCurve: hasBottomCurve,
     );
   }
 
   /// Renders a simple rectangle.
   ///
   /// [drawAreaBounds] if specified and if the bounds of the rectangle exceed
-  /// the draw area bounds on the top, the first x pixels (decided by the native
+  /// the draw area bounds on the top, the first x (decided by the native
   /// platform) exceeding the draw area will apply a gradient to transparent
-  /// with anything exceeding the x pixels to be transparent.
+  /// with anything exceeding the x to be transparent.
   void drawChartRect(
     Offset offset,
     Rect bounds, {
@@ -260,7 +284,7 @@ extension ChartCanvas on Canvas {
         paint.color = fill;
         paint.style = PaintingStyle.fill;
 
-        // Apply a gradient to the top [rect_top_gradient_pixels] to transparent
+        // Apply a gradient to the top [rect_top_gradient] to transparent
         // if the rectangle is higher than the [drawAreaBounds] top.
         if (drawBounds != null && chartBounds.top < drawBounds.top) {
           paint.shader = _createHintGradient(
@@ -321,9 +345,9 @@ extension ChartCanvas on Canvas {
   /// be the bottom most bar for a vertically rendered bar.
   ///
   /// [drawAreaBounds] if specified and if the bounds of the rectangle exceed
-  /// the draw area bounds on the top, the first x pixels (decided by the native
+  /// the draw area bounds on the top, the first x (decided by the native
   /// platform) exceeding the draw area will apply a gradient to transparent
-  /// with anything exceeding the x pixels to be transparent.
+  /// with anything exceeding the x to be transparent.
   void drawChartBarStack(
     Offset offset,
     CanvasBarStack barStack, {
@@ -500,6 +524,7 @@ extension ChartCanvas on Canvas {
         stroke: fill,
         strokeWidth: 4.0,
         shader: lineShader,
+        curve: const LinearLineCurve(),
       );
     }
   }
@@ -529,37 +554,6 @@ Color getAnimatedColor(Color previous, Color target, double animationPercent) {
 ///   default pattern for bars.
 enum FillPatternType { forwardHatch, solid }
 
-/// Defines the blend modes to use for drawing on canvas.
-enum BlendMode {
-  color,
-  colorBurn,
-  colorDodge,
-  darken,
-  defaultMode,
-  difference,
-  exclusion,
-  hardLight,
-  hue,
-  lighten,
-  luminosity,
-  multiply,
-  overlay,
-  saturation,
-  screen,
-  softLight,
-  copy,
-  destinationAtop,
-  destinationIn,
-  destinationOut,
-  destinationOver,
-  lighter,
-  sourceAtop,
-  sourceIn,
-  sourceOut,
-  sourceOver,
-  xor
-}
-
 /// Determines the orientation of a drawn link.
 ///
 /// * [horizontal] Link control points are averaged across the x-axis.
@@ -587,13 +581,14 @@ class Link {
 ///
 /// [dashPattern] controls the pattern of dashes and gaps in a line. It is a
 /// list of lengths of alternating dashes and gaps. The rendering is similar
-/// to stroke-dasharray in SVG path elements. An odd number of values in the
+/// to stroke-dash-array in SVG path elements. An odd number of values in the
 /// pattern will be repeated to derive an even number of values. "1,2,3" is
 /// equivalent to "1,2,3,1,2,3."
-void _linePainterDraw({
+Rect _linePainterDraw({
   required Canvas canvas,
   required List<Offset> points,
   required Color stroke,
+  required LineCurve curve,
   Rect? clipBounds,
   bool? roundEndCaps,
   double? strokeWidth,
@@ -601,19 +596,14 @@ void _linePainterDraw({
   Shader? shader,
 }) {
   if (points.isEmpty) {
-    return;
+    return Rect.zero;
   }
 
   // Apply clip bounds as a clip region.
   if (clipBounds != null) {
     canvas
       ..save()
-      ..clipRect(Rect.fromLTWH(
-        clipBounds.left,
-        clipBounds.top,
-        clipBounds.width,
-        clipBounds.height,
-      ));
+      ..clipRect(clipBounds);
   }
 
   final Paint paint = Paint()..color = stroke;
@@ -621,6 +611,8 @@ void _linePainterDraw({
   if (shader != null) {
     paint.shader = shader;
   }
+
+  Rect bounds = Rect.zero;
 
   // If the line has a single point, draw a circle.
   if (points.length == 1) {
@@ -638,12 +630,58 @@ void _linePainterDraw({
       if (roundEndCaps == true) {
         paint.strokeCap = StrokeCap.round;
       }
-
-      _linePainterdrawSolidLine(canvas, paint, points);
+      bounds = _linePainterdrawSolidLine(
+        canvas,
+        paint,
+        points,
+        curve,
+      );
     } else {
-      _linePainterdrawDashedLine(canvas, paint, points, dashPattern);
+      _linePainterdrawDashedLine(
+        canvas,
+        paint,
+        points,
+        dashPattern,
+        curve,
+      );
     }
   }
+
+  if (clipBounds != null) {
+    canvas.restore();
+  }
+
+  return bounds;
+}
+
+void _linePainterDrawPath({
+  required Canvas canvas,
+  required Path path,
+  required Color stroke,
+  Rect? clipBounds,
+  double? strokeWidth,
+  Shader? shader,
+}) {
+  // Apply clip bounds as a clip region.
+  if (clipBounds != null) {
+    canvas
+      ..save()
+      ..clipRect(clipBounds);
+  }
+
+  final Paint paint = Paint()..color = stroke;
+
+  if (shader != null) {
+    paint.shader = shader;
+  }
+
+  if (strokeWidth != null) {
+    paint.strokeWidth = strokeWidth;
+  }
+  paint.strokeJoin = StrokeJoin.miter;
+  paint.style = PaintingStyle.stroke;
+
+  canvas.drawPath(path, paint);
 
   if (clipBounds != null) {
     canvas.restore();
@@ -651,20 +689,16 @@ void _linePainterDraw({
 }
 
 /// Draws solid lines between each point.
-void _linePainterdrawSolidLine(
+Rect _linePainterdrawSolidLine(
   Canvas canvas,
   Paint paint,
   List<Offset> points,
+  LineCurve curve,
 ) {
-  // TODO: Extract a native line component which constructs the
-  // appropriate underlying data structures to avoid conversion.
   final path = Path()..moveTo(points.first.dx, points.first.dy);
-
-  for (final point in points) {
-    path.lineTo(point.dx, point.dy);
-  }
-
+  curve.draw(path, points);
   canvas.drawPath(path, paint);
+  return path.getBounds();
 }
 
 /// Draws dashed lines lines between each point.
@@ -673,8 +707,9 @@ void _linePainterdrawDashedLine(
   Paint paint,
   List<Offset> points,
   List<int> dashPattern,
+  LineCurve curve,
 ) {
-  final localDashPattern = List.of(dashPattern, growable: false);
+  final localDashPattern = List.of(dashPattern, growable: true);
 
   // If an odd number of parts are defined, repeat the pattern to get an even
   // number.
@@ -923,27 +958,30 @@ void _pointPainterDraw({
   }
 }
 
-void _polygonPainterDraw({
+Rect _polygonPainterDraw({
   required Canvas canvas,
   required List<Offset> points,
+  required LineCurve curve,
   Rect? clipBounds,
   Color? fill,
   Color? stroke,
   double? strokeWidth,
+  List<Offset> bottomPoints = const [],
+  bool hasBottomCurve = false,
 }) {
   if (points.isEmpty) {
-    return;
+    return Rect.zero;
   }
 
   // Apply clip bounds as a clip region.
   if (clipBounds != null) {
     canvas
       ..save()
-      ..clipRect(Rect.fromLTWH(clipBounds.left, clipBounds.top,
-          clipBounds.width, clipBounds.height));
+      ..clipRect(clipBounds);
   }
 
   final Paint paint = Paint();
+  final Rect bounds;
 
   // If the line has a single point, draw a circle.
   if (points.length == 1) {
@@ -955,6 +993,7 @@ void _polygonPainterDraw({
 
     paint.style = PaintingStyle.fill;
     canvas.drawCircle(point, strokeWidth!, paint);
+    bounds = Rect.zero;
   } else {
     if (stroke != null && strokeWidth != null) {
       paint.strokeWidth = strokeWidth;
@@ -967,16 +1006,34 @@ void _polygonPainterDraw({
       paint.style = PaintingStyle.fill;
     }
 
-    final path = Path()..moveTo(points.first.dx, points.first.dy);
+    final areaPoints = List.of(points);
+    final bottomAreaPoints = List.of(bottomPoints);
 
-    for (final point in points) {
-      path.lineTo(point.dx, point.dy);
+    final path = Path();
+
+    if (bottomAreaPoints.isNotEmpty) {
+      path.moveTo(bottomAreaPoints.first.dx, bottomAreaPoints.first.dy);
+
+      if (hasBottomCurve) {
+        curve.draw(path, bottomAreaPoints);
+      } else {
+        const LinearLineCurve().draw(path, bottomAreaPoints);
+      }
+
+      path.lineTo(areaPoints.first.dx, areaPoints.first.dy);
+    } else {
+      path.moveTo(points.first.dx, points.first.dy);
     }
 
+    curve.draw(path, areaPoints);
+
     canvas.drawPath(path, paint);
+    bounds = path.getBounds();
   }
 
   if (clipBounds != null) {
     canvas.restore();
   }
+
+  return bounds;
 }

@@ -15,6 +15,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:collection' show LinkedHashMap;
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class DisjointMeasureAxisLineChartPage extends StatefulWidget {
+  const DisjointMeasureAxisLineChartPage({super.key});
+
+  @override
+  State<DisjointMeasureAxisLineChartPage> createState() =>
+      _DisjointMeasureAxisLineChartPageState();
+}
+
+class _DisjointMeasureAxisLineChartPageState
+    extends State<DisjointMeasureAxisLineChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = DisjointMeasureAxisLineChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearClicks, num>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: DisjointMeasureAxisLineChart.title,
+          subtitle: DisjointMeasureAxisLineChart.subtitle,
+          body: (context) => DisjointMeasureAxisLineChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class DisjointMeasureAxisLineChartBuilder extends ExampleBuilder {
+  const DisjointMeasureAxisLineChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const DisjointMeasureAxisLineChartPage();
+
+  @override
+  String? get subtitle => DisjointMeasureAxisLineChart.subtitle;
+
+  @override
+  String get title => DisjointMeasureAxisLineChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      DisjointMeasureAxisLineChart.withSampleData(animate);
+}
+
 /// Example of using disjoint measure axes to render 4 series of lines with
 /// separate scales. The general use case for this type of chart is to show
 /// differences in the trends of the data, without comparing their absolute
@@ -22,13 +103,6 @@
 ///
 /// Disjoint measure axes will be used to scale the series associated with them,
 /// but they will not render any tick elements on either side of the chart.
-
-import 'dart:collection' show LinkedHashMap;
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class DisjointMeasureAxisLineChart extends StatelessWidget {
   const DisjointMeasureAxisLineChart(
     this.seriesList, {
@@ -44,15 +118,8 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory DisjointMeasureAxisLineChart.withRandomData([bool animate = true]) {
-    return DisjointMeasureAxisLineChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Disjoint Measure Axes';
+  static String? get subtitle => 'Line chart with disjoint measure axes';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -145,43 +212,6 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.LineChart(
-      seriesList,
-      animate: animate,
-      // Configure a primary measure axis that will render grid lines across
-      // the chart. This axis uses fake ticks with no labels to ensure that we
-      // get 5 grid lines.
-      //
-      // We do this because disjoint measure axes do not draw any tick
-      // elements on the chart.
-      primaryMeasureAxis: const charts.NumericAxisSpec(
-          tickProviderSpec: charts.StaticNumericTickProviderSpec(
-        // Create the ticks to be used the domain axis.
-        <charts.TickSpec<num>>[
-          charts.TickSpec(0, label: ''),
-          charts.TickSpec(1, label: ''),
-          charts.TickSpec(2, label: ''),
-          charts.TickSpec(3, label: ''),
-          charts.TickSpec(4, label: ''),
-        ],
-      )),
-      // Create one disjoint measure axis per series on the chart.
-      //
-      // Disjoint measure axes will be used to scale the rendered data,
-      // without drawing any tick elements on either side of the chart.
-      disjointMeasureAxes: LinkedHashMap<String, charts.NumericAxisSpec>.from(
-        const {
-          'axis 1': charts.NumericAxisSpec(),
-          'axis 2': charts.NumericAxisSpec(),
-          'axis 3': charts.NumericAxisSpec(),
-          'axis 4': charts.NumericAxisSpec(),
-        },
-      ),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearClicks, int>> createSampleData() {
     // The first three series contain similar data with different magnitudes.
@@ -213,10 +243,10 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
     // different sort ratio-based data. If this was on the same axis as any of
     // the other series, it would be squashed near zero.
     const myFakeClickRateData = [
-      LinearClicks(0, clickRate: .25),
-      LinearClicks(1, clickRate: .65),
-      LinearClicks(2, clickRate: .50),
-      LinearClicks(3, clickRate: .30),
+      LinearClicks(0, clickRate: 0.25),
+      LinearClicks(1, clickRate: 0.65),
+      LinearClicks(2, clickRate: 0.50),
+      LinearClicks(3, clickRate: 0.30),
     ];
 
     return [
@@ -266,6 +296,43 @@ class DisjointMeasureAxisLineChart extends StatelessWidget {
         // Set the 'Click Rate' series to use a disjoint axis.
         ..setAttribute(charts.measureAxisIdKey, 'axis 4'),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.LineChart(
+      seriesList,
+      animate: animate,
+      // Configure a primary measure axis that will render grid lines across
+      // the chart. This axis uses fake ticks with no labels to ensure that we
+      // get 5 grid lines.
+      //
+      // We do this because disjoint measure axes do not draw any tick
+      // elements on the chart.
+      primaryMeasureAxis: const charts.NumericAxisSpec(
+        tickProviderSpec: charts.StaticNumericTickProviderSpec(
+          // Create the ticks to be used the domain axis.
+          <charts.TickSpec<num>>[
+            charts.TickSpec(0, label: ''),
+            charts.TickSpec(1, label: ''),
+            charts.TickSpec(2, label: ''),
+            charts.TickSpec(3, label: ''),
+            charts.TickSpec(4, label: ''),
+          ],
+        ),
+      ),
+      behaviors: const [charts.PanAndZoomBehavior()],
+      // Create one disjoint measure axis per series on the chart.
+      //
+      // Disjoint measure axes will be used to scale the rendered data,
+      // without drawing any tick elements on either side of the chart.
+      disjointMeasureAxes: const {
+        'axis 1': charts.NumericAxisSpec(),
+        'axis 2': charts.NumericAxisSpec(),
+        'axis 3': charts.NumericAxisSpec(),
+        'axis 4': charts.NumericAxisSpec(),
+      },
+    );
   }
 }
 

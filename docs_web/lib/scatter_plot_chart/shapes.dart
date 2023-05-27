@@ -15,6 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class ShapesScatterPlotChartPage extends StatefulWidget {
+  const ShapesScatterPlotChartPage({super.key});
+
+  @override
+  State<ShapesScatterPlotChartPage> createState() =>
+      _ShapesScatterPlotChartPageState();
+}
+
+class _ShapesScatterPlotChartPageState
+    extends State<ShapesScatterPlotChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = ShapesScatterPlotChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Scatter Plot',
+      items: [
+        ItemTitle(
+          title: ShapesScatterPlotChart.title,
+          subtitle: ShapesScatterPlotChart.subtitle,
+          body: (context) => ShapesScatterPlotChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class ShapesScatterPlotChartBuilder extends ExampleBuilder {
+  const ShapesScatterPlotChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const ShapesScatterPlotChartPage();
+
+  @override
+  String? get subtitle => ShapesScatterPlotChart.subtitle;
+
+  @override
+  String get title => ShapesScatterPlotChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      ShapesScatterPlotChart.withSampleData(animate);
+}
+
 /// Example of a scatter plot chart using custom symbols for the points.
 ///
 /// The series has been configured to draw each point as a square by default.
@@ -27,12 +107,6 @@
 /// defined. Configuring a separate fillColor will cause the center of the shape
 /// to be filled in, with white in these examples. The border of the shape will
 /// be color with the color of the data.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class ShapesScatterPlotChart extends StatelessWidget {
   const ShapesScatterPlotChart(
     this.seriesList, {
@@ -50,17 +124,8 @@ class ShapesScatterPlotChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory ShapesScatterPlotChart.withRandomData([
-    bool animate = true,
-  ]) {
-    return ShapesScatterPlotChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Shapes';
+  static String? get subtitle => 'With custom shapes';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -205,19 +270,6 @@ class ShapesScatterPlotChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.ScatterPlotChart(seriesList,
-        animate: animate,
-        // Configure the point renderer to have a map of custom symbol
-        // renderers.
-        defaultRenderer:
-            const charts.PointRendererConfig<num>(customSymbolRenderers: {
-          'circle': charts.CircleSymbolRenderer(),
-          'rect': charts.RectSymbolRenderer(),
-        }));
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     final data = [
@@ -277,6 +329,22 @@ class ShapesScatterPlotChart extends StatelessWidget {
         // Default symbol renderer ID for data that have no defined shape.
         ..setAttribute(charts.pointSymbolRendererIdKey, 'rect')
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.ScatterPlotChart(
+      seriesList,
+      animate: animate,
+      // Configure the point renderer to have a map of custom symbol
+      // renderers.
+      defaultRenderer: const charts.PointRendererConfig<num>(
+        customSymbolRenderers: {
+          'circle': charts.CircleSymbolRenderer(),
+          'rect': charts.RectSymbolRenderer(),
+        },
+      ),
+    );
   }
 }
 

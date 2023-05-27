@@ -15,12 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Vertical bar chart with bar label renderer example.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class VerticalBarLabelChartPage extends StatefulWidget {
+  const VerticalBarLabelChartPage({super.key});
+
+  @override
+  State<VerticalBarLabelChartPage> createState() =>
+      _VerticalBarLabelChartPageState();
+}
+
+class _VerticalBarLabelChartPageState extends State<VerticalBarLabelChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = VerticalBarLabelChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<dynamic, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Bar',
+      items: [
+        ItemTitle(
+          title: VerticalBarLabelChart.title,
+          subtitle: VerticalBarLabelChart.subtitle,
+          body: (context) => VerticalBarLabelChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+/// Vertical bar chart with bar label renderer example.
+class VerticalBarLabelChartBuilder extends ExampleBuilder {
+  const VerticalBarLabelChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const VerticalBarLabelChartPage();
+
+  @override
+  String? get subtitle => VerticalBarLabelChart.subtitle;
+
+  @override
+  String get title => VerticalBarLabelChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      VerticalBarLabelChart.withSampleData(animate);
+}
 
 class VerticalBarLabelChart extends StatelessWidget {
   const VerticalBarLabelChart(
@@ -37,15 +110,9 @@ class VerticalBarLabelChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory VerticalBarLabelChart.withRandomData([bool animate = true]) {
-    return VerticalBarLabelChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Vertical with Labels';
+  static String? get subtitle =>
+      'Vertical bar chart with a single series and bar labels';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -72,6 +139,27 @@ class VerticalBarLabelChart extends StatelessWidget {
     ];
   }
 
+  /// Create one series with sample hard coded data.
+  static List<charts.Series<OrdinalSales, String>> createSampleData() {
+    const data = [
+      OrdinalSales('2014', 5),
+      OrdinalSales('2015', 25),
+      OrdinalSales('2016', 100),
+      OrdinalSales('2017', 75),
+    ];
+
+    return [
+      charts.Series<OrdinalSales, String>(
+          id: 'Sales',
+          domain: (OrdinalSales sales, _) => sales.year,
+          measure: (OrdinalSales sales, _) => sales.sales,
+          data: data,
+          // Set a label accessor to control the text of the bar label.
+          labelAccessor: (OrdinalSales sales, _) =>
+              '\$${sales.sales.toString()}')
+    ];
+  }
+
   // [BarLabelDecorator] will automatically position the label
   // inside the bar if the label will fit. If the label will not fit,
   // it will draw outside of the bar.
@@ -92,27 +180,6 @@ class VerticalBarLabelChart extends StatelessWidget {
       barRendererDecorator: charts.BarLabelDecorator<String>(),
       domainAxis: const charts.OrdinalAxisSpec(),
     );
-  }
-
-  /// Create one series with sample hard coded data.
-  static List<charts.Series<OrdinalSales, String>> createSampleData() {
-    const data = [
-      OrdinalSales('2014', 5),
-      OrdinalSales('2015', 25),
-      OrdinalSales('2016', 100),
-      OrdinalSales('2017', 75),
-    ];
-
-    return [
-      charts.Series<OrdinalSales, String>(
-          id: 'Sales',
-          domain: (OrdinalSales sales, _) => sales.year,
-          measure: (OrdinalSales sales, _) => sales.sales,
-          data: data,
-          // Set a label accessor to control the text of the bar label.
-          labelAccessor: (OrdinalSales sales, _) =>
-              '\$${sales.sales.toString()}')
-    ];
   }
 }
 

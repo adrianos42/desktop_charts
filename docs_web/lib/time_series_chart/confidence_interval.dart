@@ -15,16 +15,90 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Example of a time series chart with a confidence interval.
-///
-/// Confidence interval is defined by specifying the upper and lower measure
-/// bounds in the series.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class TimeSeriesConfidenceIntervalPage extends StatefulWidget {
+  const TimeSeriesConfidenceIntervalPage({super.key});
+
+  @override
+  State<TimeSeriesConfidenceIntervalPage> createState() =>
+      _TimeSeriesConfidenceIntervalPageState();
+}
+
+class _TimeSeriesConfidenceIntervalPageState
+    extends State<TimeSeriesConfidenceIntervalPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = TimeSeriesConfidenceInterval.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<TimeSeriesSales, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Time Series',
+      items: [
+        ItemTitle(
+          title: TimeSeriesConfidenceInterval.title,
+          subtitle: TimeSeriesConfidenceInterval.subtitle,
+          body: (context) => TimeSeriesConfidenceInterval(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class TimeSeriesConfidenceIntervalBuilder extends ExampleBuilder {
+  const TimeSeriesConfidenceIntervalBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const TimeSeriesConfidenceIntervalPage();
+
+  @override
+  String? get subtitle => TimeSeriesConfidenceInterval.subtitle;
+
+  @override
+  String get title => TimeSeriesConfidenceInterval.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      TimeSeriesConfidenceInterval.withSampleData(animate);
+}
+
+/// Example of a time series chart with a confidence interval.
+///
+/// Confidence interval is defined by specifying the upper and lower measure
+/// bounds in the series.
 class TimeSeriesConfidenceInterval extends StatelessWidget {
   const TimeSeriesConfidenceInterval(
     this.seriesList, {
@@ -40,15 +114,8 @@ class TimeSeriesConfidenceInterval extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory TimeSeriesConfidenceInterval.withRandomData([bool animate = true]) {
-    return TimeSeriesConfidenceInterval(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Confidence Interval';
+  static String? get subtitle => 'Draws area around the confidence interval';
 
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
@@ -79,18 +146,6 @@ class TimeSeriesConfidenceInterval extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(
-      seriesList,
-      animate: animate,
-      // Optionally pass in a [DateTimeFactory] used by the chart. The factory
-      // should create the same type of [DateTime] as the data provided. If none
-      // specified, the default creates local date time.
-      dateTimeFactory: const charts.LocalDateTimeFactory(),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<TimeSeriesSales, DateTime>> createSampleData() {
     final data = [
@@ -113,6 +168,18 @@ class TimeSeriesConfidenceInterval extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+      // Optionally pass in a [DateTimeFactory] used by the chart. The factory
+      // should create the same type of [DateTime] as the data provided. If none
+      // specified, the default creates local date time.
+      dateTimeFactory: const charts.LocalDateTimeFactory(),
+    );
   }
 }
 

@@ -15,13 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Simple pie chart example.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class SimplePieChartPage extends StatefulWidget {
+  const SimplePieChartPage({super.key});
+
+  @override
+  State<SimplePieChartPage> createState() => _SimplePieChartPageState();
+}
+
+class _SimplePieChartPageState extends State<SimplePieChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = SimplePieChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Pie',
+      items: [
+        ItemTitle(
+          title: SimplePieChart.title,
+          subtitle: SimplePieChart.subtitle,
+          body: (context) => SimplePieChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SimplePieChartBuilder extends ExampleBuilder {
+  const SimplePieChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const SimplePieChartPage();
+
+  @override
+  String? get subtitle => SimplePieChart.subtitle;
+
+  @override
+  String get title => SimplePieChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      SimplePieChart.withSampleData(animate);
+}
+
+/// Simple pie chart example.
 class SimplePieChart extends StatelessWidget {
   const SimplePieChart(
     this.seriesList, {
@@ -30,21 +102,12 @@ class SimplePieChart extends StatelessWidget {
   });
 
   /// Creates a [PieChart] with sample data and no transition.
-  factory SimplePieChart.withSampleData({
-    bool animate = true,
-  }) {
+  factory SimplePieChart.withSampleData([bool animate = true]) {
     return SimplePieChart(createSampleData(), animate: animate);
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory SimplePieChart.withRandomData({bool animate = true}) {
-    return SimplePieChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Simple';
+  static String? get subtitle => 'With a single series';
 
   final List<charts.Series<dynamic, int>> seriesList;
   final bool animate;
@@ -70,15 +133,6 @@ class SimplePieChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.PieChart(
-      seriesList,
-      animate: animate,
-      defaultInteractions: true,
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const data = [
@@ -96,6 +150,15 @@ class SimplePieChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.PieChart(
+      seriesList,
+      animate: animate,
+      defaultInteractions: true,
+    );
   }
 }
 

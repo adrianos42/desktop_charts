@@ -3,8 +3,9 @@
 library desktop_charts;
 
 export 'src/chart/chart.dart';
-export 'src/data/data.dart';
 export 'src/color.dart';
+export 'src/curve.dart';
+export 'src/data/data.dart';
 export 'src/date_time_factory.dart'
     show DateTimeFactory, LocalDateTimeFactory, UTCDateTimeFactory;
 export 'src/math.dart' show NullablePoint;

@@ -7,7 +7,7 @@ export 'canvas_shapes.dart'
     show CanvasBarStack, CanvasPie, CanvasPieSlice, CanvasRect;
 export 'cartesian/cartesian.dart';
 export 'chart_canvas.dart'
-    show ChartCanvas, FillPatternType, BlendMode, LinkOrientation, Link;
+    show ChartCanvas, FillPatternType, LinkOrientation, Link;
 export 'chart_context.dart' show ChartContext;
 export 'datum_details.dart'
     show DatumDetails, DomainFormatter, MeasureFormatter;

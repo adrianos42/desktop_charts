@@ -2,24 +2,34 @@
 
 import 'package:desktop/desktop.dart';
 import 'package:flutter/foundation.dart';
+import 'package:jovial_svg/jovial_svg.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../defaults.dart';
 import 'axes/axes.dart' as axes;
 import 'bar_chart/bar_chart.dart' as bar_chart;
+import 'behaviors/behaviors.dart' as behaviors;
 import 'combo_chart/combo.dart' as combo_chart;
+import 'home.dart' show DocTreeController, DocTreeIndex;
 import 'i18n/i18n.dart' as i18n;
 import 'legends/legends.dart' as legends;
 import 'line_chart/line_chart.dart' as line_chart;
 import 'pie_chart/pie_chart.dart' as pie_chart;
 import 'scatter_plot_chart/scatter_plot_chart.dart' as scatter_plot_chart;
 import 'time_series_chart/time_series_chart.dart' as time_series_chart;
-import 'behaviors/behaviors.dart' as behaviors;
 
 class OverviewPage extends StatefulWidget {
-  const OverviewPage({super.key});
+  const OverviewPage({
+    super.key,
+    required this.treeController,
+    required this.treeNodeController,
+  });
+
+  final TreeController treeController;
+  final DocTreeController treeNodeController;
 
   @override
-  OverviewPageState createState() => OverviewPageState();
+  State<OverviewPage> createState() => OverviewPageState();
 }
 
 class HeaderDelegate extends SliverPersistentHeaderDelegate {
@@ -54,6 +64,13 @@ class HeaderDelegate extends SliverPersistentHeaderDelegate {
 }
 
 class OverviewPageState extends State<OverviewPage> {
+  @override
+  void initState() {
+    super.initState();
+  }
+
+  final ScrollController _controller = ScrollController();
+
   Widget _creadeHeader(String title, [double topPadding = 24.0]) {
     return SliverPersistentHeader(
       pinned: false,
@@ -63,7 +80,8 @@ class OverviewPageState extends State<OverviewPage> {
   }
 
   Widget _createItems(
-    List<(String, String?, WidgetBuilder)> Function(bool animate)
+    int treeStartIndex,
+    List<(String, String?, String?, WidgetBuilder)> Function(bool animate)
         createChartItems,
   ) {
     final themeData = Theme.of(context);
@@ -72,14 +90,36 @@ class OverviewPageState extends State<OverviewPage> {
 
     final width = MediaQuery.sizeOf(context).width;
 
-    return SliverGrid.count(
-      crossAxisCount: (width / 400.0).truncate().clamp(1, 4),
-      crossAxisSpacing: 8.0,
-      mainAxisSpacing: 32.0,
-      children: createChartItems(false).map((e) {
-        final (title, _, child) = e;
+    final children = <Widget>[];
 
-        return Column(
+    final chartItems = createChartItems(false);
+
+    int x = -1;
+    int y = 0;
+    String? currentTitle;
+
+    for (int i = 0; i < chartItems.length; i += 1) {
+      final (title, _, parentTitle, child) = chartItems[i];
+
+      if (parentTitle != null) {
+        if (parentTitle == currentTitle) {
+          y += 1;
+        } else {
+          currentTitle = parentTitle;
+          y = 0;
+          x += 1;
+        }
+      } else {
+        currentTitle = null;
+        y = 0;
+        x += 1;
+      }
+
+      final index = x;
+      final itemIndex = y;
+
+      children.add(
+        Column(
           children: [
             Expanded(
               child: Button(
@@ -105,7 +145,15 @@ class OverviewPageState extends State<OverviewPage> {
                   ),
                 ),
                 filled: true,
-                onPressed: () {},
+                onPressed: () {
+                  widget.treeController.index = [treeStartIndex, index];
+                  if (parentTitle != null) {
+                    widget.treeNodeController.index = DocTreeIndex(
+                      nodeIndex: itemIndex,
+                      parentTitle: parentTitle,
+                    );
+                  }
+                },
                 padding: EdgeInsets.zero,
                 theme: ButtonThemeData(
                   background: colorSheme.background[0],
@@ -116,8 +164,15 @@ class OverviewPageState extends State<OverviewPage> {
               ),
             ),
           ],
-        );
-      }).toList(),
+        ),
+      );
+    }
+
+    return SliverGrid.count(
+      crossAxisCount: (width / 400.0).truncate().clamp(1, 4),
+      crossAxisSpacing: 8.0,
+      mainAxisSpacing: 32.0,
+      children: children,
     );
   }
 
@@ -127,10 +182,10 @@ class OverviewPageState extends State<OverviewPage> {
       //return bar_chart.BarPage();
       //return pie_chart.PiePage();
       // return time_series_chart.TimeSeriesPage();
-      //return line_chart.LinePage();
-      return const behaviors.BehaviorsPage();
+      // return LineAnimationZoomChartBuilder().withSampleData();
+      //return const behaviors.BehaviorsPage();
       //return legends.LegendsPage();
-      //return const axes.AxesPage();
+      // return axes.createItems()[10].$4(context);
     }
 
     return Column(
@@ -139,31 +194,53 @@ class OverviewPageState extends State<OverviewPage> {
           padding: const EdgeInsets.symmetric(horizontal: 12.0),
           child: Defaults.createHeader(context, 'Overview'),
         ),
+        Align(
+          alignment: Alignment.centerLeft,
+          child: Padding(
+            padding: const EdgeInsets.only(top: 12.0, left: 12.0, bottom: 12.0),
+            child: Button(
+              padding: EdgeInsets.zero,
+              body: ScalableImageWidget.fromSISource(
+                si: ScalableImageSource.fromSvgHttpUrl(
+                  Uri.parse(
+                    'https://img.shields.io/pub/v/desktop_charts.svg?style=flat-square',
+                  ),
+                ),
+              ),
+              onPressed: () async {
+                await launchUrl(
+                  Uri.parse('https://pub.dev/packages/desktop_charts'),
+                );
+              },
+            ),
+          ),
+        ),
         Expanded(
           child: LayoutBuilder(
             builder: (context, constraints) {
               return CustomScrollView(
+                controller: _controller,
                 slivers: [
-                  _creadeHeader('Bar Charts'),
-                  _createItems(bar_chart.createItems),
-                  _creadeHeader('Pie Charts'),
-                  _createItems(pie_chart.createItems),
-                  _creadeHeader('Line Charts'),
-                  _createItems(line_chart.createItems),
-                  _creadeHeader('Scatter Plot Charts'),
-                  _createItems(scatter_plot_chart.createItems),
+                  _creadeHeader('Bar', 0.0),
+                  _createItems(1, bar_chart.createItems),
+                  _creadeHeader('Pie'),
+                  _createItems(2, pie_chart.createItems),
+                  _creadeHeader('Line'),
+                  _createItems(3, line_chart.createItems),
+                  _creadeHeader('Scatter Plot'),
+                  _createItems(4, scatter_plot_chart.createItems),
                   _creadeHeader('Time Series'),
-                  _createItems(time_series_chart.createItems),
+                  _createItems(5, time_series_chart.createItems),
                   _creadeHeader('Axes'),
-                  _createItems(axes.createItems),
+                  _createItems(6, axes.createItems),
                   _creadeHeader('Combo'),
-                  _createItems(combo_chart.createItems),
-                  _creadeHeader('Legends'),
-                  _createItems(legends.createItems),
-                  //_creadeHeader('Behaviors'),
-                  //_createItems(behaviors.createItems),
+                  _createItems(7, combo_chart.createItems),
+                  _creadeHeader('Legedns'),
+                  _createItems(8, legends.createItems),
+                  _creadeHeader('Behaviors'),
+                  _createItems(9, behaviors.createItems),
                   _creadeHeader('i18n'),
-                  _createItems(i18n.createItems)
+                  _createItems(10, i18n.createItems),
                 ],
               );
             },

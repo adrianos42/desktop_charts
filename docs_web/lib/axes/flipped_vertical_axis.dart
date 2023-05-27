@@ -15,13 +15,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Bar chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class FlippedVerticalAxisPage extends StatefulWidget {
+  const FlippedVerticalAxisPage({super.key});
+
+  @override
+  State<FlippedVerticalAxisPage> createState() =>
+      _FlippedVerticalAxisPageState();
+}
+
+class _FlippedVerticalAxisPageState extends State<FlippedVerticalAxisPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = FlippedVerticalAxis.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<RunnerRank, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: FlippedVerticalAxis.title,
+          subtitle: FlippedVerticalAxis.subtitle,
+          body: (context) => FlippedVerticalAxis(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class FlippedVerticalAxisBuilder extends ExampleBuilder {
+  const FlippedVerticalAxisBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const FlippedVerticalAxisPage();
+
+  @override
+  String? get subtitle => FlippedVerticalAxis.subtitle;
+
+  @override
+  String get title => FlippedVerticalAxis.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      FlippedVerticalAxis.withSampleData(animate);
+}
+
+/// Bar chart example
+///
 /// Example of flipping the vertical measure axis direction so that larger
 /// values render downward instead of the usual rendering up.
 ///
@@ -44,15 +118,8 @@ class FlippedVerticalAxis extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory FlippedVerticalAxis.withRandomData([bool animate = true]) {
-    return FlippedVerticalAxis(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => throw UnimplementedError();
+  static String? get subtitle => throw UnimplementedError();
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -81,18 +148,6 @@ class FlippedVerticalAxis extends StatelessWidget {
     ];
   }
 
-  // Known Issue, the bar chart cannot render negative direction bars at this
-  // time so the result is an empty chart.
-  // TODO: Remove this comment
-  @override
-  Widget build(BuildContext context) {
-    return charts.BarChart(
-      seriesList,
-      animate: animate,
-      flipVerticalAxis: true,
-    );
-  }
-
   /// Create series list with multiple series
   static List<charts.Series<RunnerRank, String>> createSampleData() {
     const raceData = [
@@ -109,6 +164,18 @@ class FlippedVerticalAxis extends StatelessWidget {
           measure: (RunnerRank row, _) => row.place,
           data: raceData),
     ];
+  }
+
+  // Known Issue, the bar chart cannot render negative direction bars at this
+  // time so the result is an empty chart.
+  // TODO: Remove this comment
+  @override
+  Widget build(BuildContext context) {
+    return charts.BarChart(
+      seriesList,
+      animate: animate,
+      flipVerticalAxis: true,
+    );
   }
 }
 

@@ -15,13 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Simple pie chart example.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class SimpleSunburstChartPage extends StatefulWidget {
+  const SimpleSunburstChartPage({super.key});
+
+  @override
+  State<SimpleSunburstChartPage> createState() =>
+      _SimpleSunburstChartPageState();
+}
+
+class _SimpleSunburstChartPageState extends State<SimpleSunburstChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = SimpleSunburstChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Sunburst',
+      items: [
+        ItemTitle(
+          title: SimpleSunburstChart.title,
+          subtitle: SimpleSunburstChart.subtitle,
+          body: (context) => SimpleSunburstChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SimpleSunburstChartBuilder extends ExampleBuilder {
+  const SimpleSunburstChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const SimpleSunburstChartPage();
+
+  @override
+  String? get subtitle => SimpleSunburstChart.subtitle;
+
+  @override
+  String get title => SimpleSunburstChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      SimpleSunburstChart.withSampleData(animate);
+}
+
+/// Simple pie chart example.
 class SimpleSunburstChart extends StatelessWidget {
   const SimpleSunburstChart(
     this.seriesList, {
@@ -30,21 +103,12 @@ class SimpleSunburstChart extends StatelessWidget {
   });
 
   /// Creates a [SunburstChart] with sample data and no transition.
-  factory SimpleSunburstChart.withSampleData({
-    bool animate = true,
-  }) {
+  factory SimpleSunburstChart.withSampleData([bool animate = true]) {
     return SimpleSunburstChart(createSampleData(), animate: animate);
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory SimpleSunburstChart.withRandomData({bool animate = true}) {
-    return SimpleSunburstChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Simple Sunburst Chart';
+  static String? get subtitle => 'With a single series';
 
   final List<charts.Series<dynamic, int>> seriesList;
   final bool animate;
@@ -70,16 +134,6 @@ class SimpleSunburstChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // return charts.SunburstChart(
-    //   [],
-    //   animate: animate,
-    //   defaultInteractions: true,
-    // );
-    return SizedBox();
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const data = [
@@ -97,6 +151,16 @@ class SimpleSunburstChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // return charts.SunburstChart(
+    //   [],
+    //   animate: animate,
+    //   defaultInteractions: true,
+    // );
+    return SizedBox();
   }
 }
 

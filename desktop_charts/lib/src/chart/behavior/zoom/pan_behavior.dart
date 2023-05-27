@@ -15,6 +15,8 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math' show min, max;
+
 import 'package:flutter/gestures.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -41,18 +43,48 @@ class PanBehavior<D> extends ChartBehavior<D> {
   ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>({
     required BaseChartState<D, S> chartState,
   }) {
-    return PanBehaviorState<D, S, PanBehavior<D>>(
+    return _PanAndZoomState<D, S, PanBehavior<D>>(
       behavior: this,
       chartState: chartState,
     );
   }
 }
 
-class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
+/// Adds domain axis panning and zooming support to the chart.
+///
+/// Zooming is supported for the web by mouse wheel events. Scrolling up zooms
+/// the chart in, and scrolling down zooms the chart out. The chart can never be
+/// zoomed out past the domain axis range.
+///
+/// Zooming is supported by pinch gestures for mobile devices.
+///
+/// Panning is supported by clicking and dragging the mouse for web, or tapping
+/// and dragging on the chart for mobile devices.
+@immutable
+class PanAndZoomBehavior<D> extends PanBehavior<D> {
+  const PanAndZoomBehavior();
+
+  @override
+  String get role => 'PanAndZoom';
+
+  @override
+  ChartBehaviorState<D, S, ChartBehavior<D>> build<S extends BaseChart<D>>({
+    required BaseChartState<D, S> chartState,
+  }) {
+    return _PanAndZoomState<D, S, PanAndZoomBehavior<D>>(
+      behavior: this,
+      chartState: chartState,
+      hasZoomBehavior: true,
+    );
+  }
+}
+
+class _PanAndZoomState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
     extends ChartBehaviorState<D, S, R> {
-  PanBehaviorState({
+  _PanAndZoomState({
     required super.behavior,
     required super.chartState,
+    this.hasZoomBehavior = false,
   }) {
     if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
       throw ArgumentError(
@@ -60,6 +92,39 @@ class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
     }
   }
 
+  final bool hasZoomBehavior;
+
+  @override
+  Widget buildBehaviorWidget(BuildContext context) {
+    return _Pan<D, S, R>(
+      behavior: behavior,
+      chartState: chartState,
+      hasZoomBehavior: hasZoomBehavior,
+    );
+  }
+}
+
+class _Pan<D, S extends BaseChart<D>, R extends PanBehavior<D>>
+    extends StatefulWidget {
+  const _Pan({
+    required this.chartState,
+    required this.behavior,
+    required this.hasZoomBehavior,
+    super.key,
+  });
+
+  final BaseChartState<D, S> chartState;
+
+  final bool hasZoomBehavior;
+
+  final R behavior;
+
+  @override
+  State<_Pan<D, S, R>> createState() => _PanState<D, S, R>();
+}
+
+class _PanState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
+    extends State<_Pan<D, S, R>> {
   /// Wrapped domain tick provider for pan and zoom behavior.
   late PanningTickProvider<D> _domainAxisTickProvider;
 
@@ -67,20 +132,31 @@ class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
   PanningTickProvider<D> get domainAxisTickProvider => _domainAxisTickProvider;
 
   CartesianChartState<D, CartesianChart<D>> get _chartState =>
-      chartState as CartesianChartState<D, CartesianChart<D>>;
+      widget.chartState as CartesianChartState<D, CartesianChart<D>>;
+
+  /// Current zoom scaling factor for the behavior.
+  double _initialScalingFactor = 0.0;
+  double _scalingFactor = 1.0;
+  double _viewportTranslate = 0.0;
+
+  /// Minimum scalingFactor to prevent zooming out beyond the data range.
+  static double _minScalingFactor = 1.0;
+
+  /// Maximum scalingFactor to prevent zooming in so far that no data is
+  /// visible.
+  ///
+  /// TODO: Dynamic max based on data range?
+  static const double _maxScalingFactor = 15.0;
 
   /// Flag which is enabled to indicate that the user is "panning" the chart.
   bool _isPanning = false;
-
-  @protected
-  bool get isPanning => _isPanning;
 
   /// Last position of the mouse/tap that was used to adjust the scale translate
   /// factor.
   Offset? _lastPosition;
 
-  @protected
-  Offset? get lastPosition => _lastPosition;
+  /// Flag which is enabled to indicate that the user is "zooming" the chart.
+  bool _isZooming = false;
 
   /// Optional callback that is invoked at the end of panning ([onPanEnd]).
   PanningCompletedCallback? _panningCompletedCallback;
@@ -97,10 +173,14 @@ class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
         GestureRecognizerFactoryWithHandlers<ScaleGestureRecognizer>(
       () => ScaleGestureRecognizer(debugOwner: this),
       (ScaleGestureRecognizer instance) {
-        instance.onStart = (details) => onDragStart(details.localFocalPoint);
-        instance.onUpdate =
-            (details) => onDragUpdate(details.focalPoint, details.scale);
-        instance.onEnd = (details) => onDragEnd(0.0);
+        instance.onStart = (details) => onDragStart(details.focalPoint);
+        instance.onUpdate = (details) => onDragUpdate(
+              details.focalPoint,
+              details.scale,
+              details.localFocalPoint,
+            );
+        instance.onEnd =
+            (details) => onDragEnd(details.velocity.pixelsPerSecond.dy);
       },
     );
 
@@ -109,72 +189,8 @@ class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
 
   @protected
   bool onDragStart(Offset globalPosition) {
-    onPanStart();
-
-    _lastPosition = globalPosition;
-    _isPanning = true;
-    return true;
-  }
-
-  @protected
-  bool onDragUpdate(Offset globalPosition, double scale) {
-    if (!_isPanning || _lastPosition == null) {
-      return false;
-    }
-
-    // Pinch gestures should be handled by the [PanAndZoomBehavior].
-    if (scale != 1.0) {
-      _isPanning = false;
-      return false;
-    }
-
-    // Update the domain axis's viewport translate to pan the chart.
-    final domainAxis = _chartState.domainAxis;
-
-    if (domainAxis == null) {
-      return false;
-    }
-
-    // This is set during onDragUpdate and NOT onDragStart because we don't yet
-    // know during onDragStart whether pan/zoom behavior is panning or zooming.
-    // During panning, domain tick provider set to generate ticks with locked
-    // steps.
-    _domainAxisTickProvider.mode = PanningTickProviderMode.stepSizeLocked;
-
-    final domainScalingFactor = domainAxis.viewportScalingFactor;
-
-    var domainChange = 0.0;
-    if (domainAxis.isVertical) {
-      domainChange =
-          domainAxis.viewportTranslate + globalPosition.dy - _lastPosition!.dy;
-    } else {
-      domainChange =
-          domainAxis.viewportTranslate + globalPosition.dx - _lastPosition!.dx;
-    }
-
-    domainAxis.setViewportSettings(
-      domainScalingFactor,
-      domainChange,
-      drawAreaWidth: _chartState.drawArea.width,
-      drawAreaHeight: _chartState.drawArea.height,
-    );
-
     _lastPosition = globalPosition;
 
-    _chartState.redraw(skipAnimation: true);
-    return true;
-  }
-
-  @protected
-  bool onDragEnd(
-    double velocity,
-  ) {
-    onPanEnd();
-    return true;
-  }
-
-  @protected
-  void onPanStart() {
     // When panning starts, measure tick provider should not update ticks.
     // This is still needed because axis internally updates the tick location
     // after the tick provider generates the ticks. If we do not tell the axis
@@ -184,14 +200,34 @@ class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
     _chartState
         .getMeasureAxis(axisId: CartesianAxis.secondaryMeasureAxisId)
         .lockAxis = true;
+    _scalingFactor = _chartState.domainAxis!.viewportScalingFactor;
+    _initialScalingFactor = _scalingFactor;
+    _viewportTranslate = _chartState.domainAxis!.viewportTranslate;
+
+    return true;
   }
 
   @protected
-  void onPanEnd() {
-    cancelPanning();
+  bool onDragUpdate(
+    Offset globalPosition,
+    double scale,
+    Offset focalLocalPoint,
+  ) {
+    if (scale != 1.0) {
+      return onZoomUpdate(
+        globalPosition,
+        scale * _initialScalingFactor,
+        focalLocalPoint,
+      );
+    } else {
+      return onPanUpdate(globalPosition);
+    }
+  }
 
-    // When panning stops, allow tick provider to update ticks, and then
-    // request redraw.
+  @protected
+  void onDragEnd(
+    double velocity,
+  ) {
     _domainAxisTickProvider.mode = PanningTickProviderMode.passThrough;
 
     _chartState.getMeasureAxis().lockAxis = false;
@@ -201,16 +237,111 @@ class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
     _chartState.redraw();
 
     _panningCompletedCallback?.call();
+
+    _isPanning = false;
+    _isZooming = false;
   }
 
-  /// Cancels the handling of any current panning event.
-  void cancelPanning() {
-    _isPanning = false;
+  bool onPanUpdate(Offset globalPosition, [bool skipAnimation = true]) {
+    // Update the domain axis's viewport translate to pan the chart.
+    final domainAxis = _chartState.domainAxis;
+
+    if (domainAxis == null) {
+      return false;
+    }
+
+    _domainAxisTickProvider.mode = PanningTickProviderMode.stepSizeLocked;
+
+    final domainScalingFactor = domainAxis.viewportScalingFactor;
+
+    if (domainAxis.isVertical) {
+      _viewportTranslate =
+          _viewportTranslate + globalPosition.dy - _lastPosition!.dy;
+    } else {
+      _viewportTranslate =
+          _viewportTranslate + globalPosition.dx - _lastPosition!.dx;
+    }
+
+    domainAxis.setViewportSettings(
+      domainScalingFactor,
+      _viewportTranslate,
+      drawAreaWidth: _chartState.drawArea.width,
+      drawAreaHeight: _chartState.drawArea.height,
+    );
+
+    _lastPosition = globalPosition;
+
+    _chartState.redraw(skipAnimation: true);
+
+    return true;
+  }
+
+  bool onZoomUpdate(
+    Offset globalPosition,
+    double scale,
+    Offset focalLocalPoint,
+  ) {
+    // Update the domain axis's viewport scale factor to zoom the chart.
+    final domainAxis = _chartState.domainAxis;
+
+    if (domainAxis == null) {
+      return false;
+    }
+
+    domainAxisTickProvider.mode = PanningTickProviderMode.stepSizeLocked;
+
+    final positionTranslate = domainAxis.isVertical
+        ? focalLocalPoint.dy / _chartState.drawArea.height
+        : focalLocalPoint.dx / _chartState.drawArea.width;
+
+    final extent = domainAxis.scale.rangeWidth;
+    final viewportTranslate = domainAxis.viewportTranslate;
+
+    final viewportPosition = positionTranslate * extent - viewportTranslate;
+
+    final viewportTranslateBefore =
+        viewportPosition / (extent * _scalingFactor);
+
+    // Clamp the scale to prevent zooming out beyond the range of the data, or
+    // zooming in so far that we show nothing useful.
+    _scalingFactor = min(
+      max(scale, _minScalingFactor),
+      _maxScalingFactor,
+    );
+
+    final translate =
+        viewportPosition - viewportTranslateBefore * extent * _scalingFactor;
+
+    domainAxis.setViewportSettings(
+      _scalingFactor,
+      viewportTranslate + translate,
+      drawAreaWidth: _chartState.drawArea.width,
+      drawAreaHeight: _chartState.drawArea.height,
+    );
+
+    _chartState.redraw(skipAnimation: true);
+
+    return true;
   }
 
   final FocusNode _focusNode = FocusNode();
 
   bool _controlDown = false;
+  Offset _mousePosition = Offset.zero;
+  Offset _mouseLocalPosition = Offset.zero;
+
+  @override
+  void initState() {
+    super.initState();
+
+    // Disable the autoViewport feature to enable panning.
+    _chartState.domainAxis!.autoViewport = false;
+
+    // Wrap domain axis tick provider with the panning behavior one.
+    _domainAxisTickProvider =
+        PanningTickProvider<D>(_chartState.domainAxis!.tickProvider!);
+    _chartState.domainAxis!.tickProvider = _domainAxisTickProvider;
+  }
 
   @override
   void dispose() {
@@ -226,67 +357,90 @@ class PanBehaviorState<D, S extends BaseChart<D>, R extends PanBehavior<D>>
   }
 
   @override
-  Widget buildBehaviorWidget(BuildContext context) {
-    // Disable the autoViewport feature to enable panning.
-    _chartState.domainAxis!.autoViewport = false;
-
-    // Wrap domain axis tick provider with the panning behavior one.
-    _domainAxisTickProvider =
-        PanningTickProvider<D>(_chartState.domainAxis!.tickProvider!);
-    _chartState.domainAxis!.tickProvider = _domainAxisTickProvider;
-
-    return MouseRegion(
-      onHover: null,
-      hitTestBehavior: HitTestBehavior.translucent,
-      child: RawGestureDetector(
-        gestures: _gestures,
-        behavior: HitTestBehavior.translucent,
-        child: KeyboardListener(
-          onKeyEvent: (event) {
-            if (event.logicalKey == LogicalKeyboardKey.controlLeft ||
-                event.logicalKey == LogicalKeyboardKey.controlRight) {
-              if (event is KeyDownEvent) {
-                _controlDown = true;
-              } else if (event is KeyUpEvent) {
-                _controlDown = false;
-              }
+  Widget build(BuildContext context) {
+    Widget result = Listener(
+      onPointerSignal: (event) {
+        if (event is PointerScrollEvent) {
+          if (_controlDown) {
+            if (_isZooming) {
+              final delta = event.scrollDelta.dy;
+              final double zoomScale = -1.0 / delta;
+              onZoomUpdate(
+                event.position,
+                (1.0 + zoomScale) * _scalingFactor,
+                _mouseLocalPosition,
+              );
             }
-          },
-          focusNode: _focusNode,
-          autofocus: true,
-          child: Listener(
-            onPointerSignal: (event) {
-              if (event is PointerScrollEvent) {
-                onDragStart(event.position);
-
-                if (_controlDown) {
-                  final delta = event.scrollDelta.dy;
-                  final double zoomScale = -1.0 / delta;
-                  onDragUpdate(Offset.zero, 1.0 + zoomScale);
-                } else {
-                  onDragUpdate(
-                    (!_chartState.domainAxis!.isVertical
-                        ? event.position -
-                            Offset(
-                              event.scrollDelta.dy,
-                              event.scrollDelta.dx,
-                            )
-                        : event.position - event.scrollDelta),
-                    1.0,
-                  );
-                }
-
-                onDragEnd(0.0);
-              }
-            },
-            behavior: HitTestBehavior.translucent,
-            child: const Center(
-              child: SizedBox(),
-            ),
-          ),
-        ),
+          } else {
+            if (onDragStart(event.position)) {
+              _isPanning = true;
+              onPanUpdate(
+                !_chartState.domainAxis!.isVertical
+                    ? event.position -
+                        Offset(
+                          event.scrollDelta.dy,
+                          event.scrollDelta.dx,
+                        )
+                    : event.position - event.scrollDelta,
+                false,
+              );
+              onDragEnd(0.0);
+            }
+          }
+        }
+      },
+      behavior: HitTestBehavior.translucent,
+      child: const Center(
+        child: SizedBox(),
       ),
     );
+
+    if (widget.hasZoomBehavior) {
+      result = MouseRegion(
+        onHover: (event) {
+          setState(() {
+            _mousePosition = event.position;
+            _mouseLocalPosition = event.localPosition;
+            _focusNode.requestFocus();
+          });
+        },
+        hitTestBehavior: HitTestBehavior.translucent,
+        child: RawGestureDetector(
+          gestures: _gestures,
+          behavior: HitTestBehavior.translucent,
+          child: KeyboardListener(
+            onKeyEvent: (event) {
+              setState(() {
+                if (event.logicalKey == LogicalKeyboardKey.controlLeft ||
+                    event.logicalKey == LogicalKeyboardKey.controlRight) {
+                  if (event is KeyDownEvent) {
+                    if (!_controlDown) {
+                      if (_isPanning) {
+                        onDragEnd(0.0);
+                      }
+
+                      _isZooming = true;
+                      _controlDown = true;
+                      onDragStart(_mousePosition);
+                    }
+                  } else if (event is KeyUpEvent) {
+                    if (_controlDown && _isZooming) {
+                      onDragEnd(0.0);
+                    }
+                    _controlDown = false;
+                  }
+                }
+              });
+            },
+            focusNode: _focusNode,
+            autofocus: true,
+            child: result,
+          ),
+        ),
+      );
+    }
+
+    return result;
   }
 }
 

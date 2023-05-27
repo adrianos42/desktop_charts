@@ -436,14 +436,14 @@ abstract class CartesianAxis<D> extends ChangeNotifier
   /// the complete data extents to the output range, and 2.0 only maps half the
   /// data to the output range.
   ///
-  /// [viewportTranslate] is the translate/pan to use in pixel units,
+  /// [viewportTranslate] is the translate/pan,
   /// likely <= 0 which shifts the start of the data before the edge of the
   /// chart giving us a pan.
   ///
-  /// [drawAreaWidth] is the width of the draw area for the series data in pixel
-  /// units, at minimum viewport scale level (1.0). When provided,
-  /// [drawAreaHeight] is the height of the draw area for the series data in
-  /// pixel units, at minimum viewport scale level (1.0). When provided,
+  /// [drawAreaWidth] is the width of the draw area for the series data,
+  /// at minimum viewport scale level (1.0). When provided,
+  /// [drawAreaHeight] is the height of the draw area for the series data,
+  /// at minimum viewport scale level (1.0). When provided,
   /// [viewportTranslate] will be clamped such that the axis cannot be panned
   /// beyond the bounds of the data.
   void setViewportSettings(
@@ -471,7 +471,7 @@ abstract class CartesianAxis<D> extends ChangeNotifier
   /// zooming.  Its value is likely >= 1.0.
   double get viewportScalingFactor => scale.viewportScalingFactor;
 
-  /// Returns the current pixel viewport offset
+  /// Returns the current viewport offset
   ///
   /// The translate is used by the scale function when it applies the scale.
   /// This is the equivalent to panning.  Its value is likely <= 0 to pan the
@@ -516,7 +516,7 @@ abstract class CartesianAxis<D> extends ChangeNotifier
       _axisDirection == AxisDirection.right;
 
   double _measureVerticalAxis(double maxWidth, double maxHeight) {
-    setOutputRange(maxHeight, 0);
+    setOutputRange(maxHeight, 0.0);
     _updateProvidedTicks();
 
     return tickDrawStrategy.measureVerticallyDrawnTicks(
@@ -528,7 +528,7 @@ abstract class CartesianAxis<D> extends ChangeNotifier
   }
 
   double _measureHorizontalAxis(double maxWidth, double maxHeight) {
-    setOutputRange(0, maxWidth);
+    setOutputRange(0.0, maxWidth);
     _updateProvidedTicks();
 
     return tickDrawStrategy.measureHorizontallyDrawnTicks(
@@ -579,9 +579,11 @@ abstract class CartesianAxis<D> extends ChangeNotifier
       scale.range = outputRange;
     }
 
-    _updateProvidedTicks();
-    _updateProvidedTickWidth(_componentBounds.width, _componentBounds.height);
-    _updateAxisTicks();
+    if (_hasValidSize) {
+      _updateProvidedTicks();
+      _updateProvidedTickWidth(_componentBounds.width, _componentBounds.height);
+      _updateAxisTicks();
+    }
   }
 
   bool get drawAxisLine {
@@ -593,6 +595,8 @@ abstract class CartesianAxis<D> extends ChangeNotifier
   }
 
   late Size size;
+
+  bool get _hasValidSize => _axisSize.width > 0.0 && _axisSize.height > 0.0;
 
   void measure(BoxConstraints constraints, [Size? axisSize]) {
     size = constraints.biggest;
@@ -632,6 +636,14 @@ abstract class CartesianAxis<D> extends ChangeNotifier
     if (animationPercent == 1.0) {
       _axisTicks.removeWhere((t) => t.markedForRemoval);
     }
+
+    if (!_hasValidSize) {
+      return;
+    }
+
+    context.canvas
+      ..save()
+      ..clipRect((offset & size).inflate(20.0));
 
     final Rect tickAxisBound;
 
@@ -696,6 +708,8 @@ abstract class CartesianAxis<D> extends ChangeNotifier
         isLast: i == _axisTicks.length - 1,
       );
     }
+
+    context.canvas.restore();
   }
 }
 

@@ -12,15 +12,52 @@ import 'line_chart/line_chart.dart' as line;
 import 'overview.dart';
 import 'pie_chart/pie_chart.dart' as pie;
 import 'scatter_plot_chart/scatter_plot_chart.dart' as scatter_plot;
-import 'sunburst_chart/sunburst_chart.dart' as sunburst;
 import 'time_series_chart/time_series_chart.dart' as time_series;
 
 const String _version = '0.0.1-dev.9';
 
+@immutable
+class DocTreeIndex {
+  const DocTreeIndex({
+    required this.nodeIndex,
+    required this.parentTitle,
+  });
+
+  final int nodeIndex;
+  final String parentTitle;
+
+  @override
+  int get hashCode => Object.hash(nodeIndex, parentTitle);
+
+  @override
+  bool operator ==(covariant DocTreeIndex other) {
+    return other.nodeIndex == nodeIndex && other.parentTitle == parentTitle;
+  }
+}
+
+class DocTreeController extends ChangeNotifier {
+  DocTreeController();
+
+  DocTreeIndex? get index => _index;
+  DocTreeIndex? _index;
+  set index(DocTreeIndex? value) {
+    if (_index != value) {
+      _index = value;
+      notifyListeners();
+    }
+  }
+
+  @mustCallSuper
+  @override
+  void dispose() {
+    super.dispose();
+  }
+}
+
 ///
 class DocHome extends StatefulWidget {
   ///
-  DocHome({
+  const DocHome({
     super.key,
     required this.packageVersion,
     required this.packageName,
@@ -28,28 +65,25 @@ class DocHome extends StatefulWidget {
     this.allowThemeChange = true,
     this.allowDragging = false,
     required this.treeNodes,
-  }) : assert(treeNodes.isNotEmpty, 'Empty documentation.');
+    required this.treeController,
+  });
 
-  ///
   final String packageVersion;
 
-  ///
   final String packageName;
 
-  ///
   final bool allowThemeColorChange;
 
-  ///
   final bool allowThemeChange;
 
-  ///
   final List<TreeNode> treeNodes;
 
-  ///
+  final TreeController treeController;
+
   final bool allowDragging;
 
   @override
-  _DocHomeState createState() => _DocHomeState();
+  State<DocHome> createState() => _DocHomeState();
 }
 
 class _DocHomeState extends State<DocHome> {
@@ -217,6 +251,7 @@ class _DocHomeState extends State<DocHome> {
                     ),
                   ),
                 ),
+                controller: widget.treeController,
                 nodes: widget.treeNodes,
               ),
             ),
@@ -236,7 +271,6 @@ class _DocHomeState extends State<DocHome> {
 class _ThemeToggle extends StatefulWidget {
   const _ThemeToggle({
     required this.onPressed,
-    super.key,
   });
 
   final VoidCallback onPressed;
@@ -269,8 +303,41 @@ class _ThemeToggleState extends State<_ThemeToggle> {
   }
 }
 
-class DocApp extends StatelessWidget {
+class DocApp extends StatefulWidget {
   const DocApp({super.key});
+
+  @override
+  DocAppState createState() => DocAppState();
+}
+
+class DocAppState extends State<DocApp> {
+  final TreeController _treeController = TreeController();
+  final DocTreeController _internalTree = DocTreeController();
+
+  @override
+  void initState() {
+    super.initState();
+
+    _internalTree.addListener(() {
+      setState(() {});
+    });
+  }
+
+  @override
+  void dispose() {
+    _treeController.dispose();
+    _internalTree.dispose();
+    super.dispose();
+  }
+
+  (String?, int) _indexForCurrentNode(int index) {
+    return (
+      _treeController.index.isNotEmpty && _treeController.index.first == index
+          ? _internalTree.index?.parentTitle
+          : null,
+      _internalTree.index?.nodeIndex ?? 0
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -279,60 +346,31 @@ class DocApp extends StatelessWidget {
       packageVersion: _version,
       allowThemeChange: true,
       allowThemeColorChange: true,
-      allowDragging: false,
+      allowDragging: true,
+      treeController: _treeController,
       treeNodes: [
         TreeNode.child(
           titleBuilder: (context) => const Text('Overview'),
-          builder: (context) => const OverviewPage(),
+          builder: (context) => OverviewPage(
+            treeController: _treeController,
+            treeNodeController: _internalTree,
+          ),
         ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Bar'),
-          builder: (context) => const bar.BarPage(),
-        ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Pie'),
-          builder: (context) => const pie.PiePage(),
-        ),
-        // TreeNode.child(
-        //   titleBuilder: (context) => const Text('Sunburst'),
-        //   builder: (context) => const sunburst.SunburstPage(),
-        // ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Line'),
-          builder: (context) => const line.LinePage(),
-        ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Scatter Plot'),
-          builder: (context) => const scatter_plot.ScatterPlotPage(),
-        ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Time Series'),
-          builder: (context) => const time_series.TimeSeriesPage(),
-        ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Axes'),
-          builder: (context) => const axes.AxesPage(),
-        ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Combo'),
-          builder: (context) => const combo.ComboPage(),
-        ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Legends'),
-          builder: (context) => const legends.LegendsPage(),
-        ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('Behaviors'),
-          builder: (context) => const behaviors.BehaviorsPage(),
-        ),
+        bar.createChartNode(_indexForCurrentNode(1)),
+        pie.createChartNode(),
+        line.createChartNode(_indexForCurrentNode(3)),
+        scatter_plot.createChartNode(),
+        time_series.createChartNode(_indexForCurrentNode(5)),
+        axes.createChartNode(_indexForCurrentNode(6)),
+        combo.createChartNode(),
+        legends.createChartNode(_indexForCurrentNode(8)),
+        behaviors.createChartNode(_indexForCurrentNode(9)),
+        i18n.createChartNode(),
+        //sunburst.createChartNode(),
         // TODO See support for this TreeNode.child(
         //   titleBuilder: (context) => const Text('A11y'),
         //   builder: (context) => const a11y.A11yPage(),
         // ),
-        TreeNode.child(
-          titleBuilder: (context) => const Text('i18n'),
-          builder: (context) => const i18n.I18nPage(),
-        ),
       ],
     );
   }

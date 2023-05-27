@@ -15,13 +15,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Custom Tick Style Example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class ShortTickLengthAxisPage extends StatefulWidget {
+  const ShortTickLengthAxisPage({super.key});
+
+  @override
+  State<ShortTickLengthAxisPage> createState() =>
+      _ShortTickLengthAxisPageState();
+}
+
+class _ShortTickLengthAxisPageState extends State<ShortTickLengthAxisPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = ShortTickLengthAxis.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: ShortTickLengthAxis.title,
+          subtitle: ShortTickLengthAxis.subtitle,
+          body: (context) => ShortTickLengthAxis(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class ShortTickLengthAxisBuilder extends ExampleBuilder {
+  const ShortTickLengthAxisBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const ShortTickLengthAxisPage();
+
+  @override
+  String? get subtitle => ShortTickLengthAxis.subtitle;
+
+  @override
+  String get title => ShortTickLengthAxis.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      ShortTickLengthAxis.withSampleData(animate);
+}
+
+/// Custom Tick Style Example
+///
 /// Example of using a custom primary measure axis replacing the default
 /// gridline rendering with a short tick rendering. It also turns on the axis
 /// line so that the ticks have something to line up against.
@@ -42,15 +116,9 @@ class ShortTickLengthAxis extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory ShortTickLengthAxis.withRandomData([bool animate = true]) {
-    return ShortTickLengthAxis(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Short Ticks Axis';
+  static String? get subtitle =>
+      'Bar chart with the primary measure axis having short ticks';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -64,6 +132,25 @@ class ShortTickLengthAxis extends StatelessWidget {
       OrdinalSales('2015', random.nextInt(100) * 100),
       OrdinalSales('2016', random.nextInt(100) * 100),
       OrdinalSales('2017', random.nextInt(100) * 100),
+    ];
+
+    return [
+      charts.Series<OrdinalSales, String>(
+        id: 'Global Revenue',
+        domain: (OrdinalSales sales, _) => sales.year,
+        measure: (OrdinalSales sales, _) => sales.sales,
+        data: globalSalesData,
+      ),
+    ];
+  }
+
+  /// Create series list with single series
+  static List<charts.Series<OrdinalSales, String>> createSampleData() {
+    const globalSalesData = [
+      OrdinalSales('2014', 5000),
+      OrdinalSales('2015', 25000),
+      OrdinalSales('2016', 100000),
+      OrdinalSales('2017', 750000),
     ];
 
     return [
@@ -91,25 +178,6 @@ class ShortTickLengthAxis extends StatelessWidget {
             ),
       ),
     );
-  }
-
-  /// Create series list with single series
-  static List<charts.Series<OrdinalSales, String>> createSampleData() {
-    const globalSalesData = [
-      OrdinalSales('2014', 5000),
-      OrdinalSales('2015', 25000),
-      OrdinalSales('2016', 100000),
-      OrdinalSales('2017', 750000),
-    ];
-
-    return [
-      charts.Series<OrdinalSales, String>(
-        id: 'Global Revenue',
-        domain: (OrdinalSales sales, _) => sales.year,
-        measure: (OrdinalSales sales, _) => sales.sales,
-        data: globalSalesData,
-      ),
-    ];
   }
 }
 

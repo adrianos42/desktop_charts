@@ -15,16 +15,90 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Forward hatch pattern bar chart example.
-///
-/// The second series of bars is rendered with a pattern by defining a
-/// fillPattern mapping function.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class PatternForwardHatchBarChartPage extends StatefulWidget {
+  const PatternForwardHatchBarChartPage({super.key});
+
+  @override
+  State<PatternForwardHatchBarChartPage> createState() =>
+      _PatternForwardHatchBarChartPageState();
+}
+
+class _PatternForwardHatchBarChartPageState
+    extends State<PatternForwardHatchBarChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = PatternForwardHatchBarChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Bar',
+      items: [
+        ItemTitle(
+          title: PatternForwardHatchBarChart.title,
+          subtitle: PatternForwardHatchBarChart.subtitle,
+          body: (context) => PatternForwardHatchBarChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class PatternForwardHatchBarChartBuilder extends ExampleBuilder {
+  const PatternForwardHatchBarChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const PatternForwardHatchBarChartPage();
+
+  @override
+  String? get subtitle => PatternForwardHatchBarChart.subtitle;
+
+  @override
+  String get title => PatternForwardHatchBarChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      PatternForwardHatchBarChart.withSampleData(animate);
+}
+
+/// Forward hatch pattern bar chart example.
+///
+/// The second series of bars is rendered with a pattern by defining a
+/// fillPattern mapping function.
 class PatternForwardHatchBarChart extends StatelessWidget {
   const PatternForwardHatchBarChart(
     this.seriesList, {
@@ -39,15 +113,8 @@ class PatternForwardHatchBarChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory PatternForwardHatchBarChart.withRandomData([bool animate = true]) {
-    return PatternForwardHatchBarChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Pattern Forward Hatch';
+  static String? get subtitle => null;
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -101,15 +168,6 @@ class PatternForwardHatchBarChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.BarChart(
-      seriesList,
-      animate: animate,
-      barGroupingType: charts.BarGroupingType.grouped,
-    );
-  }
-
   /// Create series list with multiple series
   static List<charts.Series<OrdinalSales, String>> createSampleData() {
     const desktopSalesData = [
@@ -155,6 +213,15 @@ class PatternForwardHatchBarChart extends StatelessWidget {
         data: mobileSalesData,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.BarChart(
+      seriesList,
+      animate: animate,
+      barGroupingType: charts.BarGroupingType.grouped,
+    );
   }
 }
 

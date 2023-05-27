@@ -15,18 +15,92 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class BucketingAxisScatterPlotChartPage extends StatefulWidget {
+  const BucketingAxisScatterPlotChartPage({super.key});
+
+  @override
+  State<BucketingAxisScatterPlotChartPage> createState() =>
+      _BucketingAxisScatterPlotChartPageState();
+}
+
+class _BucketingAxisScatterPlotChartPageState
+    extends State<BucketingAxisScatterPlotChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = BucketingAxisScatterPlotChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Scatter Plot',
+      items: [
+        ItemTitle(
+          title: BucketingAxisScatterPlotChart.title,
+          subtitle: BucketingAxisScatterPlotChart.subtitle,
+          body: (context) => BucketingAxisScatterPlotChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class BucketingAxisScatterPlotChartBuilder extends ExampleBuilder {
+  const BucketingAxisScatterPlotChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const BucketingAxisScatterPlotChartPage();
+
+  @override
+  String? get subtitle => BucketingAxisScatterPlotChart.subtitle;
+
+  @override
+  String get title => BucketingAxisScatterPlotChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      BucketingAxisScatterPlotChart.withSampleData(animate);
+}
+
 /// Example of a scatter plot chart with a bucketing measure axis and a legend.
 ///
 /// A bucketing measure axis positions all values beneath a certain threshold
 /// into a reserved space on the axis range. The label for the bucket line will
 /// be drawn in the middle of the bucket range, rather than aligned with the
 /// gridline for that value's position on the scale.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class BucketingAxisScatterPlotChart extends StatelessWidget {
   const BucketingAxisScatterPlotChart(
     this.seriesList, {
@@ -42,15 +116,10 @@ class BucketingAxisScatterPlotChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory BucketingAxisScatterPlotChart.withRandomData([bool animate = true]) {
-    return BucketingAxisScatterPlotChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Bucketing Axis';
+  static String? get subtitle =>
+      'Scatter plot with a measure axis that buckets values less '
+      'than 10% into a single region below the draw area';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -150,26 +219,6 @@ class BucketingAxisScatterPlotChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.ScatterPlotChart(seriesList,
-        // Set up a bucketing axis that will place all values below 0.1 (10%)
-        // into a bucket at the bottom of the chart.
-        //
-        // Configure a tick count of 3 so that we get 100%, 50%, and the
-        // threshold.
-        primaryMeasureAxis: charts.BucketingAxisSpec(
-            threshold: 0.1,
-            tickProviderSpec: const charts.BucketingNumericTickProviderSpec(
-              desiredTickCount: 3,
-            )),
-        // Add a series legend to display the series names.
-        behaviors: [
-          // TODO charts.SeriesLegend(position: charts.BehaviorPosition.end),
-        ],
-        animate: animate);
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const myFakeDesktopData = [
@@ -255,6 +304,28 @@ class BucketingAxisScatterPlotChart extends StatelessWidget {
         data: myFakeOtherData,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.ScatterPlotChart(
+      seriesList,
+      // Set up a bucketing axis that will place all values below 0.1 (10%)
+      // into a bucket at the bottom of the chart.
+      //
+      // Configure a tick count of 3 so that we get 100%, 50%, and the
+      // threshold.
+      primaryMeasureAxis: charts.BucketingAxisSpec(
+          threshold: 0.1,
+          tickProviderSpec: const charts.BucketingNumericTickProviderSpec(
+            desiredTickCount: 3,
+          )),
+      // Add a series legend to display the series names.
+      behaviors: const [
+        charts.SeriesLegend(position: charts.BehaviorPosition.end),
+      ],
+      animate: animate,
+    );
   }
 }
 

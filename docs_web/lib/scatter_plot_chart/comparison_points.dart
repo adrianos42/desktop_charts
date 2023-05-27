@@ -15,13 +15,87 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Line chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class ComparisonPointsScatterPlotChartPage extends StatefulWidget {
+  const ComparisonPointsScatterPlotChartPage({super.key});
+
+  @override
+  State<ComparisonPointsScatterPlotChartPage> createState() =>
+      _ComparisonPointsScatterPlotChartPageState();
+}
+
+class _ComparisonPointsScatterPlotChartPageState
+    extends State<ComparisonPointsScatterPlotChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = ComparisonPointsScatterPlotChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Scatter Plot',
+      items: [
+        ItemTitle(
+          title: ComparisonPointsScatterPlotChart.title,
+          subtitle: ComparisonPointsScatterPlotChart.subtitle,
+          body: (context) => ComparisonPointsScatterPlotChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class ComparisonPointsScatterPlotChartBuilder extends ExampleBuilder {
+  const ComparisonPointsScatterPlotChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const ComparisonPointsScatterPlotChartPage();
+
+  @override
+  String? get subtitle => ComparisonPointsScatterPlotChart.subtitle;
+
+  @override
+  String get title => ComparisonPointsScatterPlotChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      ComparisonPointsScatterPlotChart.withSampleData(animate);
+}
+
+/// Line chart example
 class ComparisonPointsScatterPlotChart extends StatelessWidget {
   const ComparisonPointsScatterPlotChart(
     this.seriesList, {
@@ -39,17 +113,8 @@ class ComparisonPointsScatterPlotChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory ComparisonPointsScatterPlotChart.withRandomData([
-    bool animate = true,
-  ]) {
-    return ComparisonPointsScatterPlotChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Comparison Points';
+  static String? get subtitle => 'Scatter plot chart with comparison points';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -117,20 +182,6 @@ class ComparisonPointsScatterPlotChart extends StatelessWidget {
     );
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.ScatterPlotChart(
-      seriesList,
-      animate: animate,
-      defaultRenderer: const charts.PointRendererConfig(
-        pointRendererDecorators: [
-          charts.ComparisonPointsDecorator(
-              symbolRenderer: charts.CylinderSymbolRenderer())
-        ],
-      ),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const data = [
@@ -171,6 +222,20 @@ class ComparisonPointsScatterPlotChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.ScatterPlotChart(
+      seriesList,
+      animate: animate,
+      defaultRenderer: const charts.PointRendererConfig(
+        pointRendererDecorators: [
+          charts.ComparisonPointsDecorator(
+              symbolRenderer: charts.CylinderSymbolRenderer())
+        ],
+      ),
+    );
   }
 }
 

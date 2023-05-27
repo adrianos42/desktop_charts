@@ -61,7 +61,7 @@ abstract class BaseArcRendererConfig<D> extends SeriesRendererConfig<D> {
   /// If arcRatio is set, this value will be ignored.
   final double? arcWidth;
 
-  /// Minimum radius in pixels of the hole in a donut chart for center content
+  /// Minimum radius of the hole in a donut chart for center content
   /// to appear.
   final double minHoleWidthForCenterContent;
 

@@ -21,6 +21,79 @@ import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 import 'package:flutter/scheduler.dart';
 
+import '../defaults.dart';
+
+class SliderLinePage extends StatefulWidget {
+  const SliderLinePage({super.key});
+
+  @override
+  State<SliderLinePage> createState() => _SliderLinePageState();
+}
+
+class _SliderLinePageState extends State<SliderLinePage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = SliderLine.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, num>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Behaviors',
+      items: [
+        ItemTitle(
+          title: SliderLine.title,
+          subtitle: SliderLine.subtitle,
+          body: (context) => SliderLine(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class SliderLineBuilder extends ExampleBuilder {
+  const SliderLineBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const SliderLinePage();
+
+  @override
+  String? get subtitle => SliderLine.subtitle;
+
+  @override
+  String get title => SliderLine.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      SliderLine.withSampleData(animate);
+}
+
 /// This is just a simple line chart with a behavior that adds slider controls.
 ///
 /// A [Slider] behavior is added manually to enable slider controls, with an
@@ -48,15 +121,8 @@ class SliderLine extends StatefulWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory SliderLine.withRandomData([bool animate = true]) {
-    return SliderLine(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Line Chart with Slider';
+  static String? get subtitle => 'Line chart with a slider behavior';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -82,11 +148,6 @@ class SliderLine extends StatefulWidget {
     ];
   }
 
-  // We need a Stateful widget to build the selection details with the current
-  // selection as the state.
-  @override
-  State<StatefulWidget> createState() => _SliderCallbackState();
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const data = [
@@ -105,6 +166,11 @@ class SliderLine extends StatefulWidget {
       )
     ];
   }
+
+  // We need a Stateful widget to build the selection details with the current
+  // selection as the state.
+  @override
+  State<StatefulWidget> createState() => _SliderCallbackState();
 }
 
 class _SliderCallbackState extends State<SliderLine> {

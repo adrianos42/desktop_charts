@@ -15,13 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Dash pattern line chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class DashPatternLineChartPage extends StatefulWidget {
+  const DashPatternLineChartPage({super.key});
+
+  @override
+  State<DashPatternLineChartPage> createState() =>
+      _DashPatternLineChartPageState();
+}
+
+class _DashPatternLineChartPageState extends State<DashPatternLineChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = DashPatternLineChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Line',
+      items: [
+        ItemTitle(
+          title: DashPatternLineChart.title,
+          subtitle: DashPatternLineChart.subtitle,
+          body: (context) => DashPatternLineChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class DashPatternLineChartBuilder extends ExampleBuilder {
+  const DashPatternLineChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const DashPatternLineChartPage();
+
+  @override
+  String? get subtitle => DashPatternLineChart.subtitle;
+
+  @override
+  String get title => DashPatternLineChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      DashPatternLineChart.withSampleData(animate);
+}
+
+/// Dash pattern line chart example
 /// Example of a line chart rendered with dash patterns.
 @immutable
 class DashPatternLineChart extends StatelessWidget {
@@ -39,15 +112,8 @@ class DashPatternLineChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory DashPatternLineChart.withRandomData([bool animate = true]) {
-    return DashPatternLineChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Dash Pattern';
+  static String? get subtitle => 'Line chart with dash patterns';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -104,11 +170,6 @@ class DashPatternLineChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.LineChart(seriesList, animate: animate);
-  }
-
   /// Create three series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const myFakeDesktopData = [
@@ -157,6 +218,11 @@ class DashPatternLineChart extends StatelessWidget {
         data: myFakeMobileData,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.LineChart(seriesList, animate: animate);
   }
 }
 

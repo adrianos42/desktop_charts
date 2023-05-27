@@ -15,13 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// RTL Bar chart example
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class RTLBarChartPage extends StatefulWidget {
+  const RTLBarChartPage({super.key});
+
+  @override
+  State<RTLBarChartPage> createState() => _RTLBarChartPageState();
+}
+
+class _RTLBarChartPageState extends State<RTLBarChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = RTLBarChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'i18n',
+      items: [
+        ItemTitle(
+          title: RTLBarChart.title,
+          subtitle: RTLBarChart.subtitle,
+          body: (context) => RTLBarChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class RTLBarChartBuilder extends ExampleBuilder {
+  const RTLBarChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const RTLBarChartPage();
+
+  @override
+  String? get subtitle => RTLBarChart.subtitle;
+
+  @override
+  String get title => RTLBarChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      RTLBarChart.withSampleData(animate);
+}
+
+/// RTL Bar chart example
 class RTLBarChart extends StatelessWidget {
   const RTLBarChart(
     this.seriesList, {
@@ -37,15 +109,8 @@ class RTLBarChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory RTLBarChart.withRandomData([bool animate = true]) {
-    return RTLBarChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'RTL Bar Chart';
+  static String? get subtitle => 'Simple bar chart in RTL';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -59,6 +124,25 @@ class RTLBarChart extends StatelessWidget {
       OrdinalSales('2015', random.nextInt(100)),
       OrdinalSales('2016', random.nextInt(100)),
       OrdinalSales('2017', random.nextInt(100)),
+    ];
+
+    return [
+      charts.Series<OrdinalSales, String>(
+        id: 'Sales',
+        domain: (OrdinalSales sales, _) => sales.year,
+        measure: (OrdinalSales sales, _) => sales.sales,
+        data: data,
+      )
+    ];
+  }
+
+  /// Create one series with sample hard coded data.
+  static List<charts.Series<OrdinalSales, String>> createSampleData() {
+    const data = [
+      OrdinalSales('2014', 5),
+      OrdinalSales('2015', 25),
+      OrdinalSales('2016', 100),
+      OrdinalSales('2017', 75),
     ];
 
     return [
@@ -88,31 +172,13 @@ class RTLBarChart extends StatelessWidget {
     // Optionally, [RTLSpec] can be passed in when creating the chart to specify
     // chart display settings in RTL mode.
     return Directionality(
-        textDirection: TextDirection.rtl,
-        child: charts.BarChart(
-          seriesList,
-          animate: animate,
-          isVertical: false,
-        ));
-  }
-
-  /// Create one series with sample hard coded data.
-  static List<charts.Series<OrdinalSales, String>> createSampleData() {
-    const data = [
-      OrdinalSales('2014', 5),
-      OrdinalSales('2015', 25),
-      OrdinalSales('2016', 100),
-      OrdinalSales('2017', 75),
-    ];
-
-    return [
-      charts.Series<OrdinalSales, String>(
-        id: 'Sales',
-        domain: (OrdinalSales sales, _) => sales.year,
-        measure: (OrdinalSales sales, _) => sales.sales,
-        data: data,
-      )
-    ];
+      textDirection: TextDirection.rtl,
+      child: charts.BarChart(
+        seriesList,
+        animate: animate,
+        isVertical: false,
+      ),
+    );
   }
 }
 

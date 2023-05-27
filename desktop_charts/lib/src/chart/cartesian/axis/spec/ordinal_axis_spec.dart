@@ -208,19 +208,18 @@ class SimpleOrdinalScaleSpec implements OrdinalScaleSpec {
   int get hashCode => runtimeType.hashCode;
 }
 
-/// [OrdinalScaleSpec] which allows setting space between bars to be a fixed
-/// pixel size.
+/// [OrdinalScaleSpec] which allows setting space between bars to be a fixed size.
 @immutable
-class FixedPixelSpaceOrdinalScaleSpec implements OrdinalScaleSpec {
-  const FixedPixelSpaceOrdinalScaleSpec(this.pixelSpaceBetweenBars);
+class FixedSpaceOrdinalScaleSpec implements OrdinalScaleSpec {
+  const FixedSpaceOrdinalScaleSpec(this.spaceBetweenBars);
 
-  final double pixelSpaceBetweenBars;
+  final double spaceBetweenBars;
 
   @override
   OrdinalScale createScale(ChartsThemeData themeData) =>
       SimpleOrdinalScale(themeData)
         ..rangeBandConfig =
-            RangeBandConfig.fixedPixelSpaceBetweenStep(pixelSpaceBetweenBars);
+            RangeBandConfig.fixedSpaceBetweenStep(spaceBetweenBars);
 
   @override
   bool operator ==(Object other) => other is SimpleOrdinalScaleSpec;
@@ -229,17 +228,17 @@ class FixedPixelSpaceOrdinalScaleSpec implements OrdinalScaleSpec {
   int get hashCode => runtimeType.hashCode;
 }
 
-/// [OrdinalScaleSpec] which allows setting bar width to be a fixed pixel size.
+/// [OrdinalScaleSpec] which allows setting bar width to be a fixed size.
 @immutable
-class FixedPixelOrdinalScaleSpec implements OrdinalScaleSpec {
-  const FixedPixelOrdinalScaleSpec(this.pixels);
+class FixedOrdinalScaleSpec implements OrdinalScaleSpec {
+  const FixedOrdinalScaleSpec(this.value);
 
-  final double pixels;
+  final double value;
 
   @override
   OrdinalScale createScale(ChartsThemeData themeData) =>
       SimpleOrdinalScale(themeData)
-        ..rangeBandConfig = RangeBandConfig.fixedPixel(pixels);
+        ..rangeBandConfig = RangeBandConfig.fixed(value);
 
   @override
   bool operator ==(Object other) => other is SimpleOrdinalScaleSpec;

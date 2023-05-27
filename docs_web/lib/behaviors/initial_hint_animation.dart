@@ -15,6 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class InitialHintAnimationPage extends StatefulWidget {
+  const InitialHintAnimationPage({super.key});
+
+  @override
+  State<InitialHintAnimationPage> createState() =>
+      _InitialHintAnimationPageState();
+}
+
+class _InitialHintAnimationPageState extends State<InitialHintAnimationPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = InitialHintAnimation.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Behaviors',
+      items: [
+        ItemTitle(
+          title: InitialHintAnimation.title,
+          subtitle: InitialHintAnimation.subtitle,
+          body: (context) => InitialHintAnimation(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class InitialHintAnimationBuilder extends ExampleBuilder {
+  const InitialHintAnimationBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const InitialHintAnimationPage();
+
+  @override
+  String? get subtitle => InitialHintAnimation.subtitle;
+
+  @override
+  String get title => InitialHintAnimation.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      InitialHintAnimation.withSampleData(animate);
+}
+
 /// Example of initial hint animation behavior.
 ///
 /// To see the animation, please run the example app and select
@@ -42,12 +121,6 @@
 /// of 4. When the chart is drawn for the first time, the viewport will show
 /// 2022 as the first value and the viewport will animate by panning values to
 /// the right until 2018 is the first value in the viewport.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class InitialHintAnimation extends StatelessWidget {
   const InitialHintAnimation(
     this.seriesList, {
@@ -63,15 +136,8 @@ class InitialHintAnimation extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory InitialHintAnimation.withRandomData([bool animate = true]) {
-    return InitialHintAnimation(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Initial hint animation ';
+  static String? get subtitle => 'Animate into final viewport';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -111,34 +177,6 @@ class InitialHintAnimation extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.BarChart(
-      seriesList,
-      animate: animate,
-      // Optionally turn off the animation that animates values up from the
-      // bottom of the domain axis. If animation is on, the bars will animate up
-      // and then animate to the final viewport.
-      animationDuration: Duration.zero,
-      // Set the initial viewport by providing a AxisSpec with the
-      // desired viewport: a starting domain and the data size.
-      domainAxis: const charts.OrdinalAxisSpec(
-        viewport: charts.OrdinalViewport('2018', 4),
-      ),
-      isVertical: true,
-      behaviors: const [
-        // Add this behavior to show initial hint animation that will pan to the
-        // final desired viewport.
-        // The duration of the animation can be adjusted by pass in
-        // [hintDuration]. By default this is 3000ms.
-        charts.InitialHintBehavior(maxHintTranslate: 4.0),
-        // Optionally add a pan or pan and zoom behavior.
-        // If pan/zoom is not added, the viewport specified remains the viewport
-        charts.PanAndZoomBehavior(),
-      ],
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<OrdinalSales, String>> createSampleData() {
     const data = [
@@ -170,6 +208,34 @@ class InitialHintAnimation extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.BarChart(
+      seriesList,
+      animate: animate,
+      // Optionally turn off the animation that animates values up from the
+      // bottom of the domain axis. If animation is on, the bars will animate up
+      // and then animate to the final viewport.
+      animationDuration: Duration.zero,
+      // Set the initial viewport by providing a AxisSpec with the
+      // desired viewport: a starting domain and the data size.
+      domainAxis: const charts.OrdinalAxisSpec(
+        viewport: charts.OrdinalViewport('2018', 4),
+      ),
+      isVertical: true,
+      behaviors: const [
+        // Add this behavior to show initial hint animation that will pan to the
+        // final desired viewport.
+        // The duration of the animation can be adjusted by pass in
+        // [hintDuration]. By default this is 3000ms.
+        charts.InitialHintBehavior(maxHintTranslate: 4.0),
+        // Optionally add a pan or pan and zoom behavior.
+        // If pan/zoom is not added, the viewport specified remains the viewport
+        charts.PanAndZoomBehavior(),
+      ],
+    );
   }
 }
 

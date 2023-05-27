@@ -21,7 +21,6 @@ import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
 
 import '../../../symbol_renderer.dart' show RectSymbolRenderer, SymbolRenderer;
-import '../../../theme.dart';
 import '../../base_chart.dart'
     show BaseChartState, LifecycleListener, BaseChart;
 import '../../cartesian/cartesian_chart.dart'
@@ -134,37 +133,6 @@ class _SliderBehaviorState<D, S extends BaseChart<D>>
     if (chartState is! CartesianChartState<D, CartesianChart<D>>) {
       throw ArgumentError('Slider can only be attached to a cartesian chart.');
     }
-
-    // // Setup the appropriate gesture listening.
-    // switch (behavior.eventTrigger) {
-    //   // case SelectionTrigger.tapAndDrag:
-    //   //   _gestureListener = GestureListener(
-    //   //       onTapTest: _onTapTest,
-    //   //       onTap: _onSelect,
-    //   //       onDragStart: _onSelect,
-    //   //       onDragUpdate: _onSelect,
-    //   //       onDragEnd: _onDragEnd);
-    //   //   break;
-    //   // case SelectionTrigger.pressHold:
-    //   //   _gestureListener = GestureListener(
-    //   //       onTapTest: _onTapTest,
-    //   //       onLongPress: _onSelect,
-    //   //       onDragStart: _onSelect,
-    //   //       onDragUpdate: _onSelect,
-    //   //       onDragEnd: _onDragEnd);
-    //   //   break;
-    //   // case SelectionTrigger.longPressHold:
-    //   //   _gestureListener = GestureListener(
-    //   //       onTapTest: _onTapTest,
-    //   //       onLongPress: _onLongPressSelect,
-    //   //       onDragStart: _onSelect,
-    //   //       onDragUpdate: _onSelect,
-    //   //       onDragEnd: _onDragEnd);
-    //   //   break;
-    //   default:
-    //     throw ArgumentError('Slider does not support the event trigger '
-    //         '"${behavior.eventTrigger}"');
-    // }
   }
 
   @override
@@ -257,7 +225,7 @@ class _SliderLayoutRender<D> extends RenderBox
 
   Offset? _lastDragPoint;
 
-  /// Event to fire during the chart's onPostrender event.
+  /// Event to fire during the chart's [onPostRender] event.
   ///
   /// This should be set any time the state of the slider has changed.
   SliderListenerDragState? _dragStateToFireOnPostRender;
@@ -598,7 +566,7 @@ class _SliderLayoutRender<D> extends RenderBox
       domainCenterPoint: Offset(_domainCenterPoint!.dx, _domainCenterPoint!.dy),
       buttonBounds: _handleBounds!,
       fill: behavior.style.fillColor ?? themeData.sliderFillColor,
-      stroke: behavior.style.strokeColor ?? themeData.sliderStrokeColor,
+      stroke: behavior.style.strokeColor ?? themeData.tickColor,
       strokeWidth: behavior.style.strokeWidth,
     );
 
@@ -710,7 +678,7 @@ class _SliderLayoutRender<D> extends RenderBox
 
     final sliderElement = _sliderHandle!.getCurrentSlider(animationPercent);
 
-    final draggingColor = chartState.themeData.tickColor;
+    final draggingColor = chartState.themeData.noDataColor;
     final hoverColor = chartState.themeData.foreground;
 
     Color color = Color.lerp(
@@ -752,7 +720,7 @@ class _SliderLayoutRender<D> extends RenderBox
       strokeWidth: sliderElement.strokeWidth,
     );
 
-    _fireChangeEvent(); // TODO
+    _fireChangeEvent(); // TODO(as): Use correct event.
   }
 }
 
@@ -846,8 +814,11 @@ class _SliderElement<D> {
     );
   }
 
-  void updateAnimationPercent(_SliderElement<D> previous,
-      _SliderElement<D> target, double animationPercent) {
+  void updateAnimationPercent(
+    _SliderElement<D> previous,
+    _SliderElement<D> target,
+    double animationPercent,
+  ) {
     final previousPoint = previous.domainCenterPoint;
     final targetPoint = target.domainCenterPoint;
 

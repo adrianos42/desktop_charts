@@ -15,14 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Partial pie chart example, where the data does not cover a full revolution
-/// in the chart.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class PartialPieChartPage extends StatefulWidget {
+  const PartialPieChartPage({super.key});
+
+  @override
+  State<PartialPieChartPage> createState() => _PartialPieChartPageState();
+}
+
+class _PartialPieChartPageState extends State<PartialPieChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = PartialPieChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Pie',
+      items: [
+        ItemTitle(
+          title: PartialPieChart.title,
+          subtitle: PartialPieChart.subtitle,
+          body: (context) => PartialPieChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class PartialPieChartBuilder extends ExampleBuilder {
+  const PartialPieChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const PartialPieChartPage();
+
+  @override
+  String? get subtitle => PartialPieChart.subtitle;
+
+  @override
+  String get title => PartialPieChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      PartialPieChart.withSampleData(animate);
+}
+
+/// Partial pie chart example, where the data does not cover a full revolution
+/// in the chart.
 class PartialPieChart extends StatelessWidget {
   const PartialPieChart(
     this.seriesList, {
@@ -38,15 +110,8 @@ class PartialPieChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory PartialPieChart.withRandomData([bool animate = true]) {
-    return PartialPieChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Partial';
+  static String? get subtitle => 'That doesn\'t cover a full revolution';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -72,19 +137,6 @@ class PartialPieChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    // Configure the pie to display the data across only 3/4 instead of the full
-    // revolution.
-    return charts.PieChart(
-      seriesList,
-      animate: animate,
-      defaultRenderer: charts.ArcRendererConfig(
-        arcLength: 3 / 2 * pi,
-      ),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const data = [
@@ -102,6 +154,19 @@ class PartialPieChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Configure the pie to display the data across only 3/4 instead of the full
+    // revolution.
+    return charts.PieChart(
+      seriesList,
+      animate: animate,
+      defaultRenderer: const charts.ArcRendererConfig(
+        arcLength: 3 / 2 * pi,
+      ),
+    );
   }
 }
 

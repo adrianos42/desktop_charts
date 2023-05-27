@@ -73,9 +73,10 @@ abstract class BaseTickProvider<D> implements TickProvider<D> {
     for (int i = 0; i < domainValues.length; i += 1) {
       final value = domainValues[i];
       final tick = Tick(
-          value: value,
-          textElement: TextElement(labels[i]),
-          location: scale[value]?.toDouble());
+        value: value,
+        textElement: TextElement(labels[i]),
+        location: scale[value]?.toDouble(),
+      );
 
       ticks.add(tick);
     }

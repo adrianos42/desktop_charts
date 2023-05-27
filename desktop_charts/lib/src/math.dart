@@ -1,8 +1,5 @@
 // Copyright (C) 2023 Adriano Souza (adriano.souza113@gmail.com)
 
-import 'dart:math' show max, min, sqrt;
-
-import 'package:flutter/foundation.dart';
 // Copyright 2018 the Charts project authors. Please see the AUTHORS file
 // for details.
 //
@@ -18,6 +15,9 @@ import 'package:flutter/foundation.dart';
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math' show max, min, sqrt;
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/rendering.dart';
 import 'package:vector_math/vector_math.dart' show Vector2;
 

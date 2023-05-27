@@ -15,15 +15,89 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Example of a time series chart with an end points domain axis.
-///
-/// An end points axis generates two ticks, one at each end of the axis range.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class EndPointsAxisTimeSeriesChartPage extends StatefulWidget {
+  const EndPointsAxisTimeSeriesChartPage({super.key});
+
+  @override
+  State<EndPointsAxisTimeSeriesChartPage> createState() =>
+      _EndPointsAxisTimeSeriesChartPageState();
+}
+
+class _EndPointsAxisTimeSeriesChartPageState
+    extends State<EndPointsAxisTimeSeriesChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = EndPointsAxisTimeSeriesChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<TimeSeriesSales, DateTime>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Time Series',
+      items: [
+        ItemTitle(
+          title: EndPointsAxisTimeSeriesChart.title,
+          subtitle: EndPointsAxisTimeSeriesChart.subtitle,
+          body: (context) => EndPointsAxisTimeSeriesChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class EndPointsAxisTimeSeriesChartBuilder extends ExampleBuilder {
+  const EndPointsAxisTimeSeriesChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const EndPointsAxisTimeSeriesChartPage();
+
+  @override
+  String? get subtitle => EndPointsAxisTimeSeriesChart.subtitle;
+
+  @override
+  String get title => EndPointsAxisTimeSeriesChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      EndPointsAxisTimeSeriesChart.withSampleData(animate);
+}
+
+/// Example of a time series chart with an end points domain axis.
+///
+/// An end points axis generates two ticks, one at each end of the axis range.
 class EndPointsAxisTimeSeriesChart extends StatelessWidget {
   const EndPointsAxisTimeSeriesChart(
     this.seriesList, {
@@ -39,15 +113,8 @@ class EndPointsAxisTimeSeriesChart extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory EndPointsAxisTimeSeriesChart.withRandomData([bool animate = true]) {
-    return EndPointsAxisTimeSeriesChart(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'End Points Axis';
+  static String? get subtitle => 'Time series chart with an end points axis';
 
   final List<charts.Series<dynamic, DateTime>> seriesList;
   final bool animate;
@@ -74,19 +141,6 @@ class EndPointsAxisTimeSeriesChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.TimeSeriesChart(
-      seriesList,
-      animate: animate,
-      // Configures an axis spec that is configured to render one tick at each
-      // end of the axis range, anchored "inside" the axis. The start tick label
-      // will be left-aligned with its tick mark, and the end tick label will be
-      // right-aligned with its tick mark.
-      domainAxis: const charts.EndPointsTimeAxisSpec(),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<TimeSeriesSales, DateTime>> createSampleData() {
     final data = [
@@ -105,6 +159,19 @@ class EndPointsAxisTimeSeriesChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.TimeSeriesChart(
+      seriesList,
+      animate: animate,
+      // Configures an axis spec that is configured to render one tick at each
+      // end of the axis range, anchored "inside" the axis. The start tick label
+      // will be left-aligned with its tick mark, and the end tick label will be
+      // right-aligned with its tick mark.
+      domainAxis: const charts.EndPointsTimeAxisSpec(),
+    );
   }
 }
 

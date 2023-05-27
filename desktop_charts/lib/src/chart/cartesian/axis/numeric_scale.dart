@@ -21,7 +21,7 @@ import 'scale.dart' show MutableScale;
 /// Scale used to convert numeric domain input units to output range units.
 ///
 /// The input represents a continuous numeric domain which maps to a given range
-/// output.  This is used to map the domain's values to the available pixel
+/// output.  This is used to map the domain's values to the available
 /// range of the chart.
 abstract class NumericScale extends MutableScale<num> {
   /// Keeps the scale and translate sane if true (default).

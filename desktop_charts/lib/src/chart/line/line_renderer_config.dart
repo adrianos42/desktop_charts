@@ -22,6 +22,7 @@ import '../../symbol_renderer.dart';
 import '../base_chart.dart' show BaseChart, BaseChartState;
 import '../series_renderer_config.dart' show SeriesRendererConfig;
 import 'line_renderer.dart' show LineRenderer;
+import '../../curve.dart';
 
 /// Configuration for a line renderer.
 @immutable
@@ -37,6 +38,7 @@ class LineRendererConfig<D> extends SeriesRendererConfig<D> {
     this.includeArea = false,
     this.areaOpacity = 0.1,
     this.roundEndCaps = false,
+    this.lineCurve = LineCurve.linearCurve,
     SymbolRenderer? symbolRenderer,
   }) : symbolRenderer = symbolRenderer ?? const LineSymbolRenderer();
 
@@ -85,6 +87,9 @@ class LineRendererConfig<D> extends SeriesRendererConfig<D> {
   /// Whether lines should have round end caps, or square if false.
   final bool roundEndCaps;
 
+  /// The default curve for all series.
+  final LineCurve lineCurve;
+
   @override
   LineRenderer<D, S> build<S extends BaseChart<D>>({
     required BaseChartState<D, S> chartState,
@@ -112,7 +117,8 @@ class LineRendererConfig<D> extends SeriesRendererConfig<D> {
         other.includePoints == includePoints &&
         other.includeArea == includeArea &&
         other.areaOpacity == areaOpacity &&
-        other.roundEndCaps == roundEndCaps;
+        other.roundEndCaps == roundEndCaps &&
+        other.lineCurve == lineCurve;
   }
 
   @override
@@ -128,5 +134,6 @@ class LineRendererConfig<D> extends SeriesRendererConfig<D> {
         includeArea,
         areaOpacity,
         roundEndCaps,
+        lineCurve,
       );
 }

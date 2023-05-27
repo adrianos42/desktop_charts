@@ -40,9 +40,9 @@ class DateTimeScale extends MutableScale<DateTime> {
       _linearScale[domainValue.millisecondsSinceEpoch.toDouble()];
 
   @override
-  DateTime reverse(double pixelLocation) =>
+  DateTime reverse(double location) =>
       dateTimeFactory.createDateTimeFromMilliSecondsSinceEpoch(
-          _linearScale.reverse(pixelLocation).round());
+          _linearScale.reverse(location).round());
 
   @override
   void resetDomain() {
@@ -130,7 +130,7 @@ class DateTimeScale extends MutableScale<DateTime> {
   RangeBandConfig get rangeBandConfig => _linearScale.rangeBandConfig;
 
   @override
-  int get rangeWidth => _linearScale.rangeWidth;
+  double get rangeWidth => _linearScale.rangeWidth;
 
   @override
   ScaleOutputExtent? get range => _linearScale.range;

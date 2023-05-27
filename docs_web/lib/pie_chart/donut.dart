@@ -15,13 +15,85 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-/// Donut chart example. This is a simple pie chart with a hole in the middle.
-
 import 'dart:math';
 
 import 'package:desktop/desktop.dart';
 import 'package:desktop_charts/desktop_charts.dart' as charts;
 
+import '../defaults.dart';
+
+class DonutPieChartPage extends StatefulWidget {
+  const DonutPieChartPage({super.key});
+
+  @override
+  State<DonutPieChartPage> createState() => _DonutPieChartPageState();
+}
+
+class _DonutPieChartPageState extends State<DonutPieChartPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = DonutPieChart.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, int>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Pie',
+      items: [
+        ItemTitle(
+          title: DonutPieChart.title,
+          subtitle: DonutPieChart.subtitle,
+          body: (context) => DonutPieChart(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class DonutPieChartBuilder extends ExampleBuilder {
+  const DonutPieChartBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const DonutPieChartPage();
+
+  @override
+  String? get subtitle => DonutPieChart.subtitle;
+
+  @override
+  String get title => DonutPieChart.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      DonutPieChart.withSampleData(animate);
+}
+
+/// Donut chart example. This is a simple pie chart with a hole in the middle.
 class DonutPieChart extends StatelessWidget {
   const DonutPieChart(
     this.seriesList, {
@@ -30,23 +102,16 @@ class DonutPieChart extends StatelessWidget {
   });
 
   /// Creates a [PieChart] with sample data and no transition.
-  factory DonutPieChart.withSampleData({
-    bool animate = true,
-  }) {
+  factory DonutPieChart.withSampleData([bool animate = true]) {
     return DonutPieChart(
       createSampleData(),
       animate: animate,
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory DonutPieChart.withRandomData([
-    bool animate = true,
-  ]) {
-    return DonutPieChart(createRandomData(), animate: animate);
-  }
+  static String get title => 'Simple Donut';
+  static String? get subtitle =>
+      'With a single series and a hole in the middle';
 
   final List<charts.Series<dynamic, int>> seriesList;
   final bool animate;
@@ -72,17 +137,6 @@ class DonutPieChart extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.PieChart(
-      seriesList,
-      animate: animate,
-      // Configure the width of the pie slices to 60px. The remaining space in
-      // the chart will be left as a hole in the center.
-      defaultRenderer: charts.ArcRendererConfig(arcWidth: 60.0),
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<LinearSales, int>> createSampleData() {
     const data = [
@@ -100,6 +154,17 @@ class DonutPieChart extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.PieChart(
+      seriesList,
+      animate: animate,
+      // Configure the width of the pie slices to 60px. The remaining space in
+      // the chart will be left as a hole in the center.
+      defaultRenderer: const charts.ArcRendererConfig(arcWidth: 60.0),
+    );
   }
 }
 

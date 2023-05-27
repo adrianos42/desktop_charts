@@ -25,8 +25,7 @@ import '../../../theme.dart';
 /// Scale used to convert data input domain units to output range units.
 ///
 /// This is the immutable portion of the Scale definition. Used for converting
-/// data from the dataset in domain units to an output in range units (likely
-/// pixel range of the area to draw on).
+/// data from the dataset in domain units to an output in range units.
 ///
 /// <p>The Scale/MutableScale split is to show the intention of what you can or
 /// should be doing with the scale during different stages of chart draw
@@ -36,13 +35,13 @@ import '../../../theme.dart';
 abstract class Scale<D> {
   /// Applies the scale function to the [domainValue].
   ///
-  /// Returns the pixel location for the given [domainValue] or null if the
+  /// Returns the location for the given [domainValue] or null if the
   /// domainValue could not be found/translated by this scale.
   /// Non-numeric scales should be the only ones that can return null.
   double? operator [](D domainValue);
 
   /// Reverse application of the scale.
-  D reverse(double pixelLocation);
+  D reverse(double location);
 
   /// Tests a [domainValue] to see if the scale can translate it.
   ///
@@ -55,14 +54,14 @@ abstract class Scale<D> {
   ScaleOutputExtent? get range;
 
   /// Returns the absolute width between the max and min range values.
-  int get rangeWidth;
+  double get rangeWidth;
 
   /// Returns the configuration used to determine the rangeBand.
   ///
   /// This is most often used to define the bar group width.
   RangeBandConfig get rangeBandConfig;
 
-  /// Returns the rangeBand width in pixels.
+  /// Returns the rangeBand width.
   ///
   /// The rangeBand is determined using the RangeBandConfig potentially with the
   /// measured step size.  This value is used as the bar group width.  If
@@ -70,7 +69,7 @@ abstract class Scale<D> {
   /// the chart's onPostLayout phase before you'll get a valid number.
   double get rangeBand;
 
-  /// Returns the stepSize width in pixels.
+  /// Returns the stepSize width.
   ///
   /// The step size is determined using the [StepSizeConfig].
   double get stepSize;
@@ -98,7 +97,7 @@ abstract class Scale<D> {
   /// zooming.  Its value is likely >= 1.0.
   double get viewportScalingFactor;
 
-  /// Returns the current pixel viewport offset
+  /// Returns the current viewport offset
   ///
   /// The translate is used by the scale function when it applies the scale.
   /// This is the equivalent to panning.  Its value is likely <= 0 to pan the
@@ -113,7 +112,7 @@ abstract class Scale<D> {
 
 /// Mutable extension of the [Scale] definition.
 ///
-/// Used for converting data from the dataset to some range (likely pixel range)
+/// Used for converting data from the dataset to some range (likely range)
 /// of the area to draw on.
 ///
 /// [D] the domain class type for the values passed in.
@@ -137,7 +136,7 @@ abstract class MutableScale<D> extends Scale<D> {
   /// mapped to the domain's max for the conversion using the domain nicing
   /// function.
   ///
-  /// [extent] is the extent of the range which will likely be the pixel
+  /// [extent] is the extent of the range which will likely be the
   /// range of the drawing area to convert to.
   set range(ScaleOutputExtent? extent);
 
@@ -147,7 +146,7 @@ abstract class MutableScale<D> extends Scale<D> {
   /// the complete data extents to the output range, and 2.0 only maps half the
   /// data to the output range.
   ///
-  /// [viewportTranslate] is the translate/pan to use in pixel units,
+  /// [viewportTranslate] is the translate/pan,
   /// likely <= 0 which shifts the start of the data before the edge of the
   /// chart giving us a pan.
   void setViewportSettings(double viewportScale, double viewportTranslate);
@@ -162,7 +161,7 @@ abstract class MutableScale<D> extends Scale<D> {
   set stepSizeConfig(StepSizeConfig config);
 }
 
-/// Tuple of the output for a scale in pixels from [start] to [end] inclusive.
+/// Tuple of the output for a scale from [start] to [end] inclusive.
 ///
 /// It is different from [Extent] because it focuses on start and end and not
 /// min and max, meaning that start could be greater or less than end.
@@ -203,8 +202,8 @@ enum RangeBandType {
   /// No rangeBand (not suitable for bars or step line charts).
   none,
 
-  /// Size is specified in pixel units.
-  fixedPixel,
+  /// Size is specified in units.
+  fixed,
 
   /// Size is specified domain scale units.
   fixedDomain,
@@ -216,9 +215,8 @@ enum RangeBandType {
   /// points.
   styleAssignedPercentOfStep,
 
-  /// Size is subtracted from the minimum step size between points in pixel
-  /// units.
-  fixedPixelSpaceFromStep,
+  /// Size is subtracted from the minimum step size between points.
+  fixedSpaceFromStep,
 }
 
 /// Defines the method for calculating the rangeBand of the Scale.
@@ -235,12 +233,12 @@ class RangeBandConfig {
       : type = RangeBandType.none,
         size = 0.0;
 
-  /// Creates a fixed rangeBand definition in pixel width.
+  /// Creates a fixed rangeBand definition in width.
   ///
   /// Used to determine a bar width or a step width in the line renderer.
-  const RangeBandConfig.fixedPixel(double pixels)
-      : type = RangeBandType.fixedPixel,
-        size = pixels;
+  const RangeBandConfig.fixed(double value)
+      : type = RangeBandType.fixed,
+        size = value;
 
   /// Creates a fixed rangeBand definition in domain unit width.
   ///
@@ -270,13 +268,13 @@ class RangeBandConfig {
       : type = RangeBandType.styleAssignedPercentOfStep,
         size = themeData.rangeBandSize;
 
-  /// Creates a config that defines the rangeBand as the stepSize - pixels.
+  /// Creates a config that defines the rangeBand as the stepSize - value.
   ///
-  /// Where fixedPixels() gave you a constant rangBand in pixels, this will give
-  /// you a constant space between rangeBands in pixels.
-  const RangeBandConfig.fixedPixelSpaceBetweenStep(double pixels)
-      : type = RangeBandType.fixedPixelSpaceFromStep,
-        size = pixels;
+  /// Where fixed() gave you a constant rangBand, this will give
+  /// you a constant space between rangeBands.
+  const RangeBandConfig.fixedSpaceBetweenStep(double value)
+      : type = RangeBandType.fixedSpaceFromStep,
+        size = value;
 
   final RangeBandType type;
 
@@ -285,7 +283,7 @@ class RangeBandConfig {
 }
 
 /// Type of step size calculation to use.
-enum StepSizeType { autoDetect, fixedDomain, fixedPixels }
+enum StepSizeType { autoDetect, fixedDomain, fixed }
 
 /// Defines the method for calculating the stepSize between points.
 ///
@@ -303,10 +301,10 @@ class StepSizeConfig {
       : type = StepSizeType.autoDetect,
         size = 0.0;
 
-  /// Creates a StepSizeConfig specifying the exact step size in pixel units.
-  const StepSizeConfig.fixedPixels(double pixels)
-      : type = StepSizeType.fixedPixels,
-        size = pixels;
+  /// Creates a StepSizeConfig specifying the exact step size.
+  const StepSizeConfig.fixed(double value)
+      : type = StepSizeType.fixed,
+        size = value;
 
   /// Creates a StepSizeConfig specifying the exact step size in domain units.
   const StepSizeConfig.fixedDomain(double domainSize)

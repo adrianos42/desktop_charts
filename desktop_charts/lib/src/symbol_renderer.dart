@@ -156,10 +156,10 @@ class LineSymbolRenderer extends SymbolRenderer {
   })  : strokeWidth = strokeWidth ?? strokeWidthForRoundEndCaps,
         _dashPattern = dashPattern;
 
-  static const roundEndCapsPixels = 2;
-  static const minLengthToRoundCaps = (roundEndCapsPixels * 2) + 1;
-  static const strokeWidthForRoundEndCaps = 4.0;
-  static const strokeWidthForNonRoundedEndCaps = 2.0;
+  static const double roundEndCaps = 2.0;
+  static const double minLengthToRoundCaps = (roundEndCaps * 2.0) + 1.0;
+  static const double strokeWidthForRoundEndCaps = 4.0;
+  static const double strokeWidthForNonRoundedEndCaps = 2.0;
 
   /// Thickness of the line stroke.
   final double strokeWidth;
@@ -184,7 +184,7 @@ class LineSymbolRenderer extends SymbolRenderer {
     // strokeWidth to a smaller value. Using round end caps makes smaller
     // patterns blurry.
     final localDashPattern = dashPattern ?? _dashPattern;
-    final roundEndCaps = localDashPattern == null;
+    final hasRoundEndCaps = localDashPattern == null;
 
     // If we have a dash pattern, the normal stroke width makes them look
     // strangely tall.
@@ -192,15 +192,15 @@ class LineSymbolRenderer extends SymbolRenderer {
         ? getSolidStrokeWidth(strokeWidth ?? strokeWidth)
         : strokeWidthForNonRoundedEndCaps;
 
-    // Adjust the length so the total width includes the rounded pixels.
+    // Adjust the length so the total width includes the rounded value.
     // Otherwise the cap is drawn past the bounds and appears to be cut off.
     // If bounds is not long enough to accommodate the line, do not adjust.
     double left = bounds.left;
     double right = bounds.right;
 
-    if (roundEndCaps && bounds.width >= minLengthToRoundCaps) {
-      left += roundEndCapsPixels;
-      right -= roundEndCapsPixels;
+    if (hasRoundEndCaps && bounds.width >= minLengthToRoundCaps) {
+      left += roundEndCaps;
+      right -= roundEndCaps;
     }
 
     // TODO: Pass in strokeWidth, roundEndCaps, and dashPattern from
@@ -210,7 +210,7 @@ class LineSymbolRenderer extends SymbolRenderer {
       points: [Offset(left, centerHeight), Offset(right, centerHeight)],
       dashPattern: localDashPattern,
       // TODO fill: getSolidFillColor(fillColor)!,
-      roundEndCaps: roundEndCaps,
+      roundEndCaps: hasRoundEndCaps,
       stroke: strokeColor!,
       strokeWidth: localStrokeWidth,
     );

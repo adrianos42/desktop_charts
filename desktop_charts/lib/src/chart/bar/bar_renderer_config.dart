@@ -29,7 +29,7 @@ import 'base_bar_renderer_config.dart'
 @immutable
 class BarRendererConfig<D> extends BaseBarRendererConfig<D> {
   const BarRendererConfig({
-    BarGroupingType? groupingType,
+    super.groupingType = BarGroupingType.grouped,
     this.barRendererDecorator,
     super.barGroupInnerPadding = 2.0,
     super.customRendererId,
@@ -41,7 +41,7 @@ class BarRendererConfig<D> extends BaseBarRendererConfig<D> {
     super.strokeWidth = 0.0,
     super.symbolRenderer,
     super.weightPattern,
-  }) : super(groupingType: groupingType ?? BarGroupingType.grouped);
+  });
 
   /// Decorator for optionally decorating painted bars.
   final BarRendererDecorator<D>? barRendererDecorator;

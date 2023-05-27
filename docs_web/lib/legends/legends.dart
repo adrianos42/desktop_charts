@@ -4,120 +4,67 @@ library legends;
 
 import 'package:desktop/desktop.dart';
 
-import 'datum_legend_options.dart';
-import 'datum_legend_with_measures.dart';
+import '../defaults.dart';
+import 'datum/measures.dart';
+import 'datum/options.dart';
 import 'default_hidden_series_legend.dart';
 import 'legend_custom_symbol.dart';
-import 'series_legend_options.dart';
-import 'series_legend_with_measures.dart';
-import 'simple_datum_legend.dart';
-import 'simple_series_legend.dart';
+import 'series/datum.dart';
+import 'series/measures.dart';
+import 'series/options.dart';
+import 'series/simple.dart';
 
-import '../defaults.dart';
+const _items = [
+  DefaultHiddenSeriesLegendBuilder(),
+  LegendWithCustomSymbolBuilder(),
+  GroupedItensBuilder('Datum'),
+  DatumLegendWithMeasuresBuilder(),
+  DatumLegendOptionsBuilder(),
+  GroupedItensBuilder('Series'),
+  SimpleDatumLegendBuilder(),
+  LegendWithMeasuresBuilder(),
+  LegendOptionsBuilder(),
+  SimpleSeriesLegendBuilder(),
+];
 
-List<(String, String?, WidgetBuilder)> createItems([bool animate = true]) {
-  return _createItemsWithSeries(
-    animate: animate,
-  );
+List<(String, String?, String? parentTitle, WidgetBuilder)> createItems(
+    [bool animate = true]) {
+  return _items
+      .where((e) => !e.hasChildren)
+      .map((e) => (
+            e.title,
+            e.subtitle,
+            e.parentTitle,
+            (context) => e.withSampleData(animate)
+          ))
+      .toList();
 }
 
-List<(String, String?, WidgetBuilder)> _createItemsWithSeries({
-  bool animate = true,
-}) {
-  return [
-    (
-      'Series Legend',
-      'A series legend for a bar chart with default settings',
-      (context) => SimpleSeriesLegend.withSampleData(animate),
-    ),
-    (
-      'Series Legend Options',
-      'A series legend with custom positioning and spacing for a bar chart',
-      (context) => LegendOptions.withSampleData(animate),
-    ),
-    (
-      'Series Legend Custom Symbol',
-      'A series legend using a custom symbol renderer',
-      (context) => LegendWithCustomSymbol.withSampleData(animate),
-    ),
-    (
-      'Default Hidden Series Legend',
-      'A series legend showing a series hidden by default',
-      (context) => DefaultHiddenSeriesLegend.withSampleData(animate),
-    ),
-    (
-      'Series legend with measures',
-      'Series legend with measures and measure formatting',
-      (context) => LegendWithMeasures.withSampleData(animate),
-    ),
-    (
-      'Datum Legend',
-      'A datum legend for a pie chart with default settings',
-      (context) => SimpleDatumLegend.withSampleData(animate),
-    ),
-    (
-      'Datum Legend Options',
-      'A datum legend with custom positioning and spacing for a pie chart',
-      (context) => DatumLegendOptions.withSampleData(animate),
-    ),
-    (
-      'Datum legend with measures',
-      'Datum legend with measures and measure formatting',
-      (context) => DatumLegendWithMeasures.withSampleData(animate),
-    ),
-  ];
+List<ExampleBuilder> _createAllNodeItems() {
+  return _items.where((e) => !e.hasParent).toList();
 }
 
-class LegendsPage extends StatefulWidget {
-  const LegendsPage({super.key});
+TreeNode createChartNode(
+    (
+      String?,
+      int,
+    ) selectedIndex) {
+  final (parentTitle, childIndex) = selectedIndex;
 
-  @override
-  _LegendsPageState createState() => _LegendsPageState();
-}
-
-class _LegendsPageState extends State<LegendsPage> {
-  bool _hasAnimation = true;
-
-  void _updateRandomData() {}
-
-  void _refresh() {
-    setState(() => _updateRandomData());
-  }
-
-  @override
-  void initState() {
-    super.initState();
-
-    _updateRandomData();
-  }
-
-  List<(String, String?, WidgetBuilder)> _createItems([bool animate = true]) =>
-      _createItemsWithSeries(
-        animate: animate,
+  return TreeNode.children(
+    titleBuilder: (context) => const Text('Legends'),
+    children: _createAllNodeItems().map((e) {
+      return TreeNode.child(
+        titleBuilder: (context) => Text(e.title),
+        builder: (context) => e.page(
+          parentTitle == e.title ? childIndex : null,
+          e.hasChildren
+              ? _items
+                  .where((w) => w.hasParent && w.parentTitle == e.title)
+                  .toList()
+              : null,
+        ),
       );
-
-  @override
-  Widget build(BuildContext context) {
-    return Defaults(
-      header: 'Legends',
-      items: _createItems(_hasAnimation)
-          .map(
-            (e) => ItemTitle(
-              title: e.$1,
-              subtitle: e.$2,
-              options: [
-                Button.icon(
-                  Icons.animation,
-                  onPressed: () =>
-                      setState(() => _hasAnimation = !_hasAnimation),
-                  active: _hasAnimation,
-                ),
-                //Button.icon(Icons.refresh, onPressed: _refresh),
-              ],
-              body: e.$3,
-            ),
-          )
-          .toList(),
-    );
-  }
+    }).toList(),
+  );
 }

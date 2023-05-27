@@ -15,6 +15,86 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class OrdinalInitialViewportPage extends StatefulWidget {
+  const OrdinalInitialViewportPage({super.key});
+
+  @override
+  State<OrdinalInitialViewportPage> createState() =>
+      _OrdinalInitialViewportPageState();
+}
+
+class _OrdinalInitialViewportPageState
+    extends State<OrdinalInitialViewportPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = OrdinalInitialViewport.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<OrdinalSales, String>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'Axes',
+      items: [
+        ItemTitle(
+          title: OrdinalInitialViewport.title,
+          subtitle: OrdinalInitialViewport.subtitle,
+          body: (context) => OrdinalInitialViewport(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class OrdinalInitialViewportBuilder extends ExampleBuilder {
+  const OrdinalInitialViewportBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const OrdinalInitialViewportPage();
+
+  @override
+  String? get subtitle => OrdinalInitialViewport.subtitle;
+
+  @override
+  String get title => OrdinalInitialViewport.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      OrdinalInitialViewport.withSampleData(animate);
+}
+
 /// Example of setting an initial viewport for ordinal axis.
 ///
 /// This allows for specifying the specific range of data to show that differs
@@ -23,12 +103,6 @@
 /// In this example, the series list has ordinal data from year 2014 to 2030,
 /// but we want to show starting at 2018 and we only want to show 4 values.
 /// We can do this by specifying an [OrdinalViewport] in [OrdinalAxisSpec].
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class OrdinalInitialViewport extends StatelessWidget {
   const OrdinalInitialViewport(
     this.seriesList, {
@@ -44,15 +118,8 @@ class OrdinalInitialViewport extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory OrdinalInitialViewport.withRandomData([bool animate = true]) {
-    return OrdinalInitialViewport(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'Ordinal axis with initial viewport';
+  static String? get subtitle => 'Single series with initial viewport';
 
   final List<charts.Series<dynamic, String>> seriesList;
   final bool animate;
@@ -92,22 +159,6 @@ class OrdinalInitialViewport extends StatelessWidget {
     ];
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return charts.BarChart(
-      seriesList,
-      animate: animate,
-      // Set the initial viewport by providing a AxisSpec with the
-      // desired viewport: a starting domain and the data size.
-      domainAxis: const charts.OrdinalAxisSpec(
-        viewport: charts.OrdinalViewport('2018', 4),
-      ),
-      // Optionally add a pan or pan and zoom behavior.
-      // If pan/zoom is not added, the viewport specified remains the viewport.
-      behaviors: const [charts.PanAndZoomBehavior()],
-    );
-  }
-
   /// Create one series with sample hard coded data.
   static List<charts.Series<OrdinalSales, String>> createSampleData() {
     const data = [
@@ -139,6 +190,22 @@ class OrdinalInitialViewport extends StatelessWidget {
         data: data,
       )
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return charts.BarChart(
+      seriesList,
+      animate: animate,
+      // Set the initial viewport by providing a AxisSpec with the
+      // desired viewport: a starting domain and the data size.
+      domainAxis: const charts.OrdinalAxisSpec(
+        viewport: charts.OrdinalViewport('2018', 4),
+      ),
+      // Optionally add a pan or pan and zoom behavior.
+      // If pan/zoom is not added, the viewport specified remains the viewport.
+      behaviors: const [charts.PanAndZoomBehavior()],
+    );
   }
 }
 

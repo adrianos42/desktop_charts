@@ -461,7 +461,11 @@ class _LinePointRender<D> extends RenderBox {
       update();
       _needsUpdate = false;
     }
-    
+
+    context.canvas
+      ..save()
+      ..clipRect((offset & size).inflate(20.0));
+
     final animationPercent = chartState.animationPosition.value;
 
     // Clean up the lines that no longer exist.
@@ -629,10 +633,11 @@ class _LinePointRender<D> extends RenderBox {
       final point = pointElement.point.toPoint();
 
       final bounds = Rect.fromLTWH(
-          point.dx - pointElement.radius,
-          point.dy - pointElement.radius,
-          pointElement.radius * 2,
-          pointElement.radius * 2);
+        point.dx - pointElement.radius,
+        point.dy - pointElement.radius,
+        pointElement.radius * 2.0,
+        pointElement.radius * 2.0,
+      );
 
       // Draw the highlight dot. Use the [SymbolRenderer] from the datum if one
       // is defined.
@@ -645,6 +650,8 @@ class _LinePointRender<D> extends RenderBox {
         strokeWidth: pointElement.strokeWidth,
       );
     }
+
+    context.canvas.restore();
   }
 }
 
@@ -660,11 +667,12 @@ class _DatumPoint<D> extends NullablePoint {
 
   factory _DatumPoint.from(_DatumPoint<D> other, [double? x, double? y]) {
     return _DatumPoint<D>(
-        datum: other.datum,
-        domain: other.domain,
-        series: other.series,
-        x: x ?? other.dx,
-        y: y ?? other.dy);
+      datum: other.datum,
+      domain: other.domain,
+      series: other.series,
+      x: x ?? other.dx,
+      y: y ?? other.dy,
+    );
   }
 
   final dynamic datum;
@@ -717,7 +725,10 @@ class _PointRendererElement<D> {
     color = getAnimatedColor(previous.color!, target.color!, animationPercent);
 
     fillColor = getAnimatedColor(
-        previous.fillColor!, target.fillColor!, animationPercent);
+      previous.fillColor!,
+      target.fillColor!,
+      animationPercent,
+    );
 
     radius = lerpDouble(previous.radius, target.radius, animationPercent)!;
 

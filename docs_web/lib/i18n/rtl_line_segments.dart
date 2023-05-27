@@ -15,6 +15,84 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
+import 'dart:math';
+
+import 'package:desktop/desktop.dart';
+import 'package:desktop_charts/desktop_charts.dart' as charts;
+
+import '../defaults.dart';
+
+class RTLLineSegmentsPage extends StatefulWidget {
+  const RTLLineSegmentsPage({super.key});
+
+  @override
+  State<RTLLineSegmentsPage> createState() => _RTLLineSegmentsPageState();
+}
+
+class _RTLLineSegmentsPageState extends State<RTLLineSegmentsPage> {
+  bool _hasAnimation = true;
+
+  void _updateRandomData() {
+    _data = RTLLineSegments.createRandomData();
+  }
+
+  void _refresh() {
+    setState(() => _updateRandomData());
+  }
+
+  @override
+  void initState() {
+    super.initState();
+
+    _updateRandomData();
+  }
+
+  late List<charts.Series<LinearSales, num>> _data;
+
+  @override
+  Widget build(BuildContext context) {
+    return Defaults(
+      header: 'i18n',
+      items: [
+        ItemTitle(
+          title: RTLLineSegments.title,
+          subtitle: RTLLineSegments.subtitle,
+          body: (context) => RTLLineSegments(
+            _data,
+            animate: _hasAnimation,
+          ),
+          options: [
+            Button.icon(
+              Icons.animation,
+              onPressed: () => setState(() => _hasAnimation = !_hasAnimation),
+              active: _hasAnimation,
+            ),
+            Button.icon(Icons.refresh, onPressed: _refresh),
+          ],
+        ),
+      ],
+    );
+  }
+}
+
+class RTLLineSegmentsBuilder extends ExampleBuilder {
+  const RTLLineSegmentsBuilder();
+
+  @override
+  Widget page([int? index, List<ExampleBuilder>? children]) =>
+      const RTLLineSegmentsPage();
+
+  @override
+  String? get subtitle => RTLLineSegments.subtitle;
+
+  @override
+  String get title => RTLLineSegments.title;
+
+  @override
+  Widget withSampleData([bool animate = true]) =>
+      RTLLineSegments.withSampleData(animate);
+}
+
 /// Example of a RTL stacked area chart with changing styles within each line.
 ///
 /// Each series of data in this example contains different values for color,
@@ -27,12 +105,6 @@
 /// the [charts.LineRendererConfig]. This could be used, for example, to define
 /// a default dash pattern for the series, with only a specific datum called out
 /// with a different pattern.
-
-import 'dart:math';
-
-import 'package:desktop/desktop.dart';
-import 'package:desktop_charts/desktop_charts.dart' as charts;
-
 class RTLLineSegments extends StatelessWidget {
   const RTLLineSegments(
     this.seriesList, {
@@ -48,15 +120,9 @@ class RTLLineSegments extends StatelessWidget {
     );
   }
 
-  // This section is excluded from being copied to the gallery.
-  // It is used for creating random series data to demonstrate animation in
-  // the example app only.
-  factory RTLLineSegments.withRandomData([bool animate = true]) {
-    return RTLLineSegments(
-      createRandomData(),
-      animate: animate,
-    );
-  }
+  static String get title => 'RTL Line Segments';
+  static String? get subtitle =>
+      'Stacked area chart with style segments in RTL';
 
   final List<charts.Series<dynamic, num>> seriesList;
   final bool animate;
@@ -118,7 +184,7 @@ class RTLLineSegments extends StatelessWidget {
       charts.Series<LinearSales, int>(
         id: 'Dash Pattern Change',
         // Light shade for even years, dark shade for odd.
-        color: (LinearSales sales, _) => sales.year % 2 == 0 ? red[1] : red[0],
+        color: (LinearSales sales, _) => sales.year.isEven ? red[1] : red[0],
         dashPattern: (LinearSales sales, _) => sales.dashPattern,
         strokeWidth: (LinearSales sales, _) => sales.strokeWidth,
         domain: (LinearSales sales, _) => sales.year,
@@ -137,30 +203,6 @@ class RTLLineSegments extends StatelessWidget {
         data: strokeWidthChangeData,
       ),
     ];
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // Charts will determine if RTL is enabled by checking the directionality by
-    // requesting Directionality.of(context). This returns the text direction
-    // from the closest instance of that encloses the context passed to build
-    // the chart. A [TextDirection.rtl] will be treated as a RTL chart. This
-    // means that the directionality widget does not have to directly wrap each
-    // chart. It is show here as an example only.
-    //
-    // By default, when a chart detects RTL:
-    // Measure axis positions are flipped. Primary measure axis is on the right
-    // and the secondary measure axis is on the left (when used).
-    // Domain axis' first domain starts on the right and grows left.
-    return Directionality(
-      textDirection: TextDirection.rtl,
-      child: charts.LineChart(
-        seriesList,
-        defaultRenderer:
-            charts.LineRendererConfig(includeArea: true, stacked: true),
-        animate: animate,
-      ),
-    );
   }
 
   /// Create one series with sample hard coded data.
@@ -237,6 +279,32 @@ class RTLLineSegments extends StatelessWidget {
         data: strokeWidthChangeData,
       ),
     ];
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    // Charts will determine if RTL is enabled by checking the directionality by
+    // requesting Directionality.of(context). This returns the text direction
+    // from the closest instance of that encloses the context passed to build
+    // the chart. A [TextDirection.rtl] will be treated as a RTL chart. This
+    // means that the directionality widget does not have to directly wrap each
+    // chart. It is show here as an example only.
+    //
+    // By default, when a chart detects RTL:
+    // Measure axis positions are flipped. Primary measure axis is on the right
+    // and the secondary measure axis is on the left (when used).
+    // Domain axis' first domain starts on the right and grows left.
+    return Directionality(
+      textDirection: TextDirection.rtl,
+      child: charts.LineChart(
+        seriesList,
+        defaultRenderer: const charts.LineRendererConfig(
+          includeArea: true,
+          stacked: true,
+        ),
+        animate: animate,
+      ),
+    );
   }
 }
 
